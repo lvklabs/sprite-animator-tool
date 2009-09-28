@@ -1,0 +1,5 @@
+El archivo lvks es un ejemplo de del archivo que genera la tool. Antes de
+abrirlo editar a mano los path de las imagenes (por ahora usa path absolutos
+pero deberia usar path relativos)
+
+
