@@ -15,6 +15,7 @@
 #include "inputimage.h"
 #include "lvkframe.h"
 #include "version.h"
+#include <stdio.h>
 
 /// imgTableWidget columns
 enum {
@@ -51,6 +52,7 @@ enum {
 
 #define getImageId(row)         ui->imgTableWidget->item(row, ColImageId)->text().toInt()
 #define getFrameId(row)         ui->framesTableWidget->item(row, ColFrameId)->text().toInt()
+#define getAFrameId(row)        ui->aframesTableWidget->item(row, ColFrameId)->text().toInt()
 #define getFrameImgId(row)      ui->framesTableWidget->item(row, ColFrameImgId)->text().toInt()
 #define getAnimationId(row)     ui->aniTableWidget->item(row, ColAniId)->text().toInt()
 
@@ -100,8 +102,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->removeFrameButton, SIGNAL(clicked()),            this, SLOT(removeSelFrame()));
 
     connect(ui->addAniButton,      SIGNAL(clicked()),            this, SLOT(addAnimationDialog()));
+    connect(ui->aframesTableWidget,SIGNAL(cellClicked(int,int)), this, SLOT(showSelAframe(int)));
     connect(ui->removeAniButton,   SIGNAL(clicked()),            this, SLOT(removeSelAnimation()));
     connect(ui->addAframeButton,   SIGNAL(clicked()),            this, SLOT(addAframeDialog()));
+    connect(ui->removeAframeButton,SIGNAL(clicked()),            this, SLOT(removeSelAframe()));
 
 
     /* input images table */
@@ -273,6 +277,7 @@ void MainWindow::closeFile()
 
     ui->imgPreview->setPixmap(QPixmap());
     ui->framePreview->setPixmap(QPixmap());
+    ui->frameAPreview->setPixmap(QPixmap());
 }
 
 void MainWindow::setCurrentFile(const QString& filename)
@@ -466,7 +471,7 @@ void MainWindow::showSelFrame(int row)
     const QPixmap& selPixmap = _sprState.fpixmap(frameId);
     int w = selPixmap.width();
     int h = selPixmap.height();
-
+    
     ui->framePreview->setPixmap(selPixmap);
     ui->framePreview->setGeometry(0, 0, w, h);
     ui->framePreview->updateGeometry();
@@ -539,9 +544,21 @@ void MainWindow::addAnimation(const LvkAnimation& ani)
     ui->addAframeButton->setEnabled(true);
 }
 
-void MainWindow::showSelAnimation(int /*row*/)
+void MainWindow::showSelAnimation(int row)
 {
-    // TODO
+    int animationId = getAnimationId(row);
+
+    const QPixmap& selPixmap = _sprState.fpixmap(animationId);
+    int w = selPixmap.width();
+    int h = selPixmap.height();
+    cout<<(_sprState.aframes(animationId).size());
+//    ui->aframesTableWidget->clearContents();
+//    ui->aframesTableWidget->setRowCount(0);
+    /*
+    ui->animationPreview->setPixmap(selPixmap);
+    ui->animationPreview->setGeometry(0, 0, w, h);
+    ui->animationPreview->updateGeometry();
+    */
 }
 
 void MainWindow::removeSelAnimation()
@@ -613,6 +630,7 @@ void MainWindow::addAframeDialog()
 
 void MainWindow::addAframe(const LvkAframe& aframe, Id aniId)
 {
+
     /* state */
     
     _sprState.addAframe(aframe, aniId);
@@ -636,19 +654,47 @@ void MainWindow::addAframe(const LvkAframe& aframe, Id aniId)
 }
 
 
-void MainWindow::showSelAframe(int /*row*/)
+void MainWindow::showSelAframe(int row)
 {
-    // TODO
+
+    int frameId = getAFrameId(row);
+
+    const QPixmap& selPixmap = _sprState.fpixmap(frameId);
+    int w = selPixmap.width();
+    int h = selPixmap.height();
+
+    ui->frameAPreview->setPixmap(selPixmap);
+    ui->frameAPreview->setGeometry(0, 0, w, h);
+    ui->frameAPreview->updateGeometry();
 }
 
 void MainWindow::removeSelAframe()
 {
-    // TODO
+// FIX yesNoDialog
+//    if (!yesNoDialog(tr("Are you sure you want to remove the frame?"))) {
+//        return;
+//    }
+
+    int currentRow = ui->aframesTableWidget->currentRow();
+
+    if (currentRow == -1) {
+        infoDialog("No frame selected");
+        return;
+    }
+    removeAframe(currentRow);
 }
 
-void MainWindow::removeAframe(int /*row*/)
+void MainWindow::removeAframe(int row)
 {
-    // TODO
+    Id frameId = getAFrameId(row);
+
+    ui->aframesTableWidget->removeRow(row);
+    if (ui->aframesTableWidget->rowCount() == 0) {
+        ui->removeAframeButton->setEnabled(false);
+    }
+    ui->frameAPreview->setPixmap(QPixmap());
+
+    _sprState.removeFrame(frameId);
 }
 
 void MainWindow::about()
