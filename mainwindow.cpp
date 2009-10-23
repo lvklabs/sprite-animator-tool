@@ -9,11 +9,15 @@
 #include <QDialog>
 #include <QMessageBox>
 #include <QInputDialog>
+#include <QGraphicsPixmapItem>
+#include <QList>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "inputimage.h"
 #include "lvkframe.h"
+#include "lvkaframe.h"
+#include "lvkframegraphicsgroup.h"
 #include "version.h"
 
 /// imgTableWidget columns
@@ -102,7 +106,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->addAniButton,      SIGNAL(clicked()),            this, SLOT(addAnimationDialog()));
     connect(ui->removeAniButton,   SIGNAL(clicked()),            this, SLOT(removeSelAnimation()));
     connect(ui->addAframeButton,   SIGNAL(clicked()),            this, SLOT(addAframeDialog()));
-
+    connect(ui->previewAniButton,  SIGNAL(clicked()),            this, SLOT(previewAnimation()));
 
     /* input images table */
 
@@ -539,9 +543,36 @@ void MainWindow::addAnimation(const LvkAnimation& ani)
     ui->addAframeButton->setEnabled(true);
 }
 
-void MainWindow::showSelAnimation(int /*row*/)
+void MainWindow::showSelAnimation(int row)
 {
-    // TODO
+    ui->previewAniButton->setEnabled(true);
+}
+
+void MainWindow::previewAnimation()
+{
+    int row = ui->aniTableWidget->row(ui->aniTableWidget->selectedItems().first());
+    Id animationId = getAnimationId(row);
+    QList<QGraphicsPixmapItem*> aniFrames;
+    LvkAnimation ani = _sprState.animations().value(animationId);
+    QGraphicsScene* scene = new QGraphicsScene;
+    double delays[ani.aframes.size()];
+    int i=0;
+    for (QHashIterator<Id, LvkAframe> it(ani.aframes); it.hasNext();)
+    {
+
+        QGraphicsPixmapItem* aux = new QGraphicsPixmapItem(_sprState.fpixmap(it.next().key()));
+        scene->addItem(aux);
+        delays[i] = it.peekPrevious().value().delay;
+        i++;
+        aniFrames << aux;
+    }
+    LvkFrameGraphicsGroup* animation = new LvkFrameGraphicsGroup(aniFrames, delays);
+
+    scene->addItem(animation);
+    ui->animationGraphicsView->setScene(scene);
+    ui->animationGraphicsView->show();
+    animation->run();
+
 }
 
 void MainWindow::removeSelAnimation()
@@ -664,4 +695,11 @@ void MainWindow::about()
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+
+
+void MainWindow::on_previewAniButton_clicked()
+{
+
 }

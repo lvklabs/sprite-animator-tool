@@ -9,7 +9,8 @@ SOURCES += main.cpp \
     lvkframe.cpp \
     inputimage.cpp \
     lvkanimation.cpp \
-    lvkaframe.cpp
+    lvkaframe.cpp \
+    lvkframegraphicsgroup.cpp
 HEADERS += mainwindow.h \
     spritestate.h \
     lvkframe.h \
@@ -17,6 +18,7 @@ HEADERS += mainwindow.h \
     inputimage.h \
     types.h \
     lvkanimation.h \
-    lvkaframe.h
+    lvkaframe.h \
+    lvkframegraphicsgroup.h
 FORMS += mainwindow.ui
 DEFINES += DEBUG

@@ -64,6 +64,7 @@ private:
     void addAframe(const LvkAframe& aframe, Id aniId);
 
 private slots:
+    void on_previewAniButton_clicked();
     void saveFile();
     void saveAsFile();
     void openFile();
@@ -86,6 +87,7 @@ private slots:
 
     void addAnimationDialog();
     void showSelAnimation(int row);
+    void previewAnimation();
     void removeSelAnimation();
     void removeAnimation(int row);
 

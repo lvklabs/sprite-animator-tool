@@ -106,6 +106,13 @@ public:
     /// deserialize instance from @param filename
     bool deserialize(const QString& filename, int* err = 0);
 
+    //TODO write a displayAnimation function that takes the animation that needs to be displayed
+    /// display preview of @param
+    void displayAninamtion(const LvkAnimation& ani)
+    {
+
+    }
+
 private:
     /// input images hash
     QHash<Id, InputImage>   _images;
@@ -121,6 +128,9 @@ private:
 
     /// Frame pixmaps.
     QHash<int, QPixmap>     _fpixmaps;
+
+    /// actual animations used to preview
+    ///QHash<Id, LvkFrameGraphicsGroup> _gfanimation;
 };
 
 #endif // SPRITESTATE_H
