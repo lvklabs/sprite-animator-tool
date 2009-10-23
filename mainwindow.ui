@@ -420,18 +420,18 @@
           </attribute>
          </widget>
         </item>
-        <item row="1" column="1" rowspan="3" colspan="5">
+        <item row="1" column="1" rowspan="3" colspan="4">
          <widget class="QScrollArea" name="aniPreviewScroll">
           <property name="widgetResizable">
            <bool>true</bool>
           </property>
-          <widget class="QWidget" name="scrollAreaWidgetContents">
+          <widget class="QWidget" name="aniPreview">
            <property name="geometry">
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>559</width>
-             <height>360</height>
+             <width>344</width>
+             <height>380</height>
             </rect>
            </property>
           </widget>
@@ -487,6 +487,23 @@
           </property>
          </spacer>
         </item>
+        <item row="1" column="5" rowspan="3">
+         <widget class="QScrollArea" name="frameAPreviewScroll">
+          <property name="widgetResizable">
+           <bool>true</bool>
+          </property>
+          <widget class="QWidget" name="frameAPreview">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>205</width>
+             <height>380</height>
+            </rect>
+           </property>
+          </widget>
+         </widget>
+        </item>
        </layout>
       </widget>
      </widget>
@@ -499,7 +516,7 @@
      <x>0</x>
      <y>0</y>
      <width>863</width>
-     <height>25</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
