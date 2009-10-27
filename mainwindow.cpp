@@ -556,6 +556,13 @@ void MainWindow::showSelAnimation(int row)
 
 void MainWindow::previewAnimation()
 {
+    /// TODO
+    /// It is currently not working correctly, each LvkFrameGraphicsGroup has to
+    /// be executed in a thread that is not the main thread (with a different event loop).
+    /// I have been able to execute each  LvkFrameGraphicsGroup in a different thread, but
+    /// but the animation produced is not visible in "animationsGraphicsView". Study more QThreads and
+    /// its relation with the main thread and UI objects.
+
     int row = ui->aniTableWidget->row(ui->aniTableWidget->selectedItems().first());
     Id animationId = getAnimationId(row);
     QList<QGraphicsPixmapItem*> aniFrames;
