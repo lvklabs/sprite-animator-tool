@@ -148,7 +148,7 @@
            <enum>QAbstractItemView::SingleSelection</enum>
           </property>
           <property name="selectionBehavior">
-           <enum>QAbstractItemView::SelectRows</enum>
+           <enum>QAbstractItemView::SelectColumns</enum>
           </property>
           <property name="verticalScrollMode">
            <enum>QAbstractItemView::ScrollPerItem</enum>
@@ -467,14 +467,52 @@
           </property>
          </spacer>
         </item>
-        <item row="1" column="1" rowspan="3" colspan="6">
-         <widget class="QGraphicsView" name="animationGraphicsView"/>
+        <item row="1" column="6" rowspan="3">
+         <widget class="QScrollArea" name="frameAPreviewScroll">
+          <property name="widgetResizable">
+           <bool>true</bool>
+          </property>
+          <widget class="QLabel" name="frameAPreview">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>76</width>
+             <height>360</height>
+            </rect>
+           </property>
+          </widget>
+         </widget>
+        </item>
+        <item row="1" column="1" rowspan="3" colspan="5">
+         <widget class="QScrollArea" name="aniPreviewScroll">
+          <property name="widgetResizable">
+           <bool>true</bool>
+          </property>
+          <widget class="QWidget" name="scrollAreaWidgetContents">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>590</width>
+             <height>360</height>
+            </rect>
+           </property>
+           <widget class="QGraphicsView" name="animationGraphicsView">
+            <property name="geometry">
+             <rect>
+              <x>-5</x>
+              <y>-9</y>
+              <width>561</width>
+              <height>371</height>
+             </rect>
+            </property>
+           </widget>
+          </widget>
+         </widget>
         </item>
         <item row="0" column="3">
          <widget class="QPushButton" name="previewAniButton">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
           <property name="text">
            <string>Preview Animation</string>
           </property>

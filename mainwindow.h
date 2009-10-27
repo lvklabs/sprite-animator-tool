@@ -64,7 +64,6 @@ private:
     void addAframe(const LvkAframe& aframe, Id aniId);
 
 private slots:
-    void on_previewAniButton_clicked();
     void saveFile();
     void saveAsFile();
     void openFile();
