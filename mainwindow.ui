@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>863</width>
+    <width>887</width>
     <height>526</height>
    </rect>
   </property>
@@ -148,7 +148,7 @@
            <enum>QAbstractItemView::SingleSelection</enum>
           </property>
           <property name="selectionBehavior">
-           <enum>QAbstractItemView::SelectColumns</enum>
+           <enum>QAbstractItemView::SelectRows</enum>
           </property>
           <property name="verticalScrollMode">
            <enum>QAbstractItemView::ScrollPerItem</enum>
@@ -404,7 +404,7 @@
            <enum>QAbstractItemView::SingleSelection</enum>
           </property>
           <property name="selectionBehavior">
-           <enum>QAbstractItemView::SelectColumns</enum>
+           <enum>QAbstractItemView::SelectRows</enum>
           </property>
           <property name="verticalScrollMode">
            <enum>QAbstractItemView::ScrollPerPixel</enum>
@@ -434,7 +434,7 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="4">
+        <item row="0" column="3">
          <widget class="QPushButton" name="addAframeButton">
           <property name="enabled">
            <bool>false</bool>
@@ -444,7 +444,7 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="5">
+        <item row="0" column="4">
          <widget class="QPushButton" name="removeAframeButton">
           <property name="enabled">
            <bool>false</bool>
@@ -454,7 +454,7 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="6">
+        <item row="0" column="5">
          <spacer name="horizontalSpacer_4">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -467,7 +467,7 @@
           </property>
          </spacer>
         </item>
-        <item row="1" column="6" rowspan="3">
+        <item row="1" column="5" rowspan="3">
          <widget class="QScrollArea" name="frameAPreviewScroll">
           <property name="widgetResizable">
            <bool>true</bool>
@@ -477,14 +477,14 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>76</width>
+             <width>91</width>
              <height>360</height>
             </rect>
            </property>
           </widget>
          </widget>
         </item>
-        <item row="1" column="1" rowspan="3" colspan="5">
+        <item row="1" column="1" rowspan="3" colspan="4">
          <widget class="QScrollArea" name="aniPreviewScroll">
           <property name="widgetResizable">
            <bool>true</bool>
@@ -494,7 +494,7 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>590</width>
+             <width>484</width>
              <height>360</height>
             </rect>
            </property>
@@ -508,14 +508,23 @@
              </rect>
             </property>
            </widget>
+           <widget class="QPushButton" name="previewAniButton">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>320</y>
+              <width>85</width>
+              <height>28</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Play</string>
+            </property>
+           </widget>
+           <zorder>animationGraphicsView</zorder>
+           <zorder>previewAniButton</zorder>
+           <zorder>previewAniButton</zorder>
           </widget>
-         </widget>
-        </item>
-        <item row="0" column="3">
-         <widget class="QPushButton" name="previewAniButton">
-          <property name="text">
-           <string>Preview Animation</string>
-          </property>
          </widget>
         </item>
        </layout>
@@ -529,8 +538,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>863</width>
-     <height>22</height>
+     <width>887</width>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">

@@ -43,6 +43,10 @@ public:
     const QPixmap& fpixmap(Id frameId)
     { return _fpixmaps[frameId]; }
 
+    /// get frame pixmaps hash
+    const QHash<Id, QPixmap>& fpixmaps() const
+    { return _fpixmaps; }
+
     /// add new input image
     void addImage(const InputImage& img)
     {
@@ -106,13 +110,6 @@ public:
     /// deserialize instance from @param filename
     bool deserialize(const QString& filename, int* err = 0);
 
-    //TODO write a displayAnimation function that takes the animation that needs to be displayed
-    /// display preview of @param
-    void displayAninamtion(const LvkAnimation& ani)
-    {
-
-    }
-
 private:
     /// input images hash
     QHash<Id, InputImage>   _images;
@@ -124,13 +121,10 @@ private:
     QHash<Id, LvkAnimation> _animations;
 
     /// Input image pixmaps.
-    QHash<int, QPixmap>     _ipixmaps;
+    QHash<Id, QPixmap>     _ipixmaps;
 
     /// Frame pixmaps.
-    QHash<int, QPixmap>     _fpixmaps;
-
-    /// actual animations used to preview
-    ///QHash<Id, LvkFrameGraphicsGroup> _gfanimation;
+    QHash<Id, QPixmap>     _fpixmaps;
 };
 
 #endif // SPRITESTATE_H

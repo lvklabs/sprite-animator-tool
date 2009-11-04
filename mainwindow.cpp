@@ -61,7 +61,7 @@ enum {
 #define getAnimationId(row)     ui->aniTableWidget->item(row, ColAniId)->text().toInt()
 
 #define selectedImgId()         getImageId(ui->imgTableWidget->currentRow())
-#define selectedAniId()         getImageId(ui->aniTableWidget->currentRow())
+#define selectedAniId()         getAnimationId(ui->aniTableWidget->currentRow())
 
 
 inline void infoDialog(const QString str)
@@ -556,50 +556,38 @@ void MainWindow::showSelAnimation(int row)
 
 void MainWindow::previewAnimation()
 {
-    /// TODO
-    /// It is currently not working correctly, each LvkFrameGraphicsGroup has to
-    /// be executed in a thread that is not the main thread (with a different event loop).
-    /// I have been able to execute each  LvkFrameGraphicsGroup in a different thread, but
-    /// but the animation produced is not visible in "animationsGraphicsView". Study more QThreads and
-    /// its relation with the main thread and UI objects.
-
-    int row = ui->aniTableWidget->row(ui->aniTableWidget->selectedItems().first());
-    Id animationId = getAnimationId(row);
-    QList<QGraphicsPixmapItem*> aniFrames;
-    LvkAnimation ani = _sprState.animations().value(animationId);
-    QGraphicsScene* scene = new QGraphicsScene;
-    double delays[ani.aframes.size()];
-    int i=0;
-    for (QHashIterator<Id, LvkAframe> it(ani.aframes); it.hasNext();)
-    {
-
-        QGraphicsPixmapItem* aux = new QGraphicsPixmapItem(_sprState.fpixmap(it.next().key()));
-        scene->addItem(aux);
-        delays[i] = it.peekPrevious().value().delay;
-        i++;
-        aniFrames << aux;
+    if (ui->aniTableWidget->currentRow() == -1) {
+        return;
     }
-    LvkFrameGraphicsGroup* animation = new LvkFrameGraphicsGroup(aniFrames, delays);
 
-    scene->addItem(animation);
-    ui->animationGraphicsView->setScene(scene);
-    ui->animationGraphicsView->show();
-    animation->startAnimation();
+    // TODO optimize this! If the animation did not change, do not delete and recreate
+    // scene and animation
 
-    /// Nestor`s Code
-//    int animationId = getAnimationId(row);
-//
-//    const QPixmap& selPixmap = _sprState.fpixmap(animationId);
-//    int w = selPixmap.width();
-//    int h = selPixmap.height();
+    static QGraphicsScene* scene = 0;
+    static LvkFrameGraphicsGroup* animation = 0;
 
-//    ui->aframesTableWidget->clearContents();
-//    ui->aframesTableWidget->setRowCount(0);
-    /*
-    ui->animationPreview->setPixmap(selPixmap);
-    ui->animationPreview->setGeometry(0, 0, w, h);
-    ui->animationPreview->updateGeometry();
-    */
+    if (ui->previewAniButton->text() == "Play") { // TODO do not compare strings
+        if (scene) {
+            if (animation) {
+                scene->removeItem(animation);
+                delete animation;
+            }
+            delete scene;
+        }
+
+        LvkAnimation selectedAni = _sprState.animations().value(selectedAniId());
+        animation = new LvkFrameGraphicsGroup(selectedAni, _sprState.fpixmaps());
+
+        scene = new QGraphicsScene;
+        scene->addItem(animation);
+        ui->animationGraphicsView->setScene(scene);
+        ui->animationGraphicsView->show();
+        animation->startAnimation();
+        ui->previewAniButton->setText(tr("Stop"));
+    } else {
+        animation->stopAnimation();
+        ui->previewAniButton->setText(tr("Play"));
+    }
 }
 
 void MainWindow::removeSelAnimation()

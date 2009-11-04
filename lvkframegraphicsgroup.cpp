@@ -1,59 +1,60 @@
 #include "lvkframegraphicsgroup.h"
 
+#include <QDebug>
 
-LvkFrameGraphicsGroup::LvkFrameGraphicsGroup(QObject* parent)
+LvkFrameGraphicsGroup::LvkFrameGraphicsGroup(const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps, QObject* parent)
+        : QObject(parent), delays(new double[ani.aframes.size()]), currentFrame(-1), currentTimer(0)
 {
+    int i = 0;
 
+    for (QHashIterator<Id, LvkAframe> it(ani.aframes); it.hasNext();) {
+        QGraphicsPixmapItem* aux = new QGraphicsPixmapItem(fpixmaps.value(it.next().key()));
+        children << aux;
+        delays[i++] = it.value().delay;
+    }
+
+   for (i = 0; i < children.size(); ++i) {
+        children[i]->setVisible(false);
+        addToGroup(children[i]);
+    }
 }
 
-LvkFrameGraphicsGroup::LvkFrameGraphicsGroup(QList<QGraphicsPixmapItem*> frames, double del[]):children(frames),
-delays(del),currentFrame(-1),currentTimer(0)
+LvkFrameGraphicsGroup::~LvkFrameGraphicsGroup()
 {
-     //TODO: if (frames==null)
-
-    for(int i=0; i<children.size(); i++)
-    {
-        children[i]->setVisible(false);
-        this->addToGroup(children[i]);
-    }
+    delete delays;
 }
 
 int LvkFrameGraphicsGroup::nextFrame()
 {
-
-    if(currentFrame >= children.size())
-    {
-        currentFrame=-1;
-    }
     currentFrame++;
+
+    if(currentFrame >= children.size()) {
+        currentFrame = 0;
+    }
     return currentFrame;
 }
 
-void LvkFrameGraphicsGroup::timerEvent(QTimerEvent* evt)
+void LvkFrameGraphicsGroup::timerEvent(QTimerEvent* /*evt*/)
 {
-    this->killTimer(currentTimer);
+    killTimer(currentTimer);
     children[currentFrame]->setVisible(false);
-    children[this->nextFrame()]->setVisible(true);
-    currentTimer = this->startTimer(delays[currentFrame]*500);
+    nextFrame();
+    children[currentFrame]->setVisible(true);
+    currentTimer = startTimer(delays[currentFrame]);
 }
 
 void LvkFrameGraphicsGroup::startAnimation()
 {
-    currentTimer = this->startTimer(delays[this->nextFrame()]*500);
-    children[currentFrame]->setVisible(true);
-}
-
-void LvkFrameGraphicsGroup::run()
-{
-    exec();
-    startAnimation();
-
-    while(true){}
+    if (children.size() > 0) {
+        nextFrame();
+        currentTimer = startTimer(delays[currentFrame]);
+        children[currentFrame]->setVisible(true);
+    }
 }
 
 void LvkFrameGraphicsGroup::stopAnimation()
 {
-    this->killTimer(currentTimer);
-    currentFrame=-1;
-    currentTimer=0;
+    killTimer(currentTimer);
+    currentFrame = -1;
+    currentTimer = 0;
 }
