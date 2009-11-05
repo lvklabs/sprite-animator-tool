@@ -56,7 +56,8 @@ enum {
 
 #define getImageId(row)         ui->imgTableWidget->item(row, ColImageId)->text().toInt()
 #define getFrameId(row)         ui->framesTableWidget->item(row, ColFrameId)->text().toInt()
-#define getAFrameId(row)        ui->aframesTableWidget->item(row, ColFrameId)->text().toInt()
+#define getAFrameId(row)        ui->aframesTableWidget->item(row, ColAframeId)->text().toInt()
+#define getAFrameFrameId(row)   ui->aframesTableWidget->item(row, ColAframeFrameId)->text().toInt()
 #define getFrameImgId(row)      ui->framesTableWidget->item(row, ColFrameImgId)->text().toInt()
 #define getAnimationId(row)     ui->aniTableWidget->item(row, ColAniId)->text().toInt()
 
@@ -685,8 +686,7 @@ void MainWindow::addAframe(const LvkAframe& aframe, Id aniId)
 
 void MainWindow::showSelAframe(int row)
 {
-
-    int frameId = getAFrameId(row);
+    int frameId = getAFrameFrameId(row);
 
     const QPixmap& selPixmap = _sprState.fpixmap(frameId);
     int w = selPixmap.width();
