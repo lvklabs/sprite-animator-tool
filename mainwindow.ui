@@ -521,9 +521,6 @@
              <string>Play</string>
             </property>
            </widget>
-           <zorder>animationGraphicsView</zorder>
-           <zorder>previewAniButton</zorder>
-           <zorder>previewAniButton</zorder>
           </widget>
          </widget>
         </item>
@@ -546,7 +543,14 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
+    <widget class="QMenu" name="actionOpenRecent">
+     <property name="title">
+      <string>Open recent</string>
+     </property>
+     <addaction name="actionNoRecentFiles"/>
+    </widget>
     <addaction name="actionOpen"/>
+    <addaction name="actionOpenRecent"/>
     <addaction name="actionSave"/>
     <addaction name="actionSaveAs"/>
     <addaction name="actionClose"/>
@@ -614,6 +618,14 @@
   <action name="actionClose">
    <property name="text">
     <string>Close</string>
+   </property>
+  </action>
+  <action name="actionNoRecentFiles">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>&lt;no recent files&gt;</string>
    </property>
   </action>
  </widget>

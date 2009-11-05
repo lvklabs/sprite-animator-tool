@@ -10,7 +10,8 @@ SOURCES += main.cpp \
     inputimage.cpp \
     lvkanimation.cpp \
     lvkaframe.cpp \
-    lvkframegraphicsgroup.cpp
+    lvkframegraphicsgroup.cpp \
+    qrecentfileaction.cpp
 HEADERS += mainwindow.h \
     spritestate.h \
     lvkframe.h \
@@ -19,6 +20,7 @@ HEADERS += mainwindow.h \
     types.h \
     lvkanimation.h \
     lvkaframe.h \
-    lvkframegraphicsgroup.h
+    lvkframegraphicsgroup.h \
+    qrecentfileaction.h
 FORMS += mainwindow.ui
 DEFINES += DEBUG

@@ -5,6 +5,7 @@
 #include <QImage>
 #include <QPixmap>
 #include <QHash>
+#include <QSettings>
 
 #include "types.h"
 #include "inputimage.h"
@@ -32,6 +33,9 @@ private:
 
     /// current file open
     QString                 _filename;
+
+    /// app settings
+    QSettings settings;
 
     /// sets current file and updates windows title
     void setCurrentFile(const QString& filename);
@@ -66,9 +70,13 @@ private:
 private slots:
     void saveFile();
     void saveAsFile();
-    void openFile();
+    void openFileDialog();
+    bool openFile(const QString& filename);
     void closeFile();
     void exit();
+
+    void addRecentFile(const QString& filename);
+    void loadRecentFilesFromSettings();
 
     void about();
 
