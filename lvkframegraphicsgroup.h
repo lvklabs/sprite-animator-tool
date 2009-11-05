@@ -16,10 +16,10 @@
 class LvkFrameGraphicsGroup : public QGraphicsItemGroup, public QObject
 {
 private:
-    /// groups all of the animations frames
-    QList<QGraphicsPixmapItem*> children;
+    /// container with the pixmap data for each frame
+    QList<QGraphicsPixmapItem*> pixmaps;
     /// container with a delay for each frame
-    double* delays;
+    QList<double> delays;
     /// current visible frame in the animation
     int currentFrame;
     /// running timer ID

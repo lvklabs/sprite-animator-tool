@@ -4,10 +4,10 @@ LvkSprite version 0.1
 # Images
 # format: imageId,filename
 images(
-	0,/home/andres/Dev_Qt/LvkSpriteEditor/sprites_test/mario1.png
-	1,/home/andres/Dev_Qt/LvkSpriteEditor/sprites_test/mario2.png
-	2,/home/andres/Dev_Qt/LvkSpriteEditor/sprites_test/mario3.png
-	3,/home/andres/Dev_Qt/LvkSpriteEditor/sprites_test/mario4.png
+	0,/home/andres/Dev_Qt/LvkSpriteEditor/sprite_example/mario1.png
+	1,/home/andres/Dev_Qt/LvkSpriteEditor/sprite_example/mario2.png
+	2,/home/andres/Dev_Qt/LvkSpriteEditor/sprite_example/mario3.png
+	3,/home/andres/Dev_Qt/LvkSpriteEditor/sprite_example/mario4.png
 )
 
 # Frames
@@ -16,7 +16,6 @@ frames(
 	0,w1,0,0,0,29,46
 	1,w2,1,0,0,29,46
 	2,w3,2,0,0,29,46
-	3,j1,3,0,0,29,46
 )
 
 # Animations
@@ -24,16 +23,12 @@ frames(
 # Animation frames
 # format: aframeId,frameId,delay
 animations(
-	0,walk
+	0,mario walks
 	aframes(
-		0,0,1
-		1,1,1
-		2,2,1
-	)
-
-	1,jump
-	aframes(
-		3,3,1
+		0,0,200
+		1,1,200
+		2,2,200
+		3,1,200
 	)
 
 )
