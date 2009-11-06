@@ -66,6 +66,7 @@ private:
 
     /// Add new animation frame to the animation @param aniId
     void addAframe(const LvkAframe& aframe, Id aniId);
+    void addAframe_(const LvkAframe& aframe, Id aniId);
 
 private slots:
     void saveFile();
@@ -95,6 +96,7 @@ private slots:
 
     void addAnimationDialog();
     void showSelAnimation(int row);
+    void showSelAnimation_(int row);
     void previewAnimation();
     void removeSelAnimation();
     void removeAnimation(int row);
