@@ -108,6 +108,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(ui->addAniButton,      SIGNAL(clicked()),            this, SLOT(addAnimationDialog()));
     connect(ui->aframesTableWidget,SIGNAL(cellClicked(int,int)), this, SLOT(showSelAframe(int)));
+    connect(ui->aniTableWidget,    SIGNAL(cellClicked(int,int)), this, SLOT(showSelAnimation_(int)));
     connect(ui->removeAniButton,   SIGNAL(clicked()),            this, SLOT(removeSelAnimation()));
     connect(ui->addAframeButton,   SIGNAL(clicked()),            this, SLOT(addAframeDialog()));
     connect(ui->previewAniButton,  SIGNAL(clicked()),            this, SLOT(previewAnimation()));
@@ -555,6 +556,26 @@ void MainWindow::showSelAnimation(int row)
     ui->previewAniButton->setEnabled(true);
 }
 
+void MainWindow::showSelAnimation_(int row)
+{
+    int animationId = getAnimationId(row);
+/*    LvkAnimation selectedAni = _sprState.animations().value(selectedAniId());
+    static LvkFrameGraphicsGroup* animation = new LvkFrameGraphicsGroup(selectedAni, _sprState.fpixmaps());
+    if (ui->previewAniButton->text() == "Stop") {
+        animation->stopAnimation();
+        ui->previewAniButton->setText(tr("Play"));
+    }*/
+    ui->aframesTableWidget->clearContents();
+    ui->aframesTableWidget->setRowCount(0);
+    QList<QGraphicsPixmapItem*> aniFrames;
+    LvkAnimation ani = _sprState.animations().value(animationId);
+    for (QHashIterator<Id, LvkAframe> it(ani.aframes); it.hasNext();){
+        LvkAframe aFrame = it.next().value();
+        addAframe_(aFrame,animationId);
+    }
+    ui->previewAniButton->setEnabled(true);
+}
+
 void MainWindow::previewAnimation()
 {
     if (ui->aniTableWidget->currentRow() == -1) {
@@ -666,7 +687,11 @@ void MainWindow::addAframe(const LvkAframe& aframe, Id aniId)
     _sprState.addAframe(aframe, aniId);
 
     /* UI */
+    addAframe_(aframe, aniId);
+}
 
+void MainWindow::addAframe_(const LvkAframe& aframe, Id aniId)
+{
     QTableWidgetItem* item_id    = new QTableWidgetItem(QString::number(aframe.id));
     QTableWidgetItem* item_fid   = new QTableWidgetItem(QString::number(aframe.frameId));
     QTableWidgetItem* item_delay = new QTableWidgetItem(QString::number(aframe.delay));
