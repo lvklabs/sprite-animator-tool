@@ -19,7 +19,7 @@
 #include "lvkframe.h"
 #include "lvkaframe.h"
 #include "lvkframegraphicsgroup.h"
-#include "version.h"
+#include "settings.h"
 #include <stdio.h>
 
 /// imgTableWidget columns
@@ -175,7 +175,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->tabWidget->setCurrentWidget(ui->framesTab);
 
-    loadRecentFilesFromSettings();
+    initRecentFilesMenu();
 
     resize(1204, 768);
     updateGeometry();
@@ -217,7 +217,13 @@ void MainWindow::openFileDialog()
             this, tr("Open file"), QFileInfo(filename).absolutePath(), "");
 
     if (openFile(filename)) {
-        addRecentFile(filename);
+        // addRecentFileMenu(filename);
+        // storeRecentFile(filename);
+        //
+        // NOTE: Workaround to get the files ordered by date
+        ui->actionOpenRecent->clear();
+        storeRecentFile(filename);
+        initRecentFilesMenu();
     }
 }
 
@@ -276,26 +282,43 @@ bool MainWindow::openFile(const QString& filename)
     }
 }
 
-void MainWindow::loadRecentFilesFromSettings()
+void MainWindow::storeRecentFile(const QString& filename)
 {
-    // FIXME only loads the last file opened
-    QString recentFile = settings.value("RecentFiles/filename").toString();
+    QString baseKey(KEY_RECENT_FILE);
 
-    if (!recentFile.isEmpty()) {
-       addRecentFile(recentFile);
+    for (int i = MAX_RECENT_FILES - 1; i > 0; --i) {
+        QString key_r = baseKey; // read
+        key_r.append(QString::number(i - 1));
+        QString key_w = baseKey; // write
+        key_w.append(QString::number(i));
+
+        QString recentFile = settings.value(key_r).toString();
+        settings.setValue(key_w, recentFile);
+    }
+    settings.setValue(KEY_RECENT_FILE "0", filename);
+}
+
+void MainWindow::initRecentFilesMenu()
+{
+    QString baseKey(KEY_RECENT_FILE);
+
+    for (int i = 0; i < MAX_RECENT_FILES; ++i) {
+        QString key = baseKey;
+        key.append(QString::number(i));
+        QString recentFile = settings.value(key).toString();
+
+        if (!recentFile.isEmpty()) {
+           addRecentFileMenu(recentFile);
+        }
     }
 }
 
-void MainWindow::addRecentFile(const QString& filename)
+void MainWindow::addRecentFileMenu(const QString& filename)
 {
     ui->actionNoRecentFiles->setVisible(false);
-
     QRecentFileAction* action = new QRecentFileAction(filename);
     ui->actionOpenRecent->addAction(action);
     connect(action, SIGNAL(triggered(QString)), this, SLOT(openFile(QString)));
-
-    // FIXME only stores the last file opened
-    settings.setValue("RecentFiles/filename", filename);
 }
 
 void MainWindow::closeFile()

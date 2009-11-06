@@ -75,8 +75,9 @@ private slots:
     void closeFile();
     void exit();
 
-    void addRecentFile(const QString& filename);
-    void loadRecentFilesFromSettings();
+    void initRecentFilesMenu();
+    void addRecentFileMenu(const QString& filename);
+    void storeRecentFile(const QString& filename);
 
     void about();
 

@@ -15,12 +15,12 @@ SOURCES += main.cpp \
 HEADERS += mainwindow.h \
     spritestate.h \
     lvkframe.h \
-    version.h \
     inputimage.h \
     types.h \
     lvkanimation.h \
     lvkaframe.h \
     lvkframegraphicsgroup.h \
-    qrecentfileaction.h
+    qrecentfileaction.h \
+    settings.h
 FORMS += mainwindow.ui
 DEFINES += DEBUG
