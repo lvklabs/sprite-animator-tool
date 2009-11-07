@@ -24,6 +24,8 @@ private:
     int currentFrame;
     /// running timer ID
     int currentTimer;
+    /// flag for Animation information
+    bool animated;
 
 public:
     LvkFrameGraphicsGroup(const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps, QObject* parent = 0);
@@ -31,6 +33,7 @@ public:
 
     void startAnimation();
     void stopAnimation();
+    bool isAnimated();
 
 private:
     /// Returns the location of the next frame of the animation

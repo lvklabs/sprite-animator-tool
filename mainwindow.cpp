@@ -84,7 +84,7 @@ inline bool yesNoDialog(const QString str)
 }
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow), _imgId(0), _frameId(0), _aniId(0), _aframeId(0)
+    : QMainWindow(parent), ui(new Ui::MainWindow), _imgId(0), _frameId(0), _aniId(0), _aframeId(0), currentAnimation(0)
 {
     ui->setupUi(this);
 
@@ -616,13 +616,11 @@ void MainWindow::showSelAnimation(int row)
 
 void MainWindow::showSelAnimation_(int row)
 {
-    int animationId = getAnimationId(row);
-/*    LvkAnimation selectedAni = _sprState.animations().value(selectedAniId());
-    static LvkFrameGraphicsGroup* animation = new LvkFrameGraphicsGroup(selectedAni, _sprState.fpixmaps());
-    if (ui->previewAniButton->text() == "Stop") {
-        animation->stopAnimation();
+    if (currentAnimation !=0 && currentAnimation->isAnimated()) {
+        currentAnimation->stopAnimation();
         ui->previewAniButton->setText(tr("Play"));
-    }*/
+    }
+    int animationId = getAnimationId(row);
     ui->aframesTableWidget->clearContents();
     ui->aframesTableWidget->setRowCount(0);
     QList<QGraphicsPixmapItem*> aniFrames;
@@ -668,6 +666,7 @@ void MainWindow::previewAnimation()
         animation->stopAnimation();
         ui->previewAniButton->setText(tr("Play"));
     }
+    currentAnimation = animation;
 }
 
 void MainWindow::removeSelAnimation()
@@ -739,11 +738,8 @@ void MainWindow::addAframeDialog()
 
 void MainWindow::addAframe(const LvkAframe& aframe, Id aniId)
 {
-
     /* state */
-    
     _sprState.addAframe(aframe, aniId);
-
     /* UI */
     addAframe_(aframe, aniId);
 }

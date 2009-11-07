@@ -3,7 +3,7 @@
 #include <QDebug>
 
 LvkFrameGraphicsGroup::LvkFrameGraphicsGroup(const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps, QObject* parent)
-        : QObject(parent), currentFrame(-1), currentTimer(0)
+        : QObject(parent), currentFrame(-1), currentTimer(0), animated(false)
 {
     for (QHashIterator<Id, LvkAframe> it(ani.aframes); it.hasNext();) {
         LvkAframe aframe = it.next().value();
@@ -37,15 +37,18 @@ void LvkFrameGraphicsGroup::timerEvent(QTimerEvent* /*evt*/)
     pixmaps[currentFrame]->setVisible(false);
     nextFrame();
     pixmaps[currentFrame]->setVisible(true);
-    currentTimer = startTimer(delays[currentFrame]);
+    // Check this, it may change in the future
+    currentTimer = startTimer((int)(delays[currentFrame]));
 }
 
 void LvkFrameGraphicsGroup::startAnimation()
 {
     if (pixmaps.size() > 0) {
         nextFrame();
-        currentTimer = startTimer(delays[currentFrame]);
+        // Check this, it may change in the future
+        currentTimer = startTimer((int)(delays[currentFrame]));
         pixmaps[currentFrame]->setVisible(true);
+        animated = true;
     }
 }
 
@@ -54,4 +57,10 @@ void LvkFrameGraphicsGroup::stopAnimation()
     killTimer(currentTimer);
     currentFrame = -1;
     currentTimer = 0;
+    animated = false;
+}
+
+bool LvkFrameGraphicsGroup::isAnimated()
+{
+    return(animated);
 }

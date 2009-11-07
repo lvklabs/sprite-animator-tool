@@ -13,6 +13,7 @@
 #include "lvkanimation.h"
 #include "lvkaframe.h"
 #include "spritestate.h"
+#include "lvkframegraphicsgroup.h"
 
 
 namespace Ui
@@ -29,6 +30,7 @@ public:
     ~MainWindow();
 
 private:
+
     Ui::MainWindow *ui;
 
     /// current file open
@@ -54,6 +56,10 @@ private:
 
     /// Counter. Next animation frame id
     Id _aframeId;
+
+    /// Current animation for fixing animation issue
+
+    LvkFrameGraphicsGroup* currentAnimation;
 
     /// Add new input image
     void addImage(const InputImage& image);
