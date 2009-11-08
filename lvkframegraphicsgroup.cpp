@@ -37,16 +37,14 @@ void LvkFrameGraphicsGroup::timerEvent(QTimerEvent* /*evt*/)
     pixmaps[currentFrame]->setVisible(false);
     nextFrame();
     pixmaps[currentFrame]->setVisible(true);
-    // Check this, it may change in the future
-    currentTimer = startTimer((int)(delays[currentFrame]));
+    currentTimer = startTimer(delays[currentFrame]);
 }
 
 void LvkFrameGraphicsGroup::startAnimation()
 {
     if (pixmaps.size() > 0) {
         nextFrame();
-        // Check this, it may change in the future
-        currentTimer = startTimer((int)(delays[currentFrame]));
+        currentTimer = startTimer(delays[currentFrame]);
         pixmaps[currentFrame]->setVisible(true);
         animated = true;
     }

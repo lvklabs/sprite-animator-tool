@@ -3,7 +3,7 @@
 
 #include "lvkaframe.h"
 
-LvkAframe::LvkAframe(Id id, Id frameId, double delay)
+LvkAframe::LvkAframe(Id id, Id frameId, int delay)
         : id(id), frameId(frameId), delay(delay)
 {
 }
@@ -31,7 +31,7 @@ bool LvkAframe::fromString(const QString& str)
     if (list.size() == 3) {
         id      = list.at(0).toInt();
         frameId = list.at(1).toInt();
-        delay   = list.at(2).toDouble();
+        delay   = list.at(2).toInt();
         return true;
     } else {
         qDebug() << "Warning LvkFrame::LvkAframe(const QString&) invalid string format";

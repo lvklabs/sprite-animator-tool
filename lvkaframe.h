@@ -11,13 +11,13 @@
 /// we only store the frame Id
 struct LvkAframe
 {
-    LvkAframe(Id id = NullId, Id frameId = NullId, double delay = 1.0);
+    LvkAframe(Id id = NullId, Id frameId = NullId, int delay = 200);
 
     LvkAframe(const QString& str);
 
     Id     id;            /* Aframe id */
     Id     frameId;       /* frame id */
-    double delay;         /* time delay in seconds */
+    int    delay;         /* time delay in milliseconds */
 
     /// returns the string representation
     QString toString() const;

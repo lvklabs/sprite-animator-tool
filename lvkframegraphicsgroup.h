@@ -19,7 +19,7 @@ private:
     /// container with the pixmap data for each frame
     QList<QGraphicsPixmapItem*> pixmaps;
     /// container with a delay for each frame
-    QList<double> delays;
+    QList<int> delays;
     /// current visible frame in the animation
     int currentFrame;
     /// running timer ID
