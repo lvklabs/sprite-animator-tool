@@ -57,8 +57,7 @@ private:
     /// Counter. Next animation frame id
     Id _aframeId;
 
-    /// Current animation for fixing animation issue
-
+    /// Current animation
     LvkFrameGraphicsGroup* currentAnimation;
 
     /// Add new input image
@@ -101,8 +100,7 @@ private slots:
     void removeFrame(int row);
 
     void addAnimationDialog();
-    void showSelAnimation(int row);
-    void showSelAnimation_(int row);
+    void showAframes(int row);
     void previewAnimation();
     void removeSelAnimation();
     void removeAnimation(int row);

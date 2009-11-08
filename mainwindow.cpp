@@ -109,7 +109,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(ui->addAniButton,      SIGNAL(clicked()),            this, SLOT(addAnimationDialog()));
     connect(ui->aframesTableWidget,SIGNAL(cellClicked(int,int)), this, SLOT(showSelAframe(int)));
-    connect(ui->aniTableWidget,    SIGNAL(cellClicked(int,int)), this, SLOT(showSelAnimation_(int)));
+    connect(ui->aniTableWidget,    SIGNAL(cellClicked(int,int)), this, SLOT(showAframes(int)));
     connect(ui->removeAniButton,   SIGNAL(clicked()),            this, SLOT(removeSelAnimation()));
     connect(ui->addAframeButton,   SIGNAL(clicked()),            this, SLOT(addAframeDialog()));
     connect(ui->previewAniButton,  SIGNAL(clicked()),            this, SLOT(previewAnimation()));
@@ -276,6 +276,12 @@ bool MainWindow::openFile(const QString& filename)
             }
         }
 
+        ui->imgTableWidget->clearSelection();
+        ui->framesTableWidget->clearSelection();
+        ui->aframesTableWidget->clearSelection();
+        ui->aniTableWidget->clearSelection();
+        ui->aframesTableWidget->clearContents();
+
         setCurrentFile(filename);
         return true;
     } else {
@@ -343,6 +349,11 @@ void MainWindow::closeFile()
     ui->imgPreview->setPixmap(QPixmap());
     ui->framePreview->setPixmap(QPixmap());
     ui->frameAPreview->setPixmap(QPixmap());
+
+    if (ui->animationGraphicsView->scene()) {
+        ui->animationGraphicsView->scene()->removeItem(currentAnimation);
+    }
+    ui->previewAniButton->setEnabled(false);
 }
 
 void MainWindow::setCurrentFile(const QString& filename)
@@ -604,22 +615,19 @@ void MainWindow::addAnimation(const LvkAnimation& ani)
     ui->aniTableWidget->setItem(rows, ColAniName, item_name);
     ui->aniTableWidget->setCurrentItem(item_id);
 
-    showSelAnimation(rows);
     ui->removeAniButton->setEnabled(true);
     ui->addAframeButton->setEnabled(true);
-}
-
-void MainWindow::showSelAnimation(int row)
-{
     ui->previewAniButton->setEnabled(true);
 }
 
-void MainWindow::showSelAnimation_(int row)
+void MainWindow::showAframes(int row)
 {
-    if (currentAnimation !=0 && currentAnimation->isAnimated()) {
+    if (currentAnimation && currentAnimation->isAnimated()) {
         currentAnimation->stopAnimation();
-        ui->previewAniButton->setText(tr("Play"));
     }
+    ui->previewAniButton->setText(tr("Play"));
+    ui->previewAniButton->setEnabled(true);
+
     int animationId = getAnimationId(row);
     ui->aframesTableWidget->clearContents();
     ui->aframesTableWidget->setRowCount(0);
@@ -630,36 +638,32 @@ void MainWindow::showSelAnimation_(int row)
         addAframe_(aFrame,animationId);
     }
     ui->previewAniButton->setEnabled(true);
+
+    previewAnimation(); // automatic preview! I think it's cool. Andres
 }
 
 void MainWindow::previewAnimation()
 {
     if (ui->aniTableWidget->currentRow() == -1) {
+        infoDialog("No animation selected");
         return;
     }
 
     // TODO optimize this! If the animation did not change, do not delete and recreate
-    // scene and animation
+    // the animation
 
-    static QGraphicsScene* scene = 0;
+    static QGraphicsScene* scene = new QGraphicsScene;
     static LvkFrameGraphicsGroup* animation = 0;
 
-    if (ui->previewAniButton->text() == "Play") { // TODO do not compare strings
-        if (scene) {
-            if (animation) {
-                scene->removeItem(animation);
-                delete animation;
-            }
-            delete scene;
+    if (ui->previewAniButton->text() == "Play") {
+        if (animation) {
+            scene->removeItem(animation);
+            delete animation;
         }
-
         LvkAnimation selectedAni = _sprState.animations().value(selectedAniId());
         animation = new LvkFrameGraphicsGroup(selectedAni, _sprState.fpixmaps());
-
-        scene = new QGraphicsScene;
         scene->addItem(animation);
         ui->animationGraphicsView->setScene(scene);
-        ui->animationGraphicsView->show();
         animation->startAnimation();
         ui->previewAniButton->setText(tr("Stop"));
     } else {
@@ -682,7 +686,12 @@ void MainWindow::removeSelAnimation()
         infoDialog("No animation selected");
         return;
     }
+
     removeAnimation(currentRow);
+
+    if (ui->aniTableWidget->rowCount() == 0) {
+        ui->previewAniButton->setEnabled(false);
+    }
 }
 
 void MainWindow::removeAnimation(int row)
@@ -693,6 +702,10 @@ void MainWindow::removeAnimation(int row)
     if (ui->aniTableWidget->rowCount() == 0) {
         ui->removeAniButton->setEnabled(false);
         ui->addAframeButton->setEnabled(false);
+    }
+
+    if (ui->animationGraphicsView->scene()) {
+        ui->animationGraphicsView->scene()->removeItem(currentAnimation);
     }
 
     _sprState.removeAnimation(aniId);
@@ -740,6 +753,7 @@ void MainWindow::addAframe(const LvkAframe& aframe, Id aniId)
 {
     /* state */
     _sprState.addAframe(aframe, aniId);
+    
     /* UI */
     addAframe_(aframe, aniId);
 }

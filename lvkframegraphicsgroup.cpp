@@ -19,6 +19,9 @@ LvkFrameGraphicsGroup::LvkFrameGraphicsGroup(const LvkAnimation& ani, const QHas
 
 LvkFrameGraphicsGroup::~LvkFrameGraphicsGroup()
 {
+    while (!pixmaps.isEmpty()) {
+        delete pixmaps.takeFirst();
+    }
 }
 
 int LvkFrameGraphicsGroup::nextFrame()
