@@ -24,3 +24,4 @@ HEADERS += mainwindow.h \
     settings.h
 FORMS += mainwindow.ui
 DEFINES += DEBUG
+#DEFINES += DEBUG_SHOW_ID_COLS

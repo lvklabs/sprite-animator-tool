@@ -6,6 +6,7 @@
 #include <QPixmap>
 #include <QHash>
 #include <QSettings>
+#include <QTableWidget>
 
 #include "types.h"
 #include "inputimage.h"
@@ -34,7 +35,7 @@ private:
     Ui::MainWindow *ui;
 
     /// current file open
-    QString                 _filename;
+    QString  _filename;
 
     /// app settings
     QSettings settings;
@@ -43,7 +44,7 @@ private:
     void setCurrentFile(const QString& filename);
 
     /// current sprite state
-    SpriteState             _sprState;
+    SpriteState _sprState;
 
     /// Counter. Next image id
     Id _imgId;
@@ -56,6 +57,9 @@ private:
 
     /// Counter. Next animation frame id
     Id _aframeId;
+
+    /// True if it's updating the content of some table
+    bool _updatingTable;
 
     /// Current animation
     LvkFrameGraphicsGroup* currentAnimation;
@@ -101,14 +105,27 @@ private slots:
 
     void addAnimationDialog();
     void showAframes(int row);
-    void previewAnimation();
     void removeSelAnimation();
     void removeAnimation(int row);
+
+    void previewAnimation(bool reset = false);
+    void clearPreviewAnimation();
 
     void addAframeDialog();
     void showSelAframe(int row);
     void removeSelAframe();
     void removeAframe(int row);
+
+    void updateImgTable(int row, int col);
+    void updateFramesTable(int row, int col);
+    void updateAframesTable(int row, int col);
+    void updateAniTable(int row, int col);
+
+    inline QString getItem(const QTableWidget* table, int row, int col)
+    { return table->item(row, col)->text(); }
+
+    inline Id getIdItem(const QTableWidget* table, int row, int col)
+    { return (Id)(getItem(table, row, col).toInt()); }
 };
 
 #endif // MAINWINDOW_H

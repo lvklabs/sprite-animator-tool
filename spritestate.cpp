@@ -60,7 +60,7 @@ bool SpriteState::serialize(const QString& filename, int* error) const
     stream << "# Animations\n";
     stream << "# format: animationId,name\n";
     stream << "# Animation frames\n";
-    stream << "# format: aframeId,frameId,delay\n";
+    stream << "# format: aframeId,frameId,delay,ox,oy\n";
     stream << "animations(\n";
     for (QHashIterator<Id, LvkAnimation> it(_animations); it.hasNext();) {
         it.next();

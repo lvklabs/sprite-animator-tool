@@ -84,7 +84,8 @@ inline bool yesNoDialog(const QString str)
 }
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow), _imgId(0), _frameId(0), _aniId(0), _aframeId(0), currentAnimation(0)
+    : QMainWindow(parent), ui(new Ui::MainWindow), _imgId(0), _frameId(0), _aniId(0), _aframeId(0),
+      _updatingTable(false), currentAnimation(0)
 {
     ui->setupUi(this);
 
@@ -99,17 +100,22 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(ui->addImageButton,    SIGNAL(clicked()),            this, SLOT(addImageDialog()));
     connect(ui->imgTableWidget,    SIGNAL(cellClicked(int,int)), this, SLOT(showSelImage(int)));
+    connect(ui->imgTableWidget,    SIGNAL(cellChanged(int,int)), this, SLOT(updateImgTable(int,int)));
     connect(ui->imgZoomInButton,   SIGNAL(clicked()),            this, SLOT(imgZoomIn()));
     connect(ui->imgZoomOutButton,  SIGNAL(clicked()),            this, SLOT(imgZoomOut()));
     connect(ui->removeImageButton, SIGNAL(clicked()),            this, SLOT(removeSelImage()));
 
     connect(ui->addFrameButton,    SIGNAL(clicked()),            this, SLOT(addFrameFromImgRegion()));
     connect(ui->framesTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(showSelFrame(int)));
+    connect(ui->framesTableWidget, SIGNAL(cellChanged(int,int)), this, SLOT(updateFramesTable(int,int)));
+
     connect(ui->removeFrameButton, SIGNAL(clicked()),            this, SLOT(removeSelFrame()));
 
     connect(ui->addAniButton,      SIGNAL(clicked()),            this, SLOT(addAnimationDialog()));
     connect(ui->aframesTableWidget,SIGNAL(cellClicked(int,int)), this, SLOT(showSelAframe(int)));
+    connect(ui->aframesTableWidget,SIGNAL(cellChanged(int,int)), this, SLOT(updateAframesTable(int,int)));
     connect(ui->aniTableWidget,    SIGNAL(cellClicked(int,int)), this, SLOT(showAframes(int)));
+    connect(ui->aniTableWidget,    SIGNAL(cellChanged(int,int)), this, SLOT(updateAniTable(int,int)));
     connect(ui->removeAniButton,   SIGNAL(clicked()),            this, SLOT(removeSelAnimation()));
     connect(ui->addAframeButton,   SIGNAL(clicked()),            this, SLOT(addAframeDialog()));
     connect(ui->previewAniButton,  SIGNAL(clicked()),            this, SLOT(previewAnimation()));
@@ -160,12 +166,13 @@ MainWindow::MainWindow(QWidget *parent)
     /* animation frames table */
 
     ui->aframesTableWidget->setRowCount(0);
-    ui->aframesTableWidget->setColumnCount(5);
+    ui->aframesTableWidget->setColumnCount(6);
     ui->aframesTableWidget->setColumnWidth(ColAframeId, 30);
     ui->aframesTableWidget->setColumnWidth(ColAframeFrameId, 60);
     ui->aframesTableWidget->setColumnWidth(ColAframeOx, 30);
     ui->aframesTableWidget->setColumnWidth(ColAframeOy, 30);
     ui->aframesTableWidget->setColumnWidth(ColAframeDelay, 50);
+    ui->aframesTableWidget->setColumnWidth(ColAframeAniId, 30);
     headersList << "Id" << "Frame Id" << "ox" << "oy" << "Delay" << "Animation Id";
     ui->aframesTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
@@ -230,6 +237,10 @@ void MainWindow::openFileDialog()
 
 bool MainWindow::openFile(const QString& filename)
 {
+    bool ok = false;
+
+    _updatingTable = true;
+
     if (!filename.isEmpty()) {
         SpriteState tmp;
 
@@ -281,12 +292,15 @@ bool MainWindow::openFile(const QString& filename)
         ui->aframesTableWidget->clearSelection();
         ui->aniTableWidget->clearSelection();
         ui->aframesTableWidget->clearContents();
+        ui->aframesTableWidget->setRowCount(0);
 
         setCurrentFile(filename);
-        return true;
-    } else {
-        return false;
+        ok = true;
     }
+
+    _updatingTable = false;
+
+    return ok;
 }
 
 void MainWindow::storeRecentFile(const QString& filename)
@@ -350,9 +364,7 @@ void MainWindow::closeFile()
     ui->framePreview->setPixmap(QPixmap());
     ui->frameAPreview->setPixmap(QPixmap());
 
-    if (ui->animationGraphicsView->scene()) {
-        ui->animationGraphicsView->scene()->removeItem(currentAnimation);
-    }
+    clearPreviewAnimation();
     ui->previewAniButton->setEnabled(false);
 }
 
@@ -618,19 +630,29 @@ void MainWindow::addAnimation(const LvkAnimation& ani)
     ui->removeAniButton->setEnabled(true);
     ui->addAframeButton->setEnabled(true);
     ui->previewAniButton->setEnabled(true);
+
+    showAframes(rows);
+    clearPreviewAnimation();
 }
 
 void MainWindow::showAframes(int row)
 {
+    _updatingTable = true;
+
     if (currentAnimation && currentAnimation->isAnimated()) {
         currentAnimation->stopAnimation();
     }
     ui->previewAniButton->setText(tr("Play"));
     ui->previewAniButton->setEnabled(true);
 
-    int animationId = getAnimationId(row);
     ui->aframesTableWidget->clearContents();
     ui->aframesTableWidget->setRowCount(0);
+
+    if (row == -1) {
+        return;
+    }
+
+    int animationId = getAnimationId(row);
     QList<QGraphicsPixmapItem*> aniFrames;
     LvkAnimation ani = _sprState.animations().value(animationId);
     for (QHashIterator<Id, LvkAframe> it(ani.aframes); it.hasNext();){
@@ -640,9 +662,11 @@ void MainWindow::showAframes(int row)
     ui->previewAniButton->setEnabled(true);
 
     previewAnimation(); // automatic preview! I think it's cool. Andres
+
+    _updatingTable = false;
 }
 
-void MainWindow::previewAnimation()
+void MainWindow::previewAnimation(bool reset)
 {
     if (ui->aniTableWidget->currentRow() == -1) {
         infoDialog("No animation selected");
@@ -655,7 +679,7 @@ void MainWindow::previewAnimation()
     static QGraphicsScene* scene = new QGraphicsScene;
     static LvkFrameGraphicsGroup* animation = 0;
 
-    if (ui->previewAniButton->text() == "Play") {
+    if (ui->previewAniButton->text() == "Play" || reset) {
         if (animation) {
             scene->removeItem(animation);
             delete animation;
@@ -671,6 +695,14 @@ void MainWindow::previewAnimation()
         ui->previewAniButton->setText(tr("Play"));
     }
     currentAnimation = animation;
+}
+
+void MainWindow::clearPreviewAnimation()
+{
+    if (ui->animationGraphicsView->scene() && currentAnimation) {
+        ui->animationGraphicsView->scene()->removeItem(currentAnimation);
+    }
+    ui->previewAniButton->setText(tr("Play"));
 }
 
 void MainWindow::removeSelAnimation()
@@ -692,6 +724,8 @@ void MainWindow::removeSelAnimation()
     if (ui->aniTableWidget->rowCount() == 0) {
         ui->previewAniButton->setEnabled(false);
     }
+
+    showAframes(ui->aniTableWidget->currentRow());
 }
 
 void MainWindow::removeAnimation(int row)
@@ -702,11 +736,10 @@ void MainWindow::removeAnimation(int row)
     if (ui->aniTableWidget->rowCount() == 0) {
         ui->removeAniButton->setEnabled(false);
         ui->addAframeButton->setEnabled(false);
+        ui->previewAniButton->setEnabled(false);
     }
 
-    if (ui->animationGraphicsView->scene()) {
-        ui->animationGraphicsView->scene()->removeItem(currentAnimation);
-    }
+    clearPreviewAnimation();
 
     _sprState.removeAnimation(aniId);
 }
@@ -744,7 +777,7 @@ void MainWindow::addAframeDialog()
         }
         Id frameId = tokens.at(1).toInt();
 
-        addAframe(LvkAframe(_aframeId++, frameId, 1.0), selectedAniId());
+        addAframe(LvkAframe(_aframeId++, frameId), selectedAniId());
     }
 }
 
@@ -760,9 +793,14 @@ void MainWindow::addAframe(const LvkAframe& aframe, Id aniId)
 
 void MainWindow::addAframe_(const LvkAframe& aframe, Id aniId)
 {
+    _updatingTable = true;
+
     QTableWidgetItem* item_id    = new QTableWidgetItem(QString::number(aframe.id));
     QTableWidgetItem* item_fid   = new QTableWidgetItem(QString::number(aframe.frameId));
     QTableWidgetItem* item_delay = new QTableWidgetItem(QString::number(aframe.delay));
+    QTableWidgetItem* item_ox    = new QTableWidgetItem(QString::number(aframe.ox));
+    QTableWidgetItem* item_oy    = new QTableWidgetItem(QString::number(aframe.oy));
+    QTableWidgetItem* item_aniId = new QTableWidgetItem(QString::number(aniId));
 
     int rows = ui->aframesTableWidget->rowCount();
 
@@ -770,10 +808,15 @@ void MainWindow::addAframe_(const LvkAframe& aframe, Id aniId)
     ui->aframesTableWidget->setItem(rows, ColAframeId,      item_id);
     ui->aframesTableWidget->setItem(rows, ColAframeFrameId, item_fid);
     ui->aframesTableWidget->setItem(rows, ColAframeDelay,   item_delay);
+    ui->aframesTableWidget->setItem(rows, ColAframeOx,      item_ox);
+    ui->aframesTableWidget->setItem(rows, ColAframeOy,      item_oy);
+    ui->aframesTableWidget->setItem(rows, ColAframeAniId,   item_aniId);
     ui->aframesTableWidget->setCurrentItem(item_id);
 
     showSelAframe(rows);
     ui->removeAframeButton->setEnabled(true);
+
+    _updatingTable = false;
 }
 
 
@@ -808,6 +851,8 @@ void MainWindow::removeSelAframe()
 
 void MainWindow::removeAframe(int row)
 {
+    _updatingTable = true;
+
     Id frameId = getAFrameId(row);
 
     ui->aframesTableWidget->removeRow(row);
@@ -816,7 +861,110 @@ void MainWindow::removeAframe(int row)
     }
     ui->frameAPreview->setPixmap(QPixmap());
 
-    _sprState.removeFrame(frameId);
+    _sprState.removeAframe(frameId, selectedAniId());
+
+    _updatingTable = false;
+}
+
+void MainWindow::updateImgTable(int /*row*/, int col)
+{
+///// imgTableWidget columns
+//    ColImageId          = 0,
+//    ColImageFilename    = 1,
+
+    switch (col) {
+        // TODO
+    }
+}
+
+void MainWindow::updateFramesTable(int /*row*/, int col)
+{
+///// framesTableWidget colums
+//    ColFrameId          = 0,
+//    ColFrameOx          = 1,
+//    ColFrameOy          = 2,
+//    ColFrameW           = 3,
+//    ColFrameH           = 4,
+//    ColFrameName        = 5,
+//    ColFrameImgId       = 6,
+
+    switch (col) {
+        // TODO
+    }
+}
+
+void MainWindow::updateAframesTable(int row, int col)
+{
+    if (_updatingTable) {
+        return;
+    }
+
+    QString newValue = getItem(ui->aframesTableWidget, row, col);
+    Id aniId    = getIdItem(ui->aframesTableWidget, row, ColAframeAniId);
+    Id aframeId = getIdItem(ui->aframesTableWidget, row, ColAframeId);
+
+    LvkAframe& aframe = _sprState.aframe(aniId, aframeId);
+
+//    qDebug() << "Updating aframesTable - new value " << newValue
+//             << " aniId" << aniId << " aframeId" << aframeId
+//             << " old value" << aframe.delay;
+
+    bool ok = true;
+    int i = newValue.toInt(&ok);
+
+    /* If the input is invalid, set previous value and return*/
+    if (!ok) {
+        infoDialog("Invalid input.");
+        ui->aframesTableWidget->item(row, col)->setText(QString::number(aframe.delay));
+        return;
+    }
+
+    switch (col) {
+    case ColAframeId:
+        /* Not editable */
+        break;
+    case ColAframeFrameId:
+        aframe.frameId = i;
+        break;
+    case ColAframeOx:
+        aframe.ox = i;
+        break;
+    case ColAframeOy:
+        aframe.oy = i;
+        break;
+    case ColAframeDelay:
+        aframe.delay = i;
+        break;
+    case ColAframeAniId:
+        /* Not editable */
+        break;
+    }
+
+    if (currentAnimation->isAnimated()) {
+        /* force refresh animation */
+        previewAnimation(true);
+    }
+}
+
+void MainWindow::updateAniTable(int row, int col)
+{
+    if (_updatingTable) {
+        return;
+    }
+
+    QString newValue = getItem(ui->aniTableWidget, row, col);
+    Id aniId = getIdItem(ui->aniTableWidget, row, ColAniId);
+
+    LvkAnimation& ani = _sprState.animation(aniId);
+
+    switch (col) {
+    case ColAniId:
+        /* Not editable */
+        break;
+    case ColAniName:
+        ani.name = newValue;
+        break;
+    }
 }
 
 void MainWindow::about()
