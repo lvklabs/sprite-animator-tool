@@ -85,42 +85,63 @@ inline bool yesNoDialog(const QString str)
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow), _imgId(0), _frameId(0), _aniId(0), _aframeId(0),
-      _updatingTable(false), currentAnimation(0)
+      currentAnimation(0)
 {
     ui->setupUi(this);
+    ui->tabWidget->setCurrentWidget(ui->framesTab);
 
-    QStringList headersList;
+    initSignals();
+    initTables();
+    initRecentFilesMenu();
 
+    resize(1204, 768);
+    updateGeometry();
+}
+
+void MainWindow::initSignals()
+{
     connect(ui->actionSave,        SIGNAL(triggered()),          this, SLOT(saveFile()));
     connect(ui->actionSaveAs,      SIGNAL(triggered()),          this, SLOT(saveAsFile()));
     connect(ui->actionOpen,        SIGNAL(triggered()),          this, SLOT(openFileDialog()));
     connect(ui->actionClose,       SIGNAL(triggered()),          this, SLOT(closeFile()));
     connect(ui->actionExit,        SIGNAL(triggered()),          this, SLOT(exit()));
     connect(ui->actionAbout,       SIGNAL(triggered()),          this, SLOT(about()));
-
     connect(ui->addImageButton,    SIGNAL(clicked()),            this, SLOT(addImageDialog()));
     connect(ui->imgTableWidget,    SIGNAL(cellClicked(int,int)), this, SLOT(showSelImage(int)));
-    connect(ui->imgTableWidget,    SIGNAL(cellChanged(int,int)), this, SLOT(updateImgTable(int,int)));
     connect(ui->imgZoomInButton,   SIGNAL(clicked()),            this, SLOT(imgZoomIn()));
     connect(ui->imgZoomOutButton,  SIGNAL(clicked()),            this, SLOT(imgZoomOut()));
     connect(ui->removeImageButton, SIGNAL(clicked()),            this, SLOT(removeSelImage()));
-
     connect(ui->addFrameButton,    SIGNAL(clicked()),            this, SLOT(addFrameFromImgRegion()));
     connect(ui->framesTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(showSelFrame(int)));
-    connect(ui->framesTableWidget, SIGNAL(cellChanged(int,int)), this, SLOT(updateFramesTable(int,int)));
-
     connect(ui->removeFrameButton, SIGNAL(clicked()),            this, SLOT(removeSelFrame()));
-
     connect(ui->addAniButton,      SIGNAL(clicked()),            this, SLOT(addAnimationDialog()));
     connect(ui->aframesTableWidget,SIGNAL(cellClicked(int,int)), this, SLOT(showSelAframe(int)));
-    connect(ui->aframesTableWidget,SIGNAL(cellChanged(int,int)), this, SLOT(updateAframesTable(int,int)));
     connect(ui->aniTableWidget,    SIGNAL(cellClicked(int,int)), this, SLOT(showAframes(int)));
-    connect(ui->aniTableWidget,    SIGNAL(cellChanged(int,int)), this, SLOT(updateAniTable(int,int)));
     connect(ui->removeAniButton,   SIGNAL(clicked()),            this, SLOT(removeSelAnimation()));
     connect(ui->addAframeButton,   SIGNAL(clicked()),            this, SLOT(addAframeDialog()));
-    connect(ui->previewAniButton,  SIGNAL(clicked()),            this, SLOT(previewAnimation()));
     connect(ui->removeAframeButton,SIGNAL(clicked()),            this, SLOT(removeSelAframe()));
 
+    cellChangedSignals(true);
+}
+
+void MainWindow::cellChangedSignals(bool connected)
+{
+    if (connected) {
+        connect(ui->imgTableWidget,       SIGNAL(cellChanged(int,int)), this, SLOT(updateImgTable(int,int)));
+        connect(ui->framesTableWidget,    SIGNAL(cellChanged(int,int)), this, SLOT(updateFramesTable(int,int)));
+        connect(ui->aframesTableWidget,   SIGNAL(cellChanged(int,int)), this, SLOT(updateAframesTable(int,int)));
+        connect(ui->aniTableWidget,       SIGNAL(cellChanged(int,int)), this, SLOT(updateAniTable(int,int)));
+    } else {
+        disconnect(ui->imgTableWidget,    SIGNAL(cellChanged(int,int)), this, SLOT(updateImgTable(int,int)));
+        disconnect(ui->framesTableWidget, SIGNAL(cellChanged(int,int)), this, SLOT(updateFramesTable(int,int)));
+        disconnect(ui->aframesTableWidget,SIGNAL(cellChanged(int,int)), this, SLOT(updateAframesTable(int,int)));
+        disconnect(ui->aniTableWidget,    SIGNAL(cellChanged(int,int)), this, SLOT(updateAniTable(int,int)));
+    }
+}
+
+void MainWindow::initTables()
+{
+    QStringList headersList;
 
     /* input images table */
 
@@ -180,13 +201,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->aframesTableWidget->setColumnHidden(ColAframeId, true);
     ui->aframesTableWidget->setColumnHidden(ColAframeAniId, true);
 #endif
-
-    ui->tabWidget->setCurrentWidget(ui->framesTab);
-
-    initRecentFilesMenu();
-
-    resize(1204, 768);
-    updateGeometry();
 }
 
 void MainWindow::saveFile()
@@ -239,8 +253,6 @@ bool MainWindow::openFile(const QString& filename)
 {
     bool ok = false;
 
-    _updatingTable = true;
-
     if (!filename.isEmpty()) {
         SpriteState tmp;
 
@@ -250,6 +262,8 @@ bool MainWindow::openFile(const QString& filename)
         }
 
         closeFile();
+
+        cellChangedSignals(false);
 
         /* load input images */
 
@@ -294,11 +308,11 @@ bool MainWindow::openFile(const QString& filename)
         ui->aframesTableWidget->clearContents();
         ui->aframesTableWidget->setRowCount(0);
 
+        cellChangedSignals(true);
+
         setCurrentFile(filename);
         ok = true;
     }
-
-    _updatingTable = false;
 
     return ok;
 }
@@ -351,6 +365,7 @@ void MainWindow::closeFile()
 
     _sprState.clear();
 
+    cellChangedSignals(false);
     ui->imgTableWidget->clearContents();
     ui->imgTableWidget->setRowCount(0);
     ui->framesTableWidget->clearContents();
@@ -359,13 +374,13 @@ void MainWindow::closeFile()
     ui->aniTableWidget->setRowCount(0);
     ui->aframesTableWidget->clearContents();
     ui->aframesTableWidget->setRowCount(0);
+    cellChangedSignals(true);
 
     ui->imgPreview->setPixmap(QPixmap());
     ui->framePreview->setPixmap(QPixmap());
     ui->frameAPreview->setPixmap(QPixmap());
 
     clearPreviewAnimation();
-    ui->previewAniButton->setEnabled(false);
 }
 
 void MainWindow::setCurrentFile(const QString& filename)
@@ -411,10 +426,13 @@ void MainWindow::addImage(const InputImage& image)
 
     QTableWidgetItem* item_id       = new QTableWidgetItem(QString::number(image.id));
     QTableWidgetItem* item_filename = new QTableWidgetItem(QFileInfo(filename).fileName());
+
+    cellChangedSignals(false);
     ui->imgTableWidget->setRowCount(rows+1);
     ui->imgTableWidget->setItem(rows, ColImageId, item_id);
     ui->imgTableWidget->setItem(rows, ColImageFilename, item_filename);
     ui->imgTableWidget->setCurrentItem(item_id);
+    cellChangedSignals(true);
 
     showSelImage(rows);
     ui->removeImageButton->setEnabled(true);
@@ -469,7 +487,10 @@ void MainWindow::removeImage(int row)
     qDebug() << ui->imgTableWidget->item(row, ColImageId)->text();
     qDebug() << ui->imgTableWidget->item(row, ColImageId)->text().toInt();
 
+    cellChangedSignals(false);
     ui->imgTableWidget->removeRow(row);
+    cellChangedSignals(true);
+
     if (ui->imgTableWidget->rowCount() == 0) {
         ui->removeImageButton->setEnabled(false);
         ui->addFrameButton->setEnabled(false);
@@ -538,6 +559,7 @@ void MainWindow::addFrame(const LvkFrame &frame)
 
     int rows = ui->framesTableWidget->rowCount();
 
+    cellChangedSignals(false);
     ui->framesTableWidget->setRowCount(rows+1);
     ui->framesTableWidget->setItem(rows, ColFrameId,    item_id);
     ui->framesTableWidget->setItem(rows, ColFrameOx,    item_ox);
@@ -546,6 +568,8 @@ void MainWindow::addFrame(const LvkFrame &frame)
     ui->framesTableWidget->setItem(rows, ColFrameH,     item_h);
     ui->framesTableWidget->setItem(rows, ColFrameImgId, item_iid);
     ui->framesTableWidget->setItem(rows, ColFrameName,  item_name);
+    cellChangedSignals(true);
+
     ui->imgTableWidget->setCurrentItem(item_id);
 
     showSelFrame(rows);
@@ -585,7 +609,10 @@ void MainWindow::removeFrame(int row)
 {
     Id frameId = getFrameId(row);
 
+    cellChangedSignals(false);
     ui->framesTableWidget->removeRow(row);
+    cellChangedSignals(true);
+
     if (ui->framesTableWidget->rowCount() == 0) {
         ui->removeFrameButton->setEnabled(false);
     }
@@ -622,14 +649,17 @@ void MainWindow::addAnimation(const LvkAnimation& ani)
 
     QTableWidgetItem* item_id   = new QTableWidgetItem(QString::number(ani.id));
     QTableWidgetItem* item_name = new QTableWidgetItem(ani.name);
+
+    cellChangedSignals(false);
     ui->aniTableWidget->setRowCount(rows+1);
     ui->aniTableWidget->setItem(rows, ColAniId, item_id);
     ui->aniTableWidget->setItem(rows, ColAniName, item_name);
     ui->aniTableWidget->setCurrentItem(item_id);
+    cellChangedSignals(true);
 
     ui->removeAniButton->setEnabled(true);
     ui->addAframeButton->setEnabled(true);
-    ui->previewAniButton->setEnabled(true);
+//    ui->previewAniButton->setEnabled(true);
 
     showAframes(rows);
     clearPreviewAnimation();
@@ -637,13 +667,13 @@ void MainWindow::addAnimation(const LvkAnimation& ani)
 
 void MainWindow::showAframes(int row)
 {
-    _updatingTable = true;
-
     if (currentAnimation && currentAnimation->isAnimated()) {
         currentAnimation->stopAnimation();
     }
-    ui->previewAniButton->setText(tr("Play"));
-    ui->previewAniButton->setEnabled(true);
+//    ui->previewAniButton->setText(tr("Play"));
+//    ui->previewAniButton->setEnabled(true);
+
+    cellChangedSignals(false);
 
     ui->aframesTableWidget->clearContents();
     ui->aframesTableWidget->setRowCount(0);
@@ -659,14 +689,14 @@ void MainWindow::showAframes(int row)
         LvkAframe aFrame = it.next().value();
         addAframe_(aFrame,animationId);
     }
-    ui->previewAniButton->setEnabled(true);
+
+    cellChangedSignals(true);
 
     previewAnimation(); // automatic preview! I think it's cool. Andres
 
-    _updatingTable = false;
 }
 
-void MainWindow::previewAnimation(bool reset)
+void MainWindow::previewAnimation()
 {
     if (ui->aniTableWidget->currentRow() == -1) {
         infoDialog("No animation selected");
@@ -677,24 +707,16 @@ void MainWindow::previewAnimation(bool reset)
     // the animation
 
     static QGraphicsScene* scene = new QGraphicsScene;
-    static LvkFrameGraphicsGroup* animation = 0;
 
-    if (ui->previewAniButton->text() == "Play" || reset) {
-        if (animation) {
-            scene->removeItem(animation);
-            delete animation;
-        }
-        LvkAnimation selectedAni = _sprState.animations().value(selectedAniId());
-        animation = new LvkFrameGraphicsGroup(selectedAni, _sprState.fpixmaps());
-        scene->addItem(animation);
-        ui->animationGraphicsView->setScene(scene);
-        animation->startAnimation();
-        ui->previewAniButton->setText(tr("Stop"));
-    } else {
-        animation->stopAnimation();
-        ui->previewAniButton->setText(tr("Play"));
+    if (currentAnimation) {
+        scene->removeItem(currentAnimation);
+        delete currentAnimation;
     }
-    currentAnimation = animation;
+    LvkAnimation selectedAni = _sprState.animations().value(selectedAniId());
+    currentAnimation = new LvkFrameGraphicsGroup(selectedAni, _sprState.fpixmaps());
+    scene->addItem(currentAnimation);
+    ui->animationGraphicsView->setScene(scene);
+    currentAnimation->startAnimation();
 }
 
 void MainWindow::clearPreviewAnimation()
@@ -702,7 +724,6 @@ void MainWindow::clearPreviewAnimation()
     if (ui->animationGraphicsView->scene() && currentAnimation) {
         ui->animationGraphicsView->scene()->removeItem(currentAnimation);
     }
-    ui->previewAniButton->setText(tr("Play"));
 }
 
 void MainWindow::removeSelAnimation()
@@ -721,10 +742,6 @@ void MainWindow::removeSelAnimation()
 
     removeAnimation(currentRow);
 
-    if (ui->aniTableWidget->rowCount() == 0) {
-        ui->previewAniButton->setEnabled(false);
-    }
-
     showAframes(ui->aniTableWidget->currentRow());
 }
 
@@ -732,11 +749,13 @@ void MainWindow::removeAnimation(int row)
 {
     Id aniId = getAnimationId(row);
 
+    cellChangedSignals(false);
     ui->aniTableWidget->removeRow(row);
+    cellChangedSignals(true);
+
     if (ui->aniTableWidget->rowCount() == 0) {
         ui->removeAniButton->setEnabled(false);
         ui->addAframeButton->setEnabled(false);
-        ui->previewAniButton->setEnabled(false);
     }
 
     clearPreviewAnimation();
@@ -793,8 +812,6 @@ void MainWindow::addAframe(const LvkAframe& aframe, Id aniId)
 
 void MainWindow::addAframe_(const LvkAframe& aframe, Id aniId)
 {
-    _updatingTable = true;
-
     QTableWidgetItem* item_id    = new QTableWidgetItem(QString::number(aframe.id));
     QTableWidgetItem* item_fid   = new QTableWidgetItem(QString::number(aframe.frameId));
     QTableWidgetItem* item_delay = new QTableWidgetItem(QString::number(aframe.delay));
@@ -804,6 +821,7 @@ void MainWindow::addAframe_(const LvkAframe& aframe, Id aniId)
 
     int rows = ui->aframesTableWidget->rowCount();
 
+    cellChangedSignals(false);
     ui->aframesTableWidget->setRowCount(rows+1);
     ui->aframesTableWidget->setItem(rows, ColAframeId,      item_id);
     ui->aframesTableWidget->setItem(rows, ColAframeFrameId, item_fid);
@@ -812,11 +830,10 @@ void MainWindow::addAframe_(const LvkAframe& aframe, Id aniId)
     ui->aframesTableWidget->setItem(rows, ColAframeOy,      item_oy);
     ui->aframesTableWidget->setItem(rows, ColAframeAniId,   item_aniId);
     ui->aframesTableWidget->setCurrentItem(item_id);
+    cellChangedSignals(true);
 
     showSelAframe(rows);
     ui->removeAframeButton->setEnabled(true);
-
-    _updatingTable = false;
 }
 
 
@@ -851,118 +868,211 @@ void MainWindow::removeSelAframe()
 
 void MainWindow::removeAframe(int row)
 {
-    _updatingTable = true;
-
     Id frameId = getAFrameId(row);
 
+    cellChangedSignals(false);
     ui->aframesTableWidget->removeRow(row);
+    cellChangedSignals(true);
+
     if (ui->aframesTableWidget->rowCount() == 0) {
         ui->removeAframeButton->setEnabled(false);
     }
     ui->frameAPreview->setPixmap(QPixmap());
 
     _sprState.removeAframe(frameId, selectedAniId());
-
-    _updatingTable = false;
 }
 
-void MainWindow::updateImgTable(int /*row*/, int col)
+void MainWindow::updateImgTable(int row, int col)
 {
-///// imgTableWidget columns
-//    ColImageId          = 0,
-//    ColImageFilename    = 1,
+    QTableWidget* table    = ui->imgTableWidget;
+    QString       newValue = getItem(table, row, col);
+    Id            imgId    = getIdItem(table, row, ColImageId);
+    InputImage&   img      = _sprState.image(imgId);
 
     switch (col) {
-        // TODO
+    case ColImageId:
+        infoDialog("Column \"Id\" is not editable");
+        setItem(table, row, col, imgId);
+        break;
+    case ColImageFilename:
+        if (newValue.isEmpty()) {
+            infoDialog("Image filename cannot be empty");
+            setItem(table, row, col, QFileInfo(img.filename).fileName());
+        } else if (newValue.contains(',')) {
+            infoDialog("Image filename cannot contain the character ','");
+            setItem(table, row, col, QFileInfo(img.filename).fileName());
+        } else {
+            infoDialog("Feature disabled until relative path are implemented");
+            //img.filename = newValue;
+            setItem(table, row, col, QFileInfo(img.filename).fileName());
+            // TODO update _sprState.ipixmap(), this implies to check that the
+            // new image has a valid format
+        }
+        break;
     }
 }
 
-void MainWindow::updateFramesTable(int /*row*/, int col)
+void MainWindow::updateFramesTable(int row, int col)
 {
-///// framesTableWidget colums
-//    ColFrameId          = 0,
-//    ColFrameOx          = 1,
-//    ColFrameOy          = 2,
-//    ColFrameW           = 3,
-//    ColFrameH           = 4,
-//    ColFrameName        = 5,
-//    ColFrameImgId       = 6,
+    QTableWidget* table    = ui->framesTableWidget;
+    QString       newValue = getItem(table, row, col);
+    Id            frameId  = getIdItem(table, row, ColFrameId);
+    LvkFrame&     frame    = _sprState.frame(frameId);
+
+    bool ok = true;
+//    int i = newValue.toInt(&ok);
 
     switch (col) {
-        // TODO
+    case ColFrameId:
+        ok = false;
+        infoDialog(tr("Column \"Id\" is not editable"));
+        setItem(table, row, col, frameId);
+        break;
+    case ColFrameImgId:
+        ok = false;
+        infoDialog(tr("Column \"Image Id\" is not editable."));
+        setItem(table, row, col, frame.imgId);
+        break;
+    case ColFrameOx:
+        infoDialog("Feature disabled until rectangular areas are implemented");
+//        if (ok) {
+//            frame.ox = i;
+//        } else {
+//            infoDialog("Invalid input.");
+            setItem(table, row, col, frame.ox);
+//        }
+        break;
+    case ColFrameOy:
+        infoDialog("Feature disabled until rectangular areas are implemented");
+//        if (ok) {
+//            frame.oy = i;
+//        } else {
+//            infoDialog("Invalid input.");
+            setItem(table, row, col, frame.oy);
+//        }
+        break;
+    case ColFrameW:
+        infoDialog("Feature disabled until rectangular areas are implemented");
+//        if (ok) {
+//            frame.w = i;
+//        } else {
+//            infoDialog("Invalid input.");
+            setItem(table, row, col, frame.w);
+//        }
+        break;
+    case ColFrameH:
+        infoDialog("Feature disabled until rectangular areas are implemented");
+//        if (ok) {
+//            frame.h = i;
+//        } else {
+//            infoDialog("Invalid input.");
+            setItem(table, row, col, frame.h);
+//        }
+        break;
+    case ColFrameName:
+        if (newValue.isEmpty()) {
+            ok = false;
+            infoDialog("Frame name cannot be empty");
+        } else if (newValue.contains(',')) {
+            ok = false;
+            infoDialog("Frame name cannot contain the character ','");
+        }
+        if (ok) {
+            frame.name = newValue;
+        } else {
+            setItem(table, row, col, frame.name);
+        }
+        break;
+    }
+
+    if (ok) {
+        // TODO update frame pixmap
     }
 }
 
 void MainWindow::updateAframesTable(int row, int col)
 {
-    if (_updatingTable) {
-        return;
-    }
-
-    QString newValue = getItem(ui->aframesTableWidget, row, col);
-    Id aniId    = getIdItem(ui->aframesTableWidget, row, ColAframeAniId);
-    Id aframeId = getIdItem(ui->aframesTableWidget, row, ColAframeId);
-
-    LvkAframe& aframe = _sprState.aframe(aniId, aframeId);
-
-//    qDebug() << "Updating aframesTable - new value " << newValue
-//             << " aniId" << aniId << " aframeId" << aframeId
-//             << " old value" << aframe.delay;
+    QTableWidget* table    = ui->aframesTableWidget;
+    QString       newValue = getItem(table, row, col);
+    Id            aniId    = getIdItem(table, row, ColAframeAniId);
+    Id            aframeId = getIdItem(table, row, ColAframeId);
+    LvkAframe&    aframe   = _sprState.aframe(aniId, aframeId);
 
     bool ok = true;
     int i = newValue.toInt(&ok);
 
-    /* If the input is invalid, set previous value and return*/
-    if (!ok) {
-        infoDialog("Invalid input.");
-        ui->aframesTableWidget->item(row, col)->setText(QString::number(aframe.delay));
-        return;
-    }
-
     switch (col) {
     case ColAframeId:
-        /* Not editable */
-        break;
-    case ColAframeFrameId:
-        aframe.frameId = i;
-        break;
-    case ColAframeOx:
-        aframe.ox = i;
-        break;
-    case ColAframeOy:
-        aframe.oy = i;
-        break;
-    case ColAframeDelay:
-        aframe.delay = i;
+        ok = false;
+        infoDialog(tr("Column \"Id\" is not editable"));
+        setItem(table, row, col, aframeId);
         break;
     case ColAframeAniId:
-        /* Not editable */
+        ok = false;
+        infoDialog(tr("Column \"Animation Id\" is not editable."));
+        setItem(table, row, col, aniId);
+        break;
+    case ColAframeFrameId:
+        if (ok) {
+            aframe.frameId = i;
+        } else {
+            infoDialog("Invalid input.");
+            setItem(table, row, col, aframe.frameId);
+        }
+        break;
+    case ColAframeOx:
+        if (ok) {
+            aframe.ox = i;
+        } else {
+            infoDialog("Invalid input.");
+            setItem(table, row, col, aframe.ox);
+        }
+        break;
+    case ColAframeOy:
+        if (ok) {
+            aframe.oy = i;
+        } else {
+            infoDialog("Invalid input.");
+            setItem(table, row, col, aframe.oy);
+        }
+        break;
+    case ColAframeDelay:
+        if (ok) {
+            aframe.delay = i;
+        } else {
+            infoDialog("Invalid input.");
+            setItem(table, row, col, aframe.delay);
+        }
         break;
     }
 
-    if (currentAnimation->isAnimated()) {
-        /* force refresh animation */
-        previewAnimation(true);
+    if (ok && currentAnimation->isAnimated()) {
+        previewAnimation(); /* force refresh animation */
     }
 }
 
 void MainWindow::updateAniTable(int row, int col)
 {
-    if (_updatingTable) {
-        return;
-    }
-
-    QString newValue = getItem(ui->aniTableWidget, row, col);
-    Id aniId = getIdItem(ui->aniTableWidget, row, ColAniId);
-
-    LvkAnimation& ani = _sprState.animation(aniId);
+    QTableWidget* table    = ui->aniTableWidget;
+    QString       newValue = getItem(table, row, col);
+    Id            aniId    = getIdItem(table, row, ColAniId);
+    LvkAnimation& ani      = _sprState.animation(aniId);
 
     switch (col) {
     case ColAniId:
-        /* Not editable */
+        infoDialog(tr("Column \"Id\" is not editable"));
+        setItem(table, row, col, aniId);
         break;
     case ColAniName:
-        ani.name = newValue;
+        if (newValue.isEmpty()) {
+            infoDialog("Animation name cannot be empty");
+            setItem(table, row, col, ani.name);
+        } else if (newValue.contains(',')) {
+            infoDialog("Animation name cannot contain the character ','");
+            setItem(table, row, col, ani.name);
+        } else {
+            ani.name = newValue;
+        }
         break;
     }
 }

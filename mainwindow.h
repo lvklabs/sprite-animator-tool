@@ -58,11 +58,20 @@ private:
     /// Counter. Next animation frame id
     Id _aframeId;
 
-    /// True if it's updating the content of some table
-    bool _updatingTable;
-
     /// Current animation
     LvkFrameGraphicsGroup* currentAnimation;
+
+    /// initialize recent files menu
+    void initRecentFilesMenu();
+
+    /// initialize signals
+    void initSignals();
+
+    /// initialize tables
+    void initTables();
+
+    /// connect or disconnect cellChanged() signals
+    void cellChangedSignals(bool connected);
 
     /// Add new input image
     void addImage(const InputImage& image);
@@ -77,6 +86,22 @@ private:
     void addAframe(const LvkAframe& aframe, Id aniId);
     void addAframe_(const LvkAframe& aframe, Id aniId);
 
+    /// shorthand to handle tables
+    inline QString getItem(const QTableWidget* table, int row, int col)
+    { return table->item(row, col)->text(); }
+
+    /// shorthand to handle tables
+    inline Id getIdItem(const QTableWidget* table, int row, int col)
+    { return (Id)(getItem(table, row, col).toInt()); }
+
+    /// shorthand to handle tables
+    inline void setItem(const QTableWidget* table, int row, int col, const QString& value)
+    { cellChangedSignals(false); table->item(row, col)->setText(value); cellChangedSignals(true); }
+
+    /// shorthand to handle tables
+    inline void setItem(const QTableWidget* table, int row, int col, int value)
+    { setItem(table, row, col, QString::number(value)); }
+
 private slots:
     void saveFile();
     void saveAsFile();
@@ -85,7 +110,6 @@ private slots:
     void closeFile();
     void exit();
 
-    void initRecentFilesMenu();
     void addRecentFileMenu(const QString& filename);
     void storeRecentFile(const QString& filename);
 
@@ -108,7 +132,7 @@ private slots:
     void removeSelAnimation();
     void removeAnimation(int row);
 
-    void previewAnimation(bool reset = false);
+    void previewAnimation();
     void clearPreviewAnimation();
 
     void addAframeDialog();
@@ -120,12 +144,6 @@ private slots:
     void updateFramesTable(int row, int col);
     void updateAframesTable(int row, int col);
     void updateAniTable(int row, int col);
-
-    inline QString getItem(const QTableWidget* table, int row, int col)
-    { return table->item(row, col)->text(); }
-
-    inline Id getIdItem(const QTableWidget* table, int row, int col)
-    { return (Id)(getItem(table, row, col).toInt()); }
 };
 
 #endif // MAINWINDOW_H

@@ -47,6 +47,14 @@ public:
     const QHash<Id, QPixmap>& fpixmaps() const
     { return _fpixmaps; }
 
+    /// get input image by Id
+    InputImage& image(Id imgId)
+    { return _images[imgId]; }
+
+    /// get frame by Id
+    LvkFrame& frame(Id frameId)
+    { return _frames[frameId]; }
+
     /// get animation by Id
     LvkAnimation& animation(Id aniId)
     { return _animations[aniId]; }
