@@ -11,7 +11,7 @@ SOURCES += main.cpp \
     lvkanimation.cpp \
     lvkaframe.cpp \
     lvkframegraphicsgroup.cpp \
-    qrecentfileaction.cpp
+    lvkaction.cpp
 HEADERS += mainwindow.h \
     spritestate.h \
     lvkframe.h \
@@ -20,7 +20,7 @@ HEADERS += mainwindow.h \
     lvkanimation.h \
     lvkaframe.h \
     lvkframegraphicsgroup.h \
-    qrecentfileaction.h \
+    lvkaction.h \
     settings.h
 FORMS += mainwindow.ui
 DEFINES += DEBUG

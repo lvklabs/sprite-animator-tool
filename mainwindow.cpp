@@ -14,7 +14,7 @@
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "qrecentfileaction.h"
+#include "lvkaction.h"
 #include "inputimage.h"
 #include "lvkframe.h"
 #include "lvkaframe.h"
@@ -351,7 +351,7 @@ void MainWindow::initRecentFilesMenu()
 void MainWindow::addRecentFileMenu(const QString& filename)
 {
     ui->actionNoRecentFiles->setVisible(false);
-    QRecentFileAction* action = new QRecentFileAction(filename);
+    LvkAction* action = new LvkAction(filename);
     ui->actionOpenRecent->addAction(action);
     connect(action, SIGNAL(triggered(QString)), this, SLOT(openFile(QString)));
 }
