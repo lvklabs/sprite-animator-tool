@@ -869,6 +869,8 @@ void MainWindow::addAframe_(const LvkAframe& aframe, Id aniId)
 
     showSelAframe(rows);
     ui->removeAframeButton->setEnabled(true);
+
+    previewAnimation();
 }
 
 
@@ -955,7 +957,7 @@ void MainWindow::updateFramesTable(int row, int col)
     LvkFrame&     frame    = _sprState.frame(frameId);
 
     bool ok = true;
-//    int i = newValue.toInt(&ok);
+    int i = newValue.toInt(&ok);
 
     switch (col) {
     case ColFrameId:
@@ -969,40 +971,44 @@ void MainWindow::updateFramesTable(int row, int col)
         setItem(table, row, col, frame.imgId);
         break;
     case ColFrameOx:
-        infoDialog("Feature disabled until rectangular areas are implemented");
-//        if (ok) {
-//            frame.ox = i;
-//        } else {
-//            infoDialog("Invalid input.");
+        if (ok) {
+            frame.ox = i;
+            _sprState.updateFPixmap(frame);
+            showSelFrame(row);
+        } else {
+            infoDialog("Invalid input.");
             setItem(table, row, col, frame.ox);
-//        }
+        }
         break;
     case ColFrameOy:
-        infoDialog("Feature disabled until rectangular areas are implemented");
-//        if (ok) {
-//            frame.oy = i;
-//        } else {
-//            infoDialog("Invalid input.");
+        if (ok) {
+            frame.oy = i;
+            _sprState.updateFPixmap(frame);
+            showSelFrame(row);
+        } else {
+            infoDialog("Invalid input.");
             setItem(table, row, col, frame.oy);
-//        }
+        }
         break;
     case ColFrameW:
-        infoDialog("Feature disabled until rectangular areas are implemented");
-//        if (ok) {
-//            frame.w = i;
-//        } else {
-//            infoDialog("Invalid input.");
+        if (ok) {
+            frame.w = i;
+            _sprState.updateFPixmap(frame);
+            showSelFrame(row);
+        } else {
+            infoDialog("Invalid input.");
             setItem(table, row, col, frame.w);
-//        }
+        }
         break;
     case ColFrameH:
-        infoDialog("Feature disabled until rectangular areas are implemented");
-//        if (ok) {
-//            frame.h = i;
-//        } else {
-//            infoDialog("Invalid input.");
+        if (ok) {
+            frame.h = i;
+            _sprState.updateFPixmap(frame);
+            showSelFrame(row);
+        } else {
+            infoDialog("Invalid input.");
             setItem(table, row, col, frame.h);
-//        }
+        }
         break;
     case ColFrameName:
         if (newValue.isEmpty()) {

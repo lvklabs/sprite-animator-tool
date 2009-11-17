@@ -65,16 +65,21 @@ public:
 
     /// add new input image
     void addImage(const InputImage& img)
-    {
-        _images.insert(img.id, img);
-    }
+    {  _images.insert(img.id, img); }
 
     /// add new frame
-    /// TODO use ox, oy, w and h
     void addFrame(const LvkFrame& frame)
     {
         _frames.insert(frame.id, frame);
-        _fpixmaps.insert(frame.id, QPixmap(ipixmap(frame.imgId)));
+        updateFPixmap(frame);
+    }
+
+    // TODO move this method inside LvkFrame
+    void updateFPixmap(const LvkFrame& frame)
+    {
+        QPixmap tmp(ipixmap(frame.imgId));
+        QPixmap fpixmap(tmp.copy(frame.ox, frame.oy, frame.w, frame.h));
+        _fpixmaps.insert(frame.id, fpixmap);
     }
 
     /// add new animation
@@ -87,9 +92,7 @@ public:
 
     /// remove input image by id
     void removeImage(Id id)
-    {
-        _images.remove(id);
-    }
+    { _images.remove(id); }
 
     /// remove frame by id
     void removeFrame(Id id)
@@ -137,6 +140,7 @@ private:
     /// animations hash
     QHash<Id, LvkAnimation> _animations;
 
+    // TODO move frame pixmap into the LvkFrame classs (?)
     /// Frame pixmaps
     QHash<Id, QPixmap>      _fpixmaps;
 };
