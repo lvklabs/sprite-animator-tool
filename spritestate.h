@@ -37,7 +37,7 @@ public:
 
     /// get pixmap data from image @param imgId
     const QPixmap& ipixmap(Id imgId)
-    { return _ipixmaps[imgId]; }
+    { return _images[imgId].pixmap; }
 
     /// get pixmap data from frame @param frameId
     const QPixmap& fpixmap(Id frameId)
@@ -67,7 +67,6 @@ public:
     void addImage(const InputImage& img)
     {
         _images.insert(img.id, img);
-        _ipixmaps.insert(img.id, QPixmap(img.filename));
     }
 
     /// add new frame
@@ -75,7 +74,7 @@ public:
     void addFrame(const LvkFrame& frame)
     {
         _frames.insert(frame.id, frame);
-        _fpixmaps.insert(frame.id, QPixmap(_ipixmaps[frame.imgId]));
+        _fpixmaps.insert(frame.id, QPixmap(ipixmap(frame.imgId)));
     }
 
     /// add new animation
@@ -90,7 +89,6 @@ public:
     void removeImage(Id id)
     {
         _images.remove(id);
-        _ipixmaps.remove(id);
     }
 
     /// remove frame by id
@@ -126,6 +124,9 @@ public:
     /// deserialize instance from @param filename
     bool deserialize(const QString& filename, int* err = 0);
 
+    /// serialize instance into a file legible by the Lvk's iPhone classes.
+    bool serializeOutput(const QString& filename, int* error = 0) const;
+
 private:
     /// input images hash
     QHash<Id, InputImage>   _images;
@@ -136,11 +137,8 @@ private:
     /// animations hash
     QHash<Id, LvkAnimation> _animations;
 
-    /// Input image pixmaps.
-    QHash<Id, QPixmap>     _ipixmaps;
-
-    /// Frame pixmaps.
-    QHash<Id, QPixmap>     _fpixmaps;
+    /// Frame pixmaps
+    QHash<Id, QPixmap>      _fpixmaps;
 };
 
 #endif // SPRITESTATE_H

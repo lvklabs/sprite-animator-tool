@@ -4,7 +4,7 @@
 #include "inputimage.h"
 
 InputImage::InputImage(Id id, const QString& filename)
-        : id(id), filename(filename)
+        : id(id), filename(filename), pixmap(QPixmap(filename))
 {
 }
 
@@ -29,6 +29,7 @@ bool InputImage::fromString(const QString& str)
     if (list.size() == 2) {
         id       = list.at(0).toInt();
         filename = list.at(1);
+        pixmap   = QPixmap(filename);
         return true;
     } else {
         qDebug() << "Warning InputImage::fromString(const QString&) invalid string format";

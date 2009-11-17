@@ -18,7 +18,6 @@ void SpriteState::clear()
     _frames.clear();
     _animations.clear();
 
-    _ipixmaps.clear();
     _fpixmaps.clear();
 }
 
@@ -248,4 +247,100 @@ bool SpriteState::deserialize(const QString& filename, int* error)
     file.close();
 
     return (state != StError);
+}
+bool SpriteState::serializeOutput(const QString& filename, int* error) const
+{
+    if(_animations.count() == 0){
+        qDebug() <<  "Nothing to export.";
+        return false;
+    }
+
+    QString binFileName;
+    QString textFileName;
+    if(filename.endsWith(".lkot")){
+        binFileName.append(filename);
+        binFileName.replace(".lkot", ".lkob");
+        textFileName.append(filename);
+    }else{
+        binFileName.append(filename + ".lkob");
+        textFileName.append(filename + ".lkot");
+    }
+
+    QFile binOutput(binFileName);
+    QFile textOutput(textFileName);
+
+    setError(error, 0);
+
+    if (!binOutput.open(QFile::WriteOnly)) {
+        qDebug() <<  "Error: SpriteState::serializeOutput(): could not open "
+                 << binOutput.fileName() << " in WriteOnly mode";
+        setError(error, ErrCantOpenReadWriteMode);
+        return false;
+    }
+    if (!textOutput.open(QFile::WriteOnly | QFile::Text)) {
+        qDebug() <<  "Error: SpriteState::serializeOutput(): could not open "
+                 << textOutput.fileName() << " in WriteOnly mode";
+        setError(error, ErrCantOpenReadWriteMode);
+        return false;
+    }
+
+    QDataStream dataStream(&binOutput);
+    QTextStream textStream(&textOutput);
+    textStream << "### LvkSprite #########################################\n";
+    textStream << "LvkSprite version 0.1\n\n";
+
+    textStream << "# Images\n";
+    textStream << "# format: imageId,offset(bytes),length(bytes)\n";
+    textStream << "images(\n";
+    qint64 offset = 0;
+    for (QHashIterator<Id, InputImage> it(_images); it.hasNext();) {
+        it.next();
+        InputImage inImage = it.value();
+        QFile imageFile(inImage.filename);
+        if (!imageFile.open(QFile::ReadOnly)) {
+            qDebug() <<  "Error: SpriteState::serializeOutput(): could not open "
+                     << imageFile.fileName() << " in ReadOnly mode";
+            setError(error, ErrCantOpenReadWriteMode);
+            return false;
+        }
+        QByteArray imageContents(imageFile.readAll());
+        dataStream.writeRawData(imageContents.constData(), imageContents.length());
+        textStream << "\t" <<  inImage.id << "," <<  offset << "," << imageFile.size() << "\n";
+        offset += imageFile.size();
+        imageFile.close();
+    }
+    binOutput.close();
+    textStream << ")\n\n";
+
+    textStream << "# Frames\n";
+    textStream << "# format: frameId,name,imageId,ox,oy,w,h\n";
+    textStream << "frames(\n";
+    for (QHashIterator<Id, LvkFrame> it(_frames); it.hasNext();) {
+        it.next();
+        textStream << "\t" << it.value().toString() << "\n";
+    }
+    textStream << ")\n\n";
+
+    textStream << "# Animations\n";
+    textStream << "# format: animationId,name\n";
+    textStream << "# Animation frames\n";
+    textStream << "# format: aframeId,frameId,delay\n";
+    textStream << "animations(\n";
+    for (QHashIterator<Id, LvkAnimation> it(_animations); it.hasNext();) {
+        it.next();
+        textStream << "\t" << it.value().toString() << "\n";
+        textStream << "\taframes(\n";
+        for (QHashIterator<Id, LvkAframe> it2(it.value().aframes); it2.hasNext();) {
+            it2.next();
+            textStream << "\t\t" << it2.value().toString() << "\n";
+        }
+        textStream << "\t)\n\n";
+    }
+    textStream << ")\n\n";
+
+    textStream << "### End LvkSprite #####################################\n";
+
+    textOutput.close();
+
+    return true;
 }

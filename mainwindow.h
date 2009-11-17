@@ -37,11 +37,17 @@ private:
     /// current file open
     QString  _filename;
 
+    /// current export file open
+    QString _exportFileName;
+
     /// app settings
     QSettings settings;
 
     /// sets current file and updates windows title
     void setCurrentFile(const QString& filename);
+
+    /// sets current export file
+    void setCurrentExportFile(const QString& exportFileName);
 
     /// current sprite state
     SpriteState _sprState;
@@ -108,6 +114,8 @@ private slots:
     void openFileDialog();
     bool openFile(const QString& filename);
     void closeFile();
+    void exportFile();
+    void exportAsFile();
     void exit();
 
     void addRecentFileMenu(const QString& filename);

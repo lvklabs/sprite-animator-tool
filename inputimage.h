@@ -2,6 +2,7 @@
 #define INPUTIMAGE_H
 
 #include <QString>
+#include <QPixmap>
 
 #include "types.h"
 
@@ -13,6 +14,7 @@ struct InputImage
 
     Id      id;         /* image id */
     QString filename;   /* image filename */
+    QPixmap pixmap;     /* image pixmap */
 
     /// returns the string representation
     QString toString() const;

@@ -104,6 +104,8 @@ void MainWindow::initSignals()
     connect(ui->actionSaveAs,      SIGNAL(triggered()),          this, SLOT(saveAsFile()));
     connect(ui->actionOpen,        SIGNAL(triggered()),          this, SLOT(openFileDialog()));
     connect(ui->actionClose,       SIGNAL(triggered()),          this, SLOT(closeFile()));
+    connect(ui->actionExport,      SIGNAL(triggered()),          this, SLOT(exportFile()));
+    connect(ui->actionExportAs,    SIGNAL(triggered()),          this, SLOT(exportAsFile()));
     connect(ui->actionExit,        SIGNAL(triggered()),          this, SLOT(exit()));
     connect(ui->actionAbout,       SIGNAL(triggered()),          this, SLOT(about()));
     connect(ui->addImageButton,    SIGNAL(clicked()),            this, SLOT(addImageDialog()));
@@ -383,6 +385,34 @@ void MainWindow::closeFile()
     clearPreviewAnimation();
 }
 
+void MainWindow::exportFile()
+{
+    if (_exportFileName.isEmpty()) {
+        exportAsFile();
+    } else {
+        if (!_sprState.serializeOutput(_exportFileName)) {
+           infoDialog("Cannot save" + _exportFileName);
+           return;
+        }
+    }
+}
+
+void MainWindow::exportAsFile()
+{
+    static QString exportFileName = "";
+
+    exportFileName = QFileDialog::getSaveFileName(
+            this, tr("Export file"), QFileInfo(exportFileName).absolutePath(), "*.lkot");
+
+    if (!exportFileName.isEmpty()) {
+        if (!_sprState.serializeOutput(exportFileName)) {
+           infoDialog("Cannot export " + exportFileName);
+           return;
+        }
+        setCurrentExportFile(exportFileName);
+    }
+}
+
 void MainWindow::setCurrentFile(const QString& filename)
 {
     _filename = filename;
@@ -391,6 +421,11 @@ void MainWindow::setCurrentFile(const QString& filename)
     } else  {
         setWindowTitle(QString(APP_NAME) + " - " + QFileInfo(filename).baseName());
     }
+}
+
+void MainWindow::setCurrentExportFile(const QString& exportFileName)
+{
+    _exportFileName = exportFileName;
 }
 
 void MainWindow::addImageDialog()
