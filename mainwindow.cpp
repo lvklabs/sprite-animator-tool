@@ -89,6 +89,9 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     ui->tabWidget->setCurrentWidget(ui->framesTab);
+    ui->imgPreview->setPixmap(QPixmap());
+    ui->framePreview->setFrameRectVisible(false);
+    ui->framePreview->setPixmap(QPixmap());
 
     initSignals();
     initTables();
@@ -110,8 +113,6 @@ void MainWindow::initSignals()
     connect(ui->actionAbout,       SIGNAL(triggered()),          this, SLOT(about()));
     connect(ui->addImageButton,    SIGNAL(clicked()),            this, SLOT(addImageDialog()));
     connect(ui->imgTableWidget,    SIGNAL(cellClicked(int,int)), this, SLOT(showSelImage(int)));
-    connect(ui->imgZoomInButton,   SIGNAL(clicked()),            this, SLOT(imgZoomIn()));
-    connect(ui->imgZoomOutButton,  SIGNAL(clicked()),            this, SLOT(imgZoomOut()));
     connect(ui->removeImageButton, SIGNAL(clicked()),            this, SLOT(removeSelImage()));
     connect(ui->addFrameButton,    SIGNAL(clicked()),            this, SLOT(addFrameFromImgRegion()));
     connect(ui->framesTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(showSelFrame(int)));
@@ -122,6 +123,9 @@ void MainWindow::initSignals()
     connect(ui->removeAniButton,   SIGNAL(clicked()),            this, SLOT(removeSelAnimation()));
     connect(ui->addAframeButton,   SIGNAL(clicked()),            this, SLOT(addAframeDialog()));
     connect(ui->removeAframeButton,SIGNAL(clicked()),            this, SLOT(removeSelAframe()));
+
+    connect(ui->imgZoomInButton,   SIGNAL(clicked()),            ui->imgPreview, SLOT(zoomIn()));
+    connect(ui->imgZoomOutButton,  SIGNAL(clicked()),            ui->imgPreview, SLOT(zoomOut()));
 
     cellChangedSignals(true);
 }
@@ -478,24 +482,13 @@ void MainWindow::showSelImage(int row)
 {
     Id imgId = getImageId(row);
     const QPixmap& selPixmap = _sprState.ipixmap(imgId);
-    int w = selPixmap.width();
-    int h = selPixmap.height();
-
     ui->imgPreview->setPixmap(selPixmap);
-    ui->imgPreview->setGeometry(0, 0, w, h);
-    ui->imgPreview->updateGeometry();
 }
 
-void MainWindow::imgZoomIn()
+void MainWindow::showSelImageWithFrameRect(int row, const QRect& rect)
 {
-    ui->imgPreview->resize(ui->imgPreview->size()*2);
-    ui->imgPreview->updateGeometry();
-}
-
-void MainWindow::imgZoomOut()
-{
-    ui->imgPreview->resize(ui->imgPreview->size()/2);
-    ui->imgPreview->updateGeometry();
+    showSelImage(row);
+    ui->imgPreview->setFrameRect(rect);
 }
 
 void MainWindow::removeSelImage()
@@ -615,13 +608,18 @@ void MainWindow::showSelFrame(int row)
 {
     int frameId = getFrameId(row);
 
+    LvkFrame frame = _sprState.frame(frameId);
     const QPixmap& selPixmap = _sprState.fpixmap(frameId);
-    int w = selPixmap.width();
-    int h = selPixmap.height();
     
     ui->framePreview->setPixmap(selPixmap);
-    ui->framePreview->setGeometry(0, 0, w, h);
-    ui->framePreview->updateGeometry();
+
+    /* show input image with frame rect */
+    for (int r = 0; r < ui->imgTableWidget->rowCount(); r++) {
+        if (frame.imgId == getImageId(r)) {
+            ui->imgTableWidget->selectRow(r);
+            showSelImageWithFrameRect(r, frame.rect());
+        }
+    }
 }
 
 void MainWindow::removeSelFrame()
@@ -973,8 +971,6 @@ void MainWindow::updateFramesTable(int row, int col)
     case ColFrameOx:
         if (ok) {
             frame.ox = i;
-            _sprState.updateFPixmap(frame);
-            showSelFrame(row);
         } else {
             infoDialog("Invalid input.");
             setItem(table, row, col, frame.ox);
@@ -983,8 +979,6 @@ void MainWindow::updateFramesTable(int row, int col)
     case ColFrameOy:
         if (ok) {
             frame.oy = i;
-            _sprState.updateFPixmap(frame);
-            showSelFrame(row);
         } else {
             infoDialog("Invalid input.");
             setItem(table, row, col, frame.oy);
@@ -993,8 +987,6 @@ void MainWindow::updateFramesTable(int row, int col)
     case ColFrameW:
         if (ok) {
             frame.w = i;
-            _sprState.updateFPixmap(frame);
-            showSelFrame(row);
         } else {
             infoDialog("Invalid input.");
             setItem(table, row, col, frame.w);
@@ -1003,8 +995,6 @@ void MainWindow::updateFramesTable(int row, int col)
     case ColFrameH:
         if (ok) {
             frame.h = i;
-            _sprState.updateFPixmap(frame);
-            showSelFrame(row);
         } else {
             infoDialog("Invalid input.");
             setItem(table, row, col, frame.h);
@@ -1027,7 +1017,18 @@ void MainWindow::updateFramesTable(int row, int col)
     }
 
     if (ok) {
-        // TODO update frame pixmap
+        switch (col) {
+        case ColFrameOx:
+        case ColFrameOy:
+        case ColFrameW:
+        case ColFrameH:
+            _sprState.updateFPixmap(frame);
+            ui->imgPreview->setFrameRect(frame.rect());
+            showSelFrame(row);
+            break;
+        default:
+            break;
+        }
     }
 }
 

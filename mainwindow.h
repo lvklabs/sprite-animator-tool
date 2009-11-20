@@ -125,8 +125,7 @@ private slots:
 
     void addImageDialog();
     void showSelImage(int row);
-    void imgZoomIn();
-    void imgZoomOut();
+    void showSelImageWithFrameRect(int row, const QRect& rect);
     void removeSelImage();
     void removeImage(int row);
 

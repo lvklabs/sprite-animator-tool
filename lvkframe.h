@@ -2,6 +2,7 @@
 #define LVKFRAME_H
 
 #include <QString>
+#include <QRect>
 
 #include "types.h"
 
@@ -29,6 +30,9 @@ struct LvkFrame
 
     /// initializes the current instance from the string @param str
     bool fromString(const QString& str);
+
+    /// returns a QRect with the values ox, oy, w and h
+    QRect rect();
 };
 
 #endif // LVKFRAME_H

@@ -11,7 +11,8 @@ SOURCES += main.cpp \
     lvkanimation.cpp \
     lvkaframe.cpp \
     lvkframegraphicsgroup.cpp \
-    lvkaction.cpp
+    lvkaction.cpp \
+    qinputimagewidget.cpp
 HEADERS += mainwindow.h \
     spritestate.h \
     lvkframe.h \
@@ -21,7 +22,8 @@ HEADERS += mainwindow.h \
     lvkaframe.h \
     lvkframegraphicsgroup.h \
     lvkaction.h \
-    settings.h
+    settings.h \
+    qinputimagewidget.h
 FORMS += mainwindow.ui
 DEFINES += DEBUG
 #DEFINES += DEBUG_SHOW_ID_COLS

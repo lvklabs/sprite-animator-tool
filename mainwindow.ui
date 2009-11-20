@@ -88,6 +88,12 @@
         </item>
         <item row="2" column="0">
          <widget class="QTableWidget" name="imgTableWidget">
+          <property name="minimumSize">
+           <size>
+            <width>250</width>
+            <height>0</height>
+           </size>
+          </property>
           <property name="maximumSize">
            <size>
             <width>300</width>
@@ -130,6 +136,12 @@
         </item>
         <item row="4" column="0">
          <widget class="QTableWidget" name="framesTableWidget">
+          <property name="minimumSize">
+           <size>
+            <width>250</width>
+            <height>0</height>
+           </size>
+          </property>
           <property name="maximumSize">
            <size>
             <width>300</width>
@@ -184,7 +196,7 @@
           <property name="alignment">
            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
           </property>
-          <widget class="QLabel" name="imgPreview">
+          <widget class="QInputImageWidget" name="imgPreview">
            <property name="geometry">
             <rect>
              <x>0</x>
@@ -293,7 +305,7 @@
           <property name="alignment">
            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
           </property>
-          <widget class="QLabel" name="framePreview">
+          <widget class="QInputImageWidget" name="framePreview">
            <property name="geometry">
             <rect>
              <x>0</x>
@@ -429,7 +441,7 @@
         <item row="0" column="1">
          <widget class="QPushButton" name="addAniButton">
           <property name="text">
-           <string>Add animation</string>
+           <string>Add animation...</string>
           </property>
          </widget>
         </item>
@@ -489,7 +501,7 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>91</width>
+             <width>79</width>
              <height>360</height>
             </rect>
            </property>
@@ -506,7 +518,7 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>484</width>
+             <width>496</width>
              <height>360</height>
             </rect>
            </property>
@@ -635,6 +647,13 @@
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>QInputImageWidget</class>
+   <extends>QLabel</extends>
+   <header>qinputimagewidget.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
