@@ -20,7 +20,6 @@
 #include "lvkaframe.h"
 #include "lvkframegraphicsgroup.h"
 #include "settings.h"
-#include <stdio.h>
 
 /// imgTableWidget columns
 enum {
@@ -65,15 +64,14 @@ enum {
 #define selectedImgId()         getImageId(ui->imgTableWidget->currentRow())
 #define selectedAniId()         getAnimationId(ui->aniTableWidget->currentRow())
 
-
-inline void infoDialog(const QString str)
+void infoDialog(const QString& str)
 {
     QMessageBox msg;
     msg.setText(str);
     msg.exec();
 }
 
-inline bool yesNoDialog(const QString str)
+bool yesNoDialog(const QString& str)
 {
     QMessageBox msg;
     msg.setText(str);
@@ -85,12 +83,17 @@ inline bool yesNoDialog(const QString str)
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow), _imgId(0), _frameId(0), _aniId(0), _aframeId(0),
-      currentAnimation(0)
+      currentAnimation(0), statusBarMousePos(new QLabel()), statusBarRectSize(new QLabel())
 {
     ui->setupUi(this);
+    ui->statusBar->addWidget(statusBarMousePos);
+    ui->statusBar->addWidget(statusBarRectSize);
     ui->tabWidget->setCurrentWidget(ui->framesTab);
     ui->imgPreview->setPixmap(QPixmap());
+    ui->aframePreview->setFrameRectVisible(false);
+    ui->aframePreview->setMouseLinesVisible(false);
     ui->framePreview->setFrameRectVisible(false);
+    ui->framePreview->setMouseLinesVisible(false);
     ui->framePreview->setPixmap(QPixmap());
 
     initSignals();
@@ -121,11 +124,19 @@ void MainWindow::initSignals()
     connect(ui->aframesTableWidget,SIGNAL(cellClicked(int,int)), this, SLOT(showSelAframe(int)));
     connect(ui->aniTableWidget,    SIGNAL(cellClicked(int,int)), this, SLOT(showAframes(int)));
     connect(ui->removeAniButton,   SIGNAL(clicked()),            this, SLOT(removeSelAnimation()));
+    connect(ui->refreshAniButton,  SIGNAL(clicked()),            this, SLOT(previewAnimation()));
     connect(ui->addAframeButton,   SIGNAL(clicked()),            this, SLOT(addAframeDialog()));
     connect(ui->removeAframeButton,SIGNAL(clicked()),            this, SLOT(removeSelAframe()));
 
-    connect(ui->imgZoomInButton,   SIGNAL(clicked()),            ui->imgPreview, SLOT(zoomIn()));
-    connect(ui->imgZoomOutButton,  SIGNAL(clicked()),            ui->imgPreview, SLOT(zoomOut()));
+    connect(ui->imgPreview,        SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
+    connect(ui->imgPreview,        SIGNAL(mouseRectChanged(const QRect&)), this, SLOT(showMouseRect(const QRect&)));
+
+    connect(ui->imgZoomInButton,     SIGNAL(clicked()),  ui->imgPreview,    SLOT(zoomIn()));
+    connect(ui->imgZoomOutButton,    SIGNAL(clicked()),  ui->imgPreview,    SLOT(zoomOut()));
+    connect(ui->frameZoomInButton,   SIGNAL(clicked()),  ui->framePreview,  SLOT(zoomIn()));
+    connect(ui->frameZoomOutButton,  SIGNAL(clicked()),  ui->framePreview,  SLOT(zoomOut()));
+    connect(ui->aframeZoomInButton,  SIGNAL(clicked()),  ui->aframePreview, SLOT(zoomIn()));
+    connect(ui->aframeZoomOutButton, SIGNAL(clicked()),  ui->aframePreview, SLOT(zoomOut()));
 
     cellChangedSignals(true);
 }
@@ -384,9 +395,14 @@ void MainWindow::closeFile()
 
     ui->imgPreview->setPixmap(QPixmap());
     ui->framePreview->setPixmap(QPixmap());
-    ui->frameAPreview->setPixmap(QPixmap());
+    ui->aframePreview->setPixmap(QPixmap());
 
     clearPreviewAnimation();
+}
+
+bool MainWindow::exportFile(const QString& filename)
+{
+    return _sprState.serializeOutput(filename);
 }
 
 void MainWindow::exportFile()
@@ -450,9 +466,7 @@ void MainWindow::addImage(const InputImage& image)
 
     QString filename(image.filename);
 
-    QImage img(filename);
-
-    if (img.isNull()) {
+    if (QImage(filename).isNull()) {
         infoDialog(filename + " has an invalid image format");
         return;
     }
@@ -555,13 +569,24 @@ bool MainWindow::addFrameFromImgRegion()
 
         Id imgId = selectedImgId();
 
-        // TODO when available, this vars must be initialized from
-        //  a rectangular region in the input image
-        int ox = 0;
-        int oy = 0;
-        int w  = _sprState.ipixmap(imgId).width();
-        int h  = _sprState.ipixmap(imgId).height();
+        int ox;
+        int oy;
+        int w;
+        int h;
 
+        QRect frameRect = ui->imgPreview->mouseFrameRect();
+
+        if (frameRect.isNull()) {
+            ox = 0;
+            oy = 0;
+            w  = _sprState.ipixmap(imgId).width();
+            h  = _sprState.ipixmap(imgId).height();
+        } else {
+            ox = frameRect.x();
+            oy = frameRect.y();
+            w  = frameRect.width();
+            h  = frameRect.height();
+        }
         addFrame(LvkFrame(_frameId++, imgId, ox, oy, w, h, name));
 
         return true;
@@ -748,14 +773,14 @@ void MainWindow::previewAnimation()
     LvkAnimation selectedAni = _sprState.animations().value(selectedAniId());
     currentAnimation = new LvkFrameGraphicsGroup(selectedAni, _sprState.fpixmaps());
     scene->addItem(currentAnimation);
-    ui->animationGraphicsView->setScene(scene);
+    ui->aniPreview->setScene(scene);
     currentAnimation->startAnimation();
 }
 
 void MainWindow::clearPreviewAnimation()
 {
-    if (ui->animationGraphicsView->scene() && currentAnimation) {
-        ui->animationGraphicsView->scene()->removeItem(currentAnimation);
+    if (ui->aniPreview->scene() && currentAnimation) {
+        ui->aniPreview->scene()->removeItem(currentAnimation);
     }
 }
 
@@ -880,9 +905,9 @@ void MainWindow::showSelAframe(int row)
     int w = selPixmap.width();
     int h = selPixmap.height();
 
-    ui->frameAPreview->setPixmap(selPixmap);
-    ui->frameAPreview->setGeometry(0, 0, w, h);
-    ui->frameAPreview->updateGeometry();
+    ui->aframePreview->setPixmap(selPixmap);
+    ui->aframePreview->setGeometry(0, 0, w, h);
+    ui->aframePreview->updateGeometry();
 }
 
 void MainWindow::removeSelAframe()
@@ -912,7 +937,7 @@ void MainWindow::removeAframe(int row)
     if (ui->aframesTableWidget->rowCount() == 0) {
         ui->removeAframeButton->setEnabled(false);
     }
-    ui->frameAPreview->setPixmap(QPixmap());
+    ui->aframePreview->setPixmap(QPixmap());
 
     _sprState.removeAframe(frameId, selectedAniId());
 }
@@ -1119,6 +1144,27 @@ void MainWindow::updateAniTable(int row, int col)
     }
 }
 
+void MainWindow::showMousePosition(int x, int y)
+{
+    statusBarMousePos->setText("Mouse x,y: " + QString::number(x) + "," + QString::number(y));
+}
+
+void MainWindow::showMouseRect(const QRect& rect)
+{
+    int x = rect.x();
+    int y = rect.y();
+    int w = rect.width();
+    int h = rect.height();
+
+    if (w == 0 && h == 0) {
+        statusBarRectSize->setText("");
+    } else {
+        statusBarRectSize->setText("  Rect: x,y,w,h: " +
+                                   QString::number(x) + "," + QString::number(y) + "," +
+                                   QString::number(w) + "," + QString::number(h));
+    }
+}
+
 void MainWindow::about()
 {
     infoDialog(QString(APP_NAME)  + " " + QString(APP_VERSION));
@@ -1131,6 +1177,8 @@ void MainWindow::about()
 
 MainWindow::~MainWindow()
 {
+    delete statusBarRectSize;
+    delete statusBarMousePos;
     delete ui;
 }
 

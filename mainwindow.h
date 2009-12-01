@@ -7,6 +7,7 @@
 #include <QHash>
 #include <QSettings>
 #include <QTableWidget>
+#include <QLabel>
 
 #include "types.h"
 #include "inputimage.h"
@@ -30,6 +31,15 @@ public:
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+public slots:
+    /// Opens an sprite file
+    /// @returns true if success, false otherwise
+    bool openFile(const QString& filename);
+
+    /// Exports an sprite file to its binary format
+    /// @returns true if success, false otherwise
+    bool exportFile(const QString& filename);
+    
 private:
 
     Ui::MainWindow *ui;
@@ -66,6 +76,10 @@ private:
 
     /// Current animation
     LvkFrameGraphicsGroup* currentAnimation;
+
+    /// Labels to show information in the status bar
+    QLabel* statusBarMousePos;
+    QLabel* statusBarRectSize;
 
     /// initialize recent files menu
     void initRecentFilesMenu();
@@ -112,7 +126,6 @@ private slots:
     void saveFile();
     void saveAsFile();
     void openFileDialog();
-    bool openFile(const QString& filename);
     void closeFile();
     void exportFile();
     void exportAsFile();
@@ -151,6 +164,9 @@ private slots:
     void updateFramesTable(int row, int col);
     void updateAframesTable(int row, int col);
     void updateAniTable(int row, int col);
+
+    void showMousePosition(int x, int y);
+    void showMouseRect(const QRect& rect);
 };
 
 #endif // MAINWINDOW_H
