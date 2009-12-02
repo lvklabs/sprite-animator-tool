@@ -63,6 +63,7 @@ enum {
 
 #define selectedImgId()         getImageId(ui->imgTableWidget->currentRow())
 #define selectedAniId()         getAnimationId(ui->aniTableWidget->currentRow())
+#define selectedAframeId()      getAFrameId(ui->aframesTableWidget->currentRow())
 
 void infoDialog(const QString& str)
 {
@@ -88,13 +89,15 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     ui->statusBar->addWidget(statusBarMousePos);
     ui->statusBar->addWidget(statusBarRectSize);
+
     ui->tabWidget->setCurrentWidget(ui->framesTab);
+
     ui->imgPreview->setPixmap(QPixmap());
-    ui->aframePreview->setFrameRectVisible(false);
-    ui->aframePreview->setMouseLinesVisible(false);
+
     ui->framePreview->setFrameRectVisible(false);
-    ui->framePreview->setMouseLinesVisible(false);
     ui->framePreview->setPixmap(QPixmap());
+
+    ui->aframePreview->setFrameRectVisible(false);
 
     initSignals();
     initTables();
@@ -127,8 +130,12 @@ void MainWindow::initSignals()
     connect(ui->refreshAniButton,  SIGNAL(clicked()),            this, SLOT(previewAnimation()));
     connect(ui->addAframeButton,   SIGNAL(clicked()),            this, SLOT(addAframeDialog()));
     connect(ui->removeAframeButton,SIGNAL(clicked()),            this, SLOT(removeSelAframe()));
+    connect(ui->aniDecSpeedButton, SIGNAL(clicked()),            this, SLOT(decAniSpeed()));
+    connect(ui->aniIncSpeedButton, SIGNAL(clicked()),            this, SLOT(incAniSpeed()));
 
     connect(ui->imgPreview,        SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
+    connect(ui->framePreview,      SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
+    connect(ui->aframePreview,     SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
     connect(ui->imgPreview,        SIGNAL(mouseRectChanged(const QRect&)), this, SLOT(showMouseRect(const QRect&)));
 
     connect(ui->imgZoomInButton,     SIGNAL(clicked()),  ui->imgPreview,    SLOT(zoomIn()));
@@ -245,6 +252,13 @@ void MainWindow::saveAsFile()
            return;
         }
         setCurrentFile(filename);
+        // addRecentFileMenu(filename);
+        // storeRecentFile(filename);
+        //
+        // NOTE: Workaround to get the files ordered by date
+        ui->actionOpenRecent->clear();
+        storeRecentFile(filename);
+        initRecentFilesMenu();
     }
 }
 
@@ -318,12 +332,30 @@ bool MainWindow::openFile(const QString& filename)
             }
         }
 
-        ui->imgTableWidget->clearSelection();
-        ui->framesTableWidget->clearSelection();
-        ui->aframesTableWidget->clearSelection();
-        ui->aniTableWidget->clearSelection();
-        ui->aframesTableWidget->clearContents();
-        ui->aframesTableWidget->setRowCount(0);
+        if (ui->imgTableWidget->rowCount() > 0) {
+            ui->imgTableWidget->selectRow(0);
+            showSelImage(0);
+        } else {
+            ui->imgPreview->setPixmap(QPixmap());
+        }
+        if (ui->framesTableWidget->rowCount() > 0) {
+            ui->framesTableWidget->selectRow(0);
+            showSelFrame(0);
+        } else {
+            ui->framePreview->setPixmap(QPixmap());
+        }
+        if (ui->aniTableWidget->rowCount() > 0) {
+            ui->aniTableWidget->selectRow(0);
+            showAframes(0);
+        } else {
+            clearPreviewAnimation();
+        }
+        if (ui->aframesTableWidget->rowCount() > 0) {
+            ui->aframesTableWidget->selectRow(0);
+            showSelAframe(0);
+        } else {
+            ui->aframePreview->setPixmap(QPixmap());
+        }
 
         cellChangedSignals(true);
 
@@ -337,6 +369,8 @@ bool MainWindow::openFile(const QString& filename)
 void MainWindow::storeRecentFile(const QString& filename)
 {
     QString baseKey(KEY_RECENT_FILE);
+
+    // TODO do not store duplicated filenames
 
     for (int i = MAX_RECENT_FILES - 1; i > 0; --i) {
         QString key_r = baseKey; // read
@@ -381,6 +415,7 @@ void MainWindow::closeFile()
     _aframeId = 0;
 
     _sprState.clear();
+    setCurrentFile("");
 
     cellChangedSignals(false);
     ui->imgTableWidget->clearContents();
@@ -396,7 +431,6 @@ void MainWindow::closeFile()
     ui->imgPreview->setPixmap(QPixmap());
     ui->framePreview->setPixmap(QPixmap());
     ui->aframePreview->setPixmap(QPixmap());
-
     clearPreviewAnimation();
 }
 
@@ -940,6 +974,31 @@ void MainWindow::removeAframe(int row)
     ui->aframePreview->setPixmap(QPixmap());
 
     _sprState.removeAframe(frameId, selectedAniId());
+}
+
+void MainWindow::incAniSpeed(int ms)
+{
+    if (ui->aniTableWidget->currentRow() == -1) {
+        infoDialog("No animation selected");
+        return;
+    }
+
+    Id aniId = selectedAniId();
+
+    for (int r = 0; r < ui->aframesTableWidget->rowCount(); ++r) {
+        int& delay = _sprState.aframe(aniId, getAFrameId(r)).delay;
+        delay -= ms;
+        if (delay < 0) {
+            delay = 0;
+        }
+        ui->aframesTableWidget->item(r, ColAframeDelay)->setText(QString::number(delay));
+    }
+    previewAnimation();
+}
+
+void MainWindow::decAniSpeed(int ms)
+{
+    incAniSpeed(-ms);
 }
 
 void MainWindow::updateImgTable(int row, int col)

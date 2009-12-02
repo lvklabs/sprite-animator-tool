@@ -154,6 +154,8 @@ private slots:
 
     void previewAnimation();
     void clearPreviewAnimation();
+    void incAniSpeed(int ms = 10);
+    void decAniSpeed(int ms = 10);
 
     void addAframeDialog();
     void showSelAframe(int row);
