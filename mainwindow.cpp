@@ -368,20 +368,48 @@ bool MainWindow::openFile(const QString& filename)
 
 void MainWindow::storeRecentFile(const QString& filename)
 {
-    QString baseKey(KEY_RECENT_FILE);
+    #define makeKey(str, i)         { str = KEY_RECENT_FILE; str.append(QString::number(i)); }
 
-    // TODO do not store duplicated filenames
+    QString key;
 
-    for (int i = MAX_RECENT_FILES - 1; i > 0; --i) {
-        QString key_r = baseKey; // read
-        key_r.append(QString::number(i - 1));
-        QString key_w = baseKey; // write
-        key_w.append(QString::number(i));
+    /* search if filename is already stored */
+    int found = -1;
+    for (int i = 0; i < MAX_RECENT_FILES; ++i) {
+        makeKey(key, i);
 
-        QString recentFile = settings.value(key_r).toString();
-        settings.setValue(key_w, recentFile);
+        QString fileAlreadyStored = settings.value(key).toString();
+
+        if (filename == fileAlreadyStored) {
+            found = i;
+            break;
+        }
     }
-    settings.setValue(KEY_RECENT_FILE "0", filename);
+
+    /* if found in the first position, nothing to do */
+    if (found == 0) {
+        return;
+    }
+
+    /* if not found, stored it in the last position */
+    if (found == -1) {
+        found = MAX_RECENT_FILES - 1;
+        makeKey(key, found);
+        settings.setValue(key, filename);
+    }
+
+    /* swap entries */
+    QString key_;
+    for (int i = found; i > 0; --i) {
+        /* swap(i, i-1) */
+        makeKey(key, i);
+        makeKey(key_, i - 1);
+        QString recentFile = settings.value(key).toString();
+        QString recentFile_ = settings.value(key_).toString();
+        settings.setValue(key_, recentFile);
+        settings.setValue(key, recentFile_);
+    }
+
+    #undef makeKey
 }
 
 void MainWindow::initRecentFilesMenu()
