@@ -96,8 +96,12 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->framePreview->setFrameRectVisible(false);
     ui->framePreview->setPixmap(QPixmap());
+    ui->framePreview->zoomIn();
+    ui->framePreview->zoomIn();
 
     ui->aframePreview->setFrameRectVisible(false);
+    ui->aframePreview->zoomIn();
+    ui->aframePreview->zoomIn();
 
     initSignals();
     initTables();

@@ -39,7 +39,7 @@
        </size>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="framesTab">
        <attribute name="title">
@@ -112,10 +112,13 @@
            </font>
           </property>
           <property name="toolTip">
-           <string>Double-click to edit the fields</string>
+           <string>Double-click or F2 to edit the fields</string>
           </property>
           <property name="editTriggers">
-           <set>QAbstractItemView::DoubleClicked</set>
+           <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
+          </property>
+          <property name="tabKeyNavigation">
+           <bool>false</bool>
           </property>
           <property name="alternatingRowColors">
            <bool>false</bool>
@@ -163,10 +166,13 @@
            </font>
           </property>
           <property name="toolTip">
-           <string>Double-click to edit the fields</string>
+           <string>Double-click or F2 to edit the fields</string>
           </property>
           <property name="editTriggers">
-           <set>QAbstractItemView::DoubleClicked</set>
+           <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
+          </property>
+          <property name="tabKeyNavigation">
+           <bool>false</bool>
           </property>
           <property name="selectionMode">
            <enum>QAbstractItemView::SingleSelection</enum>
@@ -208,7 +214,6 @@
 p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Sans'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Left click: &lt;/span&gt;To define a rectangular area in the image (&lt;span style=&quot; font-style:italic;&quot;&gt;Currently, only from left to right and from top to bottom&lt;/span&gt;)&lt;/p&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Middle click: &lt;/span&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;TODO add frame from current &lt;/span&gt;rectangular&lt;span style=&quot; font-style:italic;&quot;&gt; area (if not null) with a default name &quot;frame_id&quot;&lt;/span&gt;&lt;/p&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Right click:&lt;/span&gt; To remove the rectangular area&lt;/p&gt;
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
@@ -422,10 +427,13 @@ p, li { white-space: pre-wrap; }
            </font>
           </property>
           <property name="toolTip">
-           <string>Double-click to edit the fields</string>
+           <string>Double-click or F2 to edit the fields</string>
           </property>
           <property name="editTriggers">
-           <set>QAbstractItemView::DoubleClicked</set>
+           <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
+          </property>
+          <property name="tabKeyNavigation">
+           <bool>false</bool>
           </property>
           <property name="selectionMode">
            <enum>QAbstractItemView::SingleSelection</enum>
@@ -471,10 +479,13 @@ p, li { white-space: pre-wrap; }
            </font>
           </property>
           <property name="toolTip">
-           <string>Double-click to edit the fields</string>
+           <string>Double-click or F2 to edit the fields</string>
           </property>
           <property name="editTriggers">
-           <set>QAbstractItemView::DoubleClicked</set>
+           <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
+          </property>
+          <property name="tabKeyNavigation">
+           <bool>false</bool>
           </property>
           <property name="selectionMode">
            <enum>QAbstractItemView::SingleSelection</enum>
