@@ -14,10 +14,11 @@
 
 /// The SpriteState class contains all the information about
 /// input images, frames and animations
-class SpriteState
+class SpriteState : public QObject
 {
+
 public:
-    SpriteState();
+    SpriteState(QObject* parent = 0);
 
     /// get input images hash
     const QHash<Id, InputImage>& images() const
@@ -74,7 +75,7 @@ public:
         updateFPixmap(frame);
     }
 
-    // TODO move this method inside LvkFrame
+    // TODO move this method inside LvkFrame (?)
     void updateFPixmap(const LvkFrame& frame)
     {
         QPixmap tmp(ipixmap(frame.imgId));
@@ -114,21 +115,27 @@ public:
 
     /// Errors
     typedef enum {
-        ErrCantOpenReadMode      = 1,
-        ErrCantOpenReadWriteMode = 2,
-        ErrInvalidFormat         = 3,
+        ErrNone = 0,
+        ErrNullFilename,
+        ErrFileDoesNotExist,
+        ErrCantOpenReadMode,
+        ErrCantOpenReadWriteMode,
+        ErrInvalidFormat,
     } SpriteStateError;
 
     /// serialize instance to @param filename
     /// NOTE: Input image filenames cannot contain the charater ',',
     ///       otherwise deserialize() will fail
-    bool serialize(const QString& filename, int* err = 0) const;
+    bool serialize(const QString& filename, SpriteStateError* err = 0) const;
 
     /// deserialize instance from @param filename
-    bool deserialize(const QString& filename, int* err = 0);
+    bool deserialize(const QString& filename, SpriteStateError* err = 0);
 
-    /// serialize instance into a file legible by the Lvk's iPhone classes.
-    bool serializeOutput(const QString& filename, int* error = 0) const;
+    /// export binary sprite file
+    bool exportSprite(const QString& filename, SpriteStateError* err = 0) const;
+
+    /// returns the error string of @param err
+    static const QString& errorMessage(SpriteStateError err);
 
 private:
     /// input images hash
@@ -144,5 +151,7 @@ private:
     /// Frame pixmaps
     QHash<Id, QPixmap>      _fpixmaps;
 };
+
+typedef SpriteState::SpriteStateError SpriteStateError;
 
 #endif // SPRITESTATE_H

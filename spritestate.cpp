@@ -6,9 +6,10 @@
 #include <QStringList>
 #include <QImageWriter>
 
-#define setError(p, err_code) if (p) { *p = err_code; }
+#define setError(p, err_code) if (p) { *(p) = err_code; }
 
-SpriteState::SpriteState()
+SpriteState::SpriteState(QObject* parent)
+        : QObject(parent)
 {
 }
 
@@ -17,20 +18,19 @@ void SpriteState::clear()
     _images.clear();
     _frames.clear();
     _animations.clear();
-
     _fpixmaps.clear();
 }
 
-bool SpriteState::serialize(const QString& filename, int* error) const
+bool SpriteState::serialize(const QString& filename, SpriteStateError* err) const
 {
-    QFile file(filename);
+    setError(err, ErrNone);
 
-    setError(error, 0);
+    QFile file(filename);
 
     if (!file.open(QFile::WriteOnly | QFile::Text)) {
         qDebug() <<  "Error: SpriteState::serialize(): could not open"
                  << filename << "in rw mode";
-        setError(error, ErrCantOpenReadWriteMode);
+        setError(err, ErrCantOpenReadWriteMode);
         return false;
     }
 
@@ -80,20 +80,30 @@ bool SpriteState::serialize(const QString& filename, int* error) const
     return true;
 }
 
-bool SpriteState::deserialize(const QString& filename, int* error)
+bool SpriteState::deserialize(const QString& filename, SpriteStateError* err)
 {
+    setError(err, ErrNone);
+
+    if (filename.isEmpty()) {
+        setError(err, ErrNullFilename);
+        return false;
+    }
+
     QFile file(filename);
 
-    setError(error, 0);
+    if (!file.exists()) {
+        setError(err, ErrFileDoesNotExist);
+        return false;
+    }
 
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
         qDebug() <<  "Error: SpriteState::serialize(): could not open"
                  << filename << "in ro mode";
-        setError(error, ErrCantOpenReadMode);
+        setError(err, ErrCantOpenReadMode);
         return false;
     }
 
-    _images.clear();
+    clear();
 
     enum {
         StCheckVersion    = 0,
@@ -139,7 +149,7 @@ bool SpriteState::deserialize(const QString& filename, int* error)
             } else {
                 qDebug() << "Error: SpriteState::deserialize(): Invalid LvkSprite file format"
                          << "at line" << lineNumber;
-                setError(error, ErrInvalidFormat);
+                setError(err, ErrInvalidFormat);
                 state = StError;
                 break;
             }
@@ -156,12 +166,12 @@ bool SpriteState::deserialize(const QString& filename, int* error)
             } else if (line == "aframes(") {
                 qDebug() << "Error: SpriteState::deserialize(): Unspected token"
                          << line << "at line" << lineNumber;
-                setError(error, ErrInvalidFormat);
+                setError(err, ErrInvalidFormat);
                 state = StError;
             } else {
-                qDebug() << "Error: SpriteState::deserialize(): Unknow token"
+                qDebug() << "Error: SpriteState::deserialize(): Unknown token"
                          << line << "at line" << lineNumber;
-                setError(error, ErrInvalidFormat);
+                setError(err, ErrInvalidFormat);
                 state = StError;
             }
             break;
@@ -175,7 +185,7 @@ bool SpriteState::deserialize(const QString& filename, int* error)
                 } else {
                     qDebug() << "Error: SpriteState::deserialize(): invalid image entry"
                              << line << "at line" << lineNumber;
-                    setError(error, ErrInvalidFormat);
+                    setError(err, ErrInvalidFormat);
                     state = StError;
                 }
             }
@@ -190,7 +200,7 @@ bool SpriteState::deserialize(const QString& filename, int* error)
                 } else {
                     qDebug() << "Error: SpriteState::deserialize(): invalid frame entry"
                              << line << "at line" << lineNumber;
-                    setError(error, ErrInvalidFormat);
+                    setError(err, ErrInvalidFormat);
                     state = StError;
                 }
             }
@@ -206,7 +216,7 @@ bool SpriteState::deserialize(const QString& filename, int* error)
                 } else {
                     qDebug() << "Error: SpriteState::deserialize(): null animation id"
                              << "at line" << lineNumber;
-                    setError(error, ErrInvalidFormat);
+                    setError(err, ErrInvalidFormat);
                     state = StError;
                 }
             } else {
@@ -216,7 +226,7 @@ bool SpriteState::deserialize(const QString& filename, int* error)
                 } else {
                     qDebug() << "Error: SpriteState::deserialize(): invalid animation entry"
                              << line << "at line" << lineNumber;
-                    setError(error, ErrInvalidFormat);
+                    setError(err, ErrInvalidFormat);
                     state = StError;
                 }
             }
@@ -231,7 +241,7 @@ bool SpriteState::deserialize(const QString& filename, int* error)
                 } else {
                     qDebug() << "Error: SpriteState::deserialize(): invalid aframe entry"
                              << line << "at line" << lineNumber;
-                    setError(error, ErrInvalidFormat);
+                    setError(err, ErrInvalidFormat);
                     state = StError;
                 }
             }
@@ -248,12 +258,9 @@ bool SpriteState::deserialize(const QString& filename, int* error)
 
     return (state != StError);
 }
-bool SpriteState::serializeOutput(const QString& filename, int* error) const
+bool SpriteState::exportSprite(const QString& filename, SpriteStateError* err) const
 {
-    if(_animations.count() == 0){
-        qDebug() <<  "Nothing to export.";
-        return false;
-    }
+    setError(err, ErrNone);
 
     QString binFileName;
     QString textFileName;
@@ -269,13 +276,12 @@ bool SpriteState::serializeOutput(const QString& filename, int* error) const
     QFile binOutput(binFileName);
     QFile textOutput(textFileName);
 
-    setError(error, 0);
 
     if (binOutput.exists()) {
         if (!binOutput.remove()) {
             qDebug() <<  "Error: SpriteState::serializeOutput():"
                      << binOutput.fileName() << "already exists and cannot be removed";
-            setError(error, ErrCantOpenReadWriteMode);
+            setError(err, ErrCantOpenReadWriteMode);
             return false;
         }
     }
@@ -283,14 +289,14 @@ bool SpriteState::serializeOutput(const QString& filename, int* error) const
     if (!binOutput.open(QFile::WriteOnly | QFile::Append)) {
         qDebug() <<  "Error: SpriteState::serializeOutput(): could not open "
                  << binOutput.fileName() << " in WriteOnly mode";
-        setError(error, ErrCantOpenReadWriteMode);
+        setError(err, ErrCantOpenReadWriteMode);
         return false;
     }
 
     if (!textOutput.open(QFile::WriteOnly | QFile::Text)) {
         qDebug() <<  "Error: SpriteState::serializeOutput(): could not open "
                  << textOutput.fileName() << " in WriteOnly mode";
-        setError(error, ErrCantOpenReadWriteMode);
+        setError(err, ErrCantOpenReadWriteMode);
         return false;
     }
 
@@ -340,3 +346,26 @@ bool SpriteState::serializeOutput(const QString& filename, int* error) const
 
     return true;
 }
+
+const QString& SpriteState::errorMessage(SpriteStateError err)
+{
+    static const QString strErrNone                 = tr("No error");
+    static const QString strErrCantOpenReadMode     = tr("Cannot read file");
+    static const QString strErrOpenReadWriteMode    = tr("Cannot write file");
+    static const QString strErrInvalidFormat        = tr("The file has an invalid sprite format");
+    static const QString strErrUnknown              = tr("Unknown error");
+
+    switch (err) {
+    case ErrNone:
+        return strErrNone;
+    case ErrCantOpenReadMode:
+        return strErrCantOpenReadMode;
+    case ErrCantOpenReadWriteMode:
+        return strErrOpenReadWriteMode;
+    case ErrInvalidFormat:
+        return strErrInvalidFormat;
+    default:
+        return strErrUnknown;
+    }
+}
+

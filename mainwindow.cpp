@@ -172,7 +172,7 @@ void MainWindow::initTables()
     ui->imgTableWidget->setRowCount(0);
     ui->imgTableWidget->setColumnCount(2);
     ui->imgTableWidget->setColumnWidth(ColImageId, 30);
-    headersList << "Id" << "Filename";
+    headersList << tr("Id") << tr("Filename");
     ui->imgTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
 #ifndef DEBUG_SHOW_ID_COLS
@@ -188,7 +188,7 @@ void MainWindow::initTables()
     ui->framesTableWidget->setColumnWidth(ColFrameOy, 30);
     ui->framesTableWidget->setColumnWidth(ColFrameW, 30);
     ui->framesTableWidget->setColumnWidth(ColFrameH, 30);
-    headersList << "Id" << "ox" << "oy" << "w" << "h" << "Name" << "Image Id" ;
+    headersList << tr("Id") << tr("ox") << tr("oy") << tr("w") << tr("h") << tr("Name") << tr("Image Id");
     ui->framesTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
 #ifndef DEBUG_SHOW_ID_COLS
@@ -218,7 +218,7 @@ void MainWindow::initTables()
     ui->aframesTableWidget->setColumnWidth(ColAframeOy, 30);
     ui->aframesTableWidget->setColumnWidth(ColAframeDelay, 50);
     ui->aframesTableWidget->setColumnWidth(ColAframeAniId, 30);
-    headersList << "Id" << "Frame Id" << "ox" << "oy" << "Delay" << "Animation Id";
+    headersList << tr("Id") << tr("Frame Id") << tr("ox") << tr("oy") << tr("Delay") << tr("Animation Id");
     ui->aframesTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
 #ifndef DEBUG_SHOW_ID_COLS
@@ -232,8 +232,9 @@ void MainWindow::saveFile()
     if (_filename.isEmpty()) {
         saveAsFile();
     } else {
-        if (!_sprState.serialize(_filename)) {
-           infoDialog("Cannot save" + _filename);
+        SpriteStateError err;
+        if (!_sprState.serialize(_filename, &err)) {
+           infoDialog(tr("Cannot save") + _filename + ". " + SpriteState::errorMessage(err));
            return;
         }
     }
@@ -247,18 +248,12 @@ void MainWindow::saveAsFile()
             this, tr("Save file"), QFileInfo(filename).absolutePath(), "");
 
     if (!filename.isEmpty()) {
-        if (!_sprState.serialize(filename)) {
-           infoDialog("Cannot save" + filename);
+        SpriteStateError err;
+        if (!_sprState.serialize(filename, &err)) {
+           infoDialog(tr("Cannot save ") + filename + ". " + SpriteState::errorMessage(err));
            return;
         }
         setCurrentFile(filename);
-        // addRecentFileMenu(filename);
-        // storeRecentFile(filename);
-        //
-        // NOTE: Workaround to get the files ordered by date
-        ui->actionOpenRecent->clear();
-        storeRecentFile(filename);
-        initRecentFilesMenu();
     }
 }
 
@@ -269,101 +264,92 @@ void MainWindow::openFileDialog()
     filename = QFileDialog::getOpenFileName(
             this, tr("Open file"), QFileInfo(filename).absolutePath(), "");
 
-    if (openFile(filename)) {
-        // addRecentFileMenu(filename);
-        // storeRecentFile(filename);
-        //
-        // NOTE: Workaround to get the files ordered by date
-        ui->actionOpenRecent->clear();
-        storeRecentFile(filename);
-        initRecentFilesMenu();
+    SpriteStateError err;
+    if (!openFile(filename, &err)) {
+        infoDialog("Cannot open " + filename + ". " + SpriteState::errorMessage(err));
+        closeFile();
     }
 }
 
-bool MainWindow::openFile(const QString& filename)
+bool MainWindow::openFile(const QString& filename, SpriteStateError* err)
 {
-    bool ok = false;
+    SpriteState tmp;
 
-    if (!filename.isEmpty()) {
-        SpriteState tmp;
-
-        if (!tmp.deserialize(filename)) {
-           infoDialog("Cannot open. See debug output for more info :)");
-           return false;
-        }
-
-        closeFile();
-
-        cellChangedSignals(false);
-
-        /* load input images */
-
-        for (QHashIterator<Id, InputImage> it(tmp.images()); it.hasNext();) {
-            it.next();
-            const InputImage& image =  it.value();
-            addImage(image);
-            _imgId = std::max(_imgId, image.id + 1);
-        }
-
-        /* load frames */
-
-        for (QHashIterator<Id, LvkFrame> it(tmp.frames()); it.hasNext();) {
-            it.next();
-            const LvkFrame& frame =  it.value();
-            addFrame(frame);
-            _frameId = std::max(_frameId, frame.id + 1);
-        }
-
-        /* load animations */
-
-        for (QHashIterator<Id, LvkAnimation> it(tmp.animations()); it.hasNext();) {
-            it.next();
-            const LvkAnimation& ani =  it.value();
-            addAnimation(ani);
-            _aniId = std::max(_aniId, ani.id + 1);
-
-            /* load aframes */
-
-            for (QHashIterator<Id, LvkAframe> it2(it.value().aframes); it2.hasNext();) {
-                it2.next();
-                const LvkAframe& aframe =  it2.value();
-                addAframe(aframe, ani.id);
-                _aframeId = std::max(_aframeId, aframe.id + 1);
-            }
-        }
-
-        if (ui->imgTableWidget->rowCount() > 0) {
-            ui->imgTableWidget->selectRow(0);
-            showSelImage(0);
-        } else {
-            ui->imgPreview->setPixmap(QPixmap());
-        }
-        if (ui->framesTableWidget->rowCount() > 0) {
-            ui->framesTableWidget->selectRow(0);
-            showSelFrame(0);
-        } else {
-            ui->framePreview->setPixmap(QPixmap());
-        }
-        if (ui->aniTableWidget->rowCount() > 0) {
-            ui->aniTableWidget->selectRow(0);
-            showAframes(0);
-        } else {
-            clearPreviewAnimation();
-        }
-        if (ui->aframesTableWidget->rowCount() > 0) {
-            ui->aframesTableWidget->selectRow(0);
-            showSelAframe(0);
-        } else {
-            ui->aframePreview->setPixmap(QPixmap());
-        }
-
-        cellChangedSignals(true);
-
-        setCurrentFile(filename);
-        ok = true;
+    if (!tmp.deserialize(filename, err)) {
+        return false;
     }
 
-    return ok;
+    closeFile();
+    setCurrentFile(filename);
+
+    cellChangedSignals(false);
+
+    /* load input images */
+
+    for (QHashIterator<Id, InputImage> it(tmp.images()); it.hasNext();) {
+        it.next();
+        const InputImage& image =  it.value();
+        addImage(image);
+        _imgId = std::max(_imgId, image.id + 1);
+    }
+
+    /* load frames */
+
+    for (QHashIterator<Id, LvkFrame> it(tmp.frames()); it.hasNext();) {
+        it.next();
+        const LvkFrame& frame =  it.value();
+        addFrame(frame);
+        _frameId = std::max(_frameId, frame.id + 1);
+    }
+
+    /* load animations */
+
+    for (QHashIterator<Id, LvkAnimation> it(tmp.animations()); it.hasNext();) {
+        it.next();
+        const LvkAnimation& ani =  it.value();
+        addAnimation(ani);
+        _aniId = std::max(_aniId, ani.id + 1);
+
+        /* load aframes */
+
+        for (QHashIterator<Id, LvkAframe> it2(it.value().aframes); it2.hasNext();) {
+            it2.next();
+            const LvkAframe& aframe =  it2.value();
+            addAframe(aframe, ani.id);
+            _aframeId = std::max(_aframeId, aframe.id + 1);
+        }
+    }
+
+    /* UI - tables and previews */
+
+    if (ui->imgTableWidget->rowCount() > 0) {
+        ui->imgTableWidget->selectRow(0);
+        showSelImage(0);
+    } else {
+        ui->imgPreview->setPixmap(QPixmap());
+    }
+    if (ui->framesTableWidget->rowCount() > 0) {
+        ui->framesTableWidget->selectRow(0);
+        showSelFrame(0);
+    } else {
+        ui->framePreview->setPixmap(QPixmap());
+    }
+    if (ui->aniTableWidget->rowCount() > 0) {
+        ui->aniTableWidget->selectRow(0);
+        showAframes(0);
+    } else {
+        clearPreviewAnimation();
+    }
+    if (ui->aframesTableWidget->rowCount() > 0) {
+        ui->aframesTableWidget->selectRow(0);
+        showSelAframe(0);
+    } else {
+        ui->aframePreview->setPixmap(QPixmap());
+    }
+
+    cellChangedSignals(true);
+
+    return true;
 }
 
 void MainWindow::storeRecentFile(const QString& filename)
@@ -464,7 +450,7 @@ void MainWindow::closeFile()
 
 bool MainWindow::exportFile(const QString& filename)
 {
-    return _sprState.serializeOutput(filename);
+    return _sprState.exportSprite(filename);
 }
 
 void MainWindow::exportFile()
@@ -472,8 +458,8 @@ void MainWindow::exportFile()
     if (_exportFileName.isEmpty()) {
         exportAsFile();
     } else {
-        if (!_sprState.serializeOutput(_exportFileName)) {
-           infoDialog("Cannot save" + _exportFileName);
+        if (!_sprState.exportSprite(_exportFileName)) {
+           infoDialog(tr("Cannot save") + _exportFileName);
            return;
         }
     }
@@ -487,8 +473,8 @@ void MainWindow::exportAsFile()
             this, tr("Export file"), QFileInfo(exportFileName).absolutePath(), "*.lkot");
 
     if (!exportFileName.isEmpty()) {
-        if (!_sprState.serializeOutput(exportFileName)) {
-           infoDialog("Cannot export " + exportFileName);
+        if (!_sprState.exportSprite(exportFileName)) {
+           infoDialog(tr("Cannot export ") + exportFileName);
            return;
         }
         setCurrentExportFile(exportFileName);
@@ -497,11 +483,25 @@ void MainWindow::exportAsFile()
 
 void MainWindow::setCurrentFile(const QString& filename)
 {
-    _filename = filename;
     if (filename.isEmpty()) {
+        _filename = "";
+
         setWindowTitle(QString(APP_NAME));
     } else  {
-        setWindowTitle(QString(APP_NAME) + " - " + QFileInfo(filename).baseName());
+        QFileInfo fileInfo(filename);
+
+        _filename = fileInfo.absoluteFilePath();
+
+        setWindowTitle(QString(APP_NAME) + " - " + fileInfo.fileName());
+
+        storeRecentFile(fileInfo.absoluteFilePath());
+        // NOTE: Workaround to get the files ordered by date in the recent files menu
+        // addRecentFileMenu(filename);
+        ui->actionOpenRecent->clear();
+        initRecentFilesMenu();
+
+        qDebug() << "Info: changing current app dir to" << fileInfo.absolutePath();
+        QDir::setCurrent(fileInfo.absolutePath());
     }
 }
 
@@ -527,10 +527,15 @@ void MainWindow::addImage(const InputImage& image)
     /* State */
 
     QString filename(image.filename);
-
-    if (QImage(filename).isNull()) {
-        infoDialog(filename + " has an invalid image format");
+    
+    if (filename.isEmpty()) {
+        infoDialog(tr("Empty Filename"));
         return;
+    }
+    if (!QFileInfo(filename).exists()) {
+        infoDialog(tr("File '") + filename + tr("' does not exist"));
+    } else if (QImage(filename).isNull()) {
+        infoDialog(filename + tr(" has an invalid image format"));
     }
 
     _sprState.addImage(image);
@@ -540,7 +545,7 @@ void MainWindow::addImage(const InputImage& image)
     int rows = ui->imgTableWidget->rowCount();
 
     QTableWidgetItem* item_id       = new QTableWidgetItem(QString::number(image.id));
-    QTableWidgetItem* item_filename = new QTableWidgetItem(QFileInfo(filename).fileName());
+    QTableWidgetItem* item_filename = new QTableWidgetItem(filename);
 
     cellChangedSignals(false);
     ui->imgTableWidget->setRowCount(rows+1);
@@ -577,7 +582,7 @@ void MainWindow::removeSelImage()
     int currentRow = ui->imgTableWidget->currentRow();
 
     if (currentRow == -1) {
-        infoDialog("No image selected");
+        infoDialog(tr("No image selected"));
         return;
     }
     removeImage(currentRow);
@@ -614,7 +619,7 @@ void MainWindow::removeImage(int row)
 bool MainWindow::addFrameFromImgRegion()
 {
     if (ui->imgTableWidget->currentRow() == -1) {
-        infoDialog("No input image selected");
+        infoDialog(tr("No input image selected"));
         return false;
     }
 
@@ -625,7 +630,7 @@ bool MainWindow::addFrameFromImgRegion()
     if (ok) {
         name = name.trimmed();
         if (name.isEmpty())  {
-            infoDialog("Cannot add a frame without name");
+            infoDialog(tr("Cannot add a frame without name"));
             return false;
         }
 
@@ -705,6 +710,7 @@ void MainWindow::showSelFrame(int row)
         if (frame.imgId == getImageId(r)) {
             ui->imgTableWidget->selectRow(r);
             showSelImageWithFrameRect(r, frame.rect());
+            break;
         }
     }
 }
@@ -719,7 +725,7 @@ void MainWindow::removeSelFrame()
     int currentRow = ui->framesTableWidget->currentRow();
 
     if (currentRow == -1) {
-        infoDialog("No frame selected");
+        infoDialog(tr("No frame selected"));
         return;
     }
     removeFrame(currentRow);
@@ -750,7 +756,7 @@ void MainWindow::addAnimationDialog()
     if (ok) {
         name = name.trimmed();
         if (name.isEmpty())  {
-            infoDialog("Cannot add an animation without name");
+            infoDialog(tr("Cannot add an animation without name"));
             return;
         }
         addAnimation(LvkAnimation(_aniId++, name));
@@ -779,7 +785,6 @@ void MainWindow::addAnimation(const LvkAnimation& ani)
 
     ui->removeAniButton->setEnabled(true);
     ui->addAframeButton->setEnabled(true);
-//    ui->previewAniButton->setEnabled(true);
 
     showAframes(rows);
     clearPreviewAnimation();
@@ -790,8 +795,6 @@ void MainWindow::showAframes(int row)
     if (currentAnimation && currentAnimation->isAnimated()) {
         currentAnimation->stopAnimation();
     }
-//    ui->previewAniButton->setText(tr("Play"));
-//    ui->previewAniButton->setEnabled(true);
 
     cellChangedSignals(false);
 
@@ -812,14 +815,14 @@ void MainWindow::showAframes(int row)
 
     cellChangedSignals(true);
 
-    previewAnimation(); // automatic preview! I think it's cool. Andres
+    previewAnimation(); /* automatic preview */
 
 }
 
 void MainWindow::previewAnimation()
 {
     if (ui->aniTableWidget->currentRow() == -1) {
-        infoDialog("No animation selected");
+        infoDialog(tr("No animation selected"));
         return;
     }
 
@@ -856,7 +859,7 @@ void MainWindow::removeSelAnimation()
     int currentRow = ui->aniTableWidget->currentRow();
 
     if (currentRow == -1) {
-        infoDialog("No animation selected");
+        infoDialog(tr("No animation selected"));
         return;
     }
 
@@ -890,7 +893,7 @@ void MainWindow::addAframeDialog()
         return;
     }
     if (ui->aniTableWidget->currentRow() == -1) {
-        infoDialog("No animation selected");
+        infoDialog(tr("No animation selected"));
         return;
     }
 
@@ -899,7 +902,7 @@ void MainWindow::addAframeDialog()
     for (QHashIterator<int, LvkFrame> it(_sprState.frames()); it.hasNext();) {
         it.next();
         const LvkFrame& frame = it.value();
-        framesList << "Id: " + QString::number(frame.id) +  " Name: " + frame.name;
+        framesList << tr("Id: ") + QString::number(frame.id) +  tr(" Name: ") + frame.name;
         framesList.sort();
     }
 
@@ -911,7 +914,7 @@ void MainWindow::addAframeDialog()
         QStringList tokens = frame_str.split(" ");
 
         if (tokens.size() < 2) {
-            infoDialog("Cannot add frame. The selected frame could not be parsed");
+            infoDialog(tr("Cannot add frame. The selected frame could not be parsed"));
             return;
         }
         Id frameId = tokens.at(1).toInt();
@@ -982,7 +985,7 @@ void MainWindow::removeSelAframe()
     int currentRow = ui->aframesTableWidget->currentRow();
 
     if (currentRow == -1) {
-        infoDialog("No frame selected");
+        infoDialog(tr("No frame selected"));
         return;
     }
     removeAframe(currentRow);
@@ -1007,7 +1010,7 @@ void MainWindow::removeAframe(int row)
 void MainWindow::incAniSpeed(int ms)
 {
     if (ui->aniTableWidget->currentRow() == -1) {
-        infoDialog("No animation selected");
+        infoDialog(tr("No animation selected"));
         return;
     }
 
@@ -1038,22 +1041,19 @@ void MainWindow::updateImgTable(int row, int col)
 
     switch (col) {
     case ColImageId:
-        infoDialog("Column \"Id\" is not editable");
+        infoDialog(tr("Column \"Id\" is not editable"));
         setItem(table, row, col, imgId);
         break;
     case ColImageFilename:
         if (newValue.isEmpty()) {
-            infoDialog("Image filename cannot be empty");
-            setItem(table, row, col, QFileInfo(img.filename).fileName());
+            infoDialog(tr("Image filename cannot be empty"));
+            setItem(table, row, col, img.filename);
         } else if (newValue.contains(',')) {
-            infoDialog("Image filename cannot contain the character ','");
-            setItem(table, row, col, QFileInfo(img.filename).fileName());
+            infoDialog(tr("Image filename cannot contain the character ','"));
+            setItem(table, row, col, img.filename);
         } else {
-            infoDialog("Feature disabled until relative path are implemented");
-            //img.filename = newValue;
-            setItem(table, row, col, QFileInfo(img.filename).fileName());
-            // TODO update _sprState.ipixmap(), this implies to check that the
-            // new image has a valid format
+            img.filename = newValue;
+            setItem(table, row, col, img.filename);
         }
         break;
     }
@@ -1084,7 +1084,7 @@ void MainWindow::updateFramesTable(int row, int col)
         if (ok) {
             frame.ox = i;
         } else {
-            infoDialog("Invalid input.");
+            infoDialog(tr("Invalid input."));
             setItem(table, row, col, frame.ox);
         }
         break;
@@ -1092,7 +1092,7 @@ void MainWindow::updateFramesTable(int row, int col)
         if (ok) {
             frame.oy = i;
         } else {
-            infoDialog("Invalid input.");
+            infoDialog(tr("Invalid input."));
             setItem(table, row, col, frame.oy);
         }
         break;
@@ -1100,7 +1100,7 @@ void MainWindow::updateFramesTable(int row, int col)
         if (ok) {
             frame.w = i;
         } else {
-            infoDialog("Invalid input.");
+            infoDialog(tr("Invalid input."));
             setItem(table, row, col, frame.w);
         }
         break;
@@ -1108,17 +1108,17 @@ void MainWindow::updateFramesTable(int row, int col)
         if (ok) {
             frame.h = i;
         } else {
-            infoDialog("Invalid input.");
+            infoDialog(tr("Invalid input."));
             setItem(table, row, col, frame.h);
         }
         break;
     case ColFrameName:
         if (newValue.isEmpty()) {
             ok = false;
-            infoDialog("Frame name cannot be empty");
+            infoDialog(tr("Frame name cannot be empty"));
         } else if (newValue.contains(',')) {
             ok = false;
-            infoDialog("Frame name cannot contain the character ','");
+            infoDialog(tr("Frame name cannot contain the character ','"));
         }
         if (ok) {
             frame.name = newValue;
@@ -1170,7 +1170,7 @@ void MainWindow::updateAframesTable(int row, int col)
         if (ok) {
             aframe.frameId = i;
         } else {
-            infoDialog("Invalid input.");
+            infoDialog(tr("Invalid input."));
             setItem(table, row, col, aframe.frameId);
         }
         break;
@@ -1178,7 +1178,7 @@ void MainWindow::updateAframesTable(int row, int col)
         if (ok) {
             aframe.ox = i;
         } else {
-            infoDialog("Invalid input.");
+            infoDialog(tr("Invalid input."));
             setItem(table, row, col, aframe.ox);
         }
         break;
@@ -1186,7 +1186,7 @@ void MainWindow::updateAframesTable(int row, int col)
         if (ok) {
             aframe.oy = i;
         } else {
-            infoDialog("Invalid input.");
+            infoDialog(tr("Invalid input."));
             setItem(table, row, col, aframe.oy);
         }
         break;
@@ -1194,7 +1194,7 @@ void MainWindow::updateAframesTable(int row, int col)
         if (ok) {
             aframe.delay = i;
         } else {
-            infoDialog("Invalid input.");
+            infoDialog(tr("Invalid input."));
             setItem(table, row, col, aframe.delay);
         }
         break;
@@ -1219,10 +1219,10 @@ void MainWindow::updateAniTable(int row, int col)
         break;
     case ColAniName:
         if (newValue.isEmpty()) {
-            infoDialog("Animation name cannot be empty");
+            infoDialog(tr("Animation name cannot be empty"));
             setItem(table, row, col, ani.name);
         } else if (newValue.contains(',')) {
-            infoDialog("Animation name cannot contain the character ','");
+            infoDialog(tr("Animation name cannot contain the character ','"));
             setItem(table, row, col, ani.name);
         } else {
             ani.name = newValue;
@@ -1233,7 +1233,7 @@ void MainWindow::updateAniTable(int row, int col)
 
 void MainWindow::showMousePosition(int x, int y)
 {
-    statusBarMousePos->setText("Mouse x,y: " + QString::number(x) + "," + QString::number(y));
+    statusBarMousePos->setText(tr("Mouse x,y: ") + QString::number(x) + "," + QString::number(y));
 }
 
 void MainWindow::showMouseRect(const QRect& rect)
@@ -1246,7 +1246,7 @@ void MainWindow::showMouseRect(const QRect& rect)
     if (w == 0 && h == 0) {
         statusBarRectSize->setText("");
     } else {
-        statusBarRectSize->setText("  Rect: x,y,w,h: " +
+        statusBarRectSize->setText(tr("  Rect: x,y,w,h: ") +
                                    QString::number(x) + "," + QString::number(y) + "," +
                                    QString::number(w) + "," + QString::number(h));
     }

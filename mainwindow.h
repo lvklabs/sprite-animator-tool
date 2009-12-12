@@ -17,7 +17,6 @@
 #include "spritestate.h"
 #include "lvkframegraphicsgroup.h"
 
-
 namespace Ui
 {
     class MainWindow;
@@ -34,7 +33,7 @@ public:
 public slots:
     /// Opens an sprite file
     /// @returns true if success, false otherwise
-    bool openFile(const QString& filename);
+    bool openFile(const QString& filename, SpriteState::SpriteStateError* err = 0);
 
     /// Exports an sprite file to its binary format
     /// @returns true if success, false otherwise
@@ -53,7 +52,8 @@ private:
     /// app settings
     QSettings settings;
 
-    /// sets current file and updates windows title
+    /// sets current file and updates the main window title.
+	/// The filename will be stored in the recent files section in the config file
     void setCurrentFile(const QString& filename);
 
     /// sets current export file
