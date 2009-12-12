@@ -267,20 +267,22 @@ void MainWindow::openFileDialog()
     SpriteStateError err;
     if (!openFile(filename, &err)) {
         infoDialog("Cannot open " + filename + ". " + SpriteState::errorMessage(err));
-        closeFile();
     }
 }
 
-bool MainWindow::openFile(const QString& filename, SpriteStateError* err)
+bool MainWindow::openFile(const QString& filename_, SpriteStateError* err)
 {
-    SpriteState tmp;
-
-    if (!tmp.deserialize(filename, err)) {
-        return false;
-    }
+    QString filename = QFileInfo(filename_).absoluteFilePath();
 
     closeFile();
     setCurrentFile(filename);
+
+    SpriteState tmp;
+
+    if (!tmp.deserialize(filename, err)) {
+        closeFile();
+        return false;
+    }
 
     cellChangedSignals(false);
 
@@ -485,12 +487,14 @@ void MainWindow::setCurrentFile(const QString& filename)
 {
     if (filename.isEmpty()) {
         _filename = "";
+        _exportFileName = "";
 
         setWindowTitle(QString(APP_NAME));
     } else  {
         QFileInfo fileInfo(filename);
 
         _filename = fileInfo.absoluteFilePath();
+        _exportFileName = "";
 
         setWindowTitle(QString(APP_NAME) + " - " + fileInfo.fileName());
 
@@ -554,7 +558,7 @@ void MainWindow::addImage(const InputImage& image)
     ui->imgTableWidget->setCurrentItem(item_id);
     cellChangedSignals(true);
 
-    showSelImage(rows);
+    showImage(image.id);
     ui->removeImageButton->setEnabled(true);
     ui->addFrameButton->setEnabled(true);
 }
@@ -562,6 +566,11 @@ void MainWindow::addImage(const InputImage& image)
 void MainWindow::showSelImage(int row)
 {
     Id imgId = getImageId(row);
+    showImage(imgId);
+}
+
+void MainWindow::showImage(Id imgId)
+{
     const QPixmap& selPixmap = _sprState.ipixmap(imgId);
     ui->imgPreview->setPixmap(selPixmap);
 }
@@ -692,14 +701,18 @@ void MainWindow::addFrame(const LvkFrame &frame)
 
     ui->imgTableWidget->setCurrentItem(item_id);
 
-    showSelFrame(rows);
+    showFrame(frame.id);
     ui->removeFrameButton->setEnabled(true);
 }
 
 void MainWindow::showSelFrame(int row)
 {
-    int frameId = getFrameId(row);
+    Id frameId = getFrameId(row);
+    showFrame(frameId);
+}
 
+void MainWindow::showFrame(Id frameId)
+{
     LvkFrame frame = _sprState.frame(frameId);
     const QPixmap& selPixmap = _sprState.fpixmap(frameId);
     
@@ -955,7 +968,7 @@ void MainWindow::addAframe_(const LvkAframe& aframe, Id aniId)
     ui->aframesTableWidget->setCurrentItem(item_id);
     cellChangedSignals(true);
 
-    showSelAframe(rows);
+    showAframe(aframe.id);
     ui->removeAframeButton->setEnabled(true);
 
     previewAnimation();
@@ -964,8 +977,12 @@ void MainWindow::addAframe_(const LvkAframe& aframe, Id aniId)
 
 void MainWindow::showSelAframe(int row)
 {
-    int frameId = getAFrameFrameId(row);
+    Id frameId = getAFrameFrameId(row);
+    showAframe(frameId);
+}
 
+void MainWindow::showAframe(Id frameId)
+{
     const QPixmap& selPixmap = _sprState.fpixmap(frameId);
     int w = selPixmap.width();
     int h = selPixmap.height();
@@ -1005,6 +1022,8 @@ void MainWindow::removeAframe(int row)
     ui->aframePreview->setPixmap(QPixmap());
 
     _sprState.removeAframe(frameId, selectedAniId());
+
+    previewAnimation();
 }
 
 void MainWindow::incAniSpeed(int ms)
@@ -1052,8 +1071,18 @@ void MainWindow::updateImgTable(int row, int col)
             infoDialog(tr("Image filename cannot contain the character ','"));
             setItem(table, row, col, img.filename);
         } else {
+            if (!QFileInfo(newValue).exists()) {
+                infoDialog(tr("The file does not exist"));
+                img.pixmap = QPixmap();
+            } else {
+                img.pixmap = QPixmap(newValue);
+                if (img.pixmap.isNull()) {
+                    infoDialog(tr("The file contains an invalid image format"));
+                }
+            }
             img.filename = newValue;
             setItem(table, row, col, img.filename);
+            showSelImage(row);
         }
         break;
     }
@@ -1136,7 +1165,7 @@ void MainWindow::updateFramesTable(int row, int col)
         case ColFrameH:
             _sprState.updateFPixmap(frame);
             ui->imgPreview->setFrameRect(frame.rect());
-            showSelFrame(row);
+            showFrame(frame.id);
             break;
         default:
             break;

@@ -353,6 +353,8 @@ const QString& SpriteState::errorMessage(SpriteStateError err)
     static const QString strErrCantOpenReadMode     = tr("Cannot read file");
     static const QString strErrOpenReadWriteMode    = tr("Cannot write file");
     static const QString strErrInvalidFormat        = tr("The file has an invalid sprite format");
+    static const QString strErrNullFilename         = tr("Empty filename");
+    static const QString strErrFileDoesNotExist     = tr("File does not exist");
     static const QString strErrUnknown              = tr("Unknown error");
 
     switch (err) {
@@ -364,6 +366,10 @@ const QString& SpriteState::errorMessage(SpriteStateError err)
         return strErrOpenReadWriteMode;
     case ErrInvalidFormat:
         return strErrInvalidFormat;
+    case ErrNullFilename:
+        return strErrNullFilename;
+    case ErrFileDoesNotExist:
+        return strErrFileDoesNotExist;
     default:
         return strErrUnknown;
     }

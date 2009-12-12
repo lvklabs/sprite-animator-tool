@@ -138,12 +138,14 @@ private slots:
 
     void addImageDialog();
     void showSelImage(int row);
+    void showImage(Id imgId);
     void showSelImageWithFrameRect(int row, const QRect& rect);
     void removeSelImage();
     void removeImage(int row);
 
     bool addFrameFromImgRegion();
     void showSelFrame(int row);
+    void showFrame(Id frameId);
     void removeSelFrame();
     void removeFrame(int row);
 
@@ -159,6 +161,7 @@ private slots:
 
     void addAframeDialog();
     void showSelAframe(int row);
+    void showAframe(Id aframeId);
     void removeSelAframe();
     void removeAframe(int row);
 
