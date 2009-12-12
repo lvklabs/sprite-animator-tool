@@ -1070,19 +1070,28 @@ void MainWindow::updateImgTable(int row, int col)
         } else if (newValue.contains(',')) {
             infoDialog(tr("Image filename cannot contain the character ','"));
             setItem(table, row, col, img.filename);
-        } else {
+        } else if (newValue != img.filename) {
+            img.filename = newValue;
+            img.reloadImage();
             if (!QFileInfo(newValue).exists()) {
                 infoDialog(tr("The file does not exist"));
-                img.pixmap = QPixmap();
-            } else {
-                img.pixmap = QPixmap(newValue);
-                if (img.pixmap.isNull()) {
-                    infoDialog(tr("The file contains an invalid image format"));
-                }
+            } else if (img.pixmap.isNull()) {
+                infoDialog(tr("The file contains an invalid image format"));
             }
-            img.filename = newValue;
+            _sprState.reloadFramePixmaps(img);
+
+            /* update UI */
+
             setItem(table, row, col, img.filename);
+
             showSelImage(row);
+            if (ui->framesTableWidget->currentRow() != -1) {
+                showSelFrame(ui->framesTableWidget->currentRow());
+            }
+            if (ui->aframesTableWidget->currentRow() != -1) {
+                showSelAframe(ui->aframesTableWidget->currentRow());
+            }
+            previewAnimation();
         }
         break;
     }
@@ -1163,7 +1172,7 @@ void MainWindow::updateFramesTable(int row, int col)
         case ColFrameOy:
         case ColFrameW:
         case ColFrameH:
-            _sprState.updateFPixmap(frame);
+            _sprState.reloadFramePixmap(frame);
             ui->imgPreview->setFrameRect(frame.rect());
             showFrame(frame.id);
             break;

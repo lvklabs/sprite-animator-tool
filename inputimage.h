@@ -21,6 +21,9 @@ struct InputImage
 
     /// initializes the current instance from the string @param str
     bool fromString(const QString& str);
+
+    /// force pixmap reload
+    void reloadImage();
 };
 
 #endif // INPUTIMAGE_H

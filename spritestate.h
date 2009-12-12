@@ -72,11 +72,12 @@ public:
     void addFrame(const LvkFrame& frame)
     {
         _frames.insert(frame.id, frame);
-        updateFPixmap(frame);
+        reloadFramePixmap(frame);
     }
 
     // TODO move this method inside LvkFrame (?)
-    void updateFPixmap(const LvkFrame& frame)
+    /// force reload frame pixmap
+    void reloadFramePixmap(const LvkFrame& frame)
     {
         QPixmap tmp(ipixmap(frame.imgId));
         QPixmap fpixmap(tmp.copy(frame.ox, frame.oy, frame.w, frame.h));
@@ -112,6 +113,13 @@ public:
 
     /// clear all hashes
     void clear();
+
+    /// force reload image pixmaps
+    void reloadImagePixmaps();
+
+    /// force reload frame pixmaps. If @param img is not null, then
+    /// only reloads those frames using the image @param img
+    void reloadFramePixmaps(const InputImage& img = InputImage());
 
     /// Errors
     typedef enum {

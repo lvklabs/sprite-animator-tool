@@ -347,6 +347,26 @@ bool SpriteState::exportSprite(const QString& filename, SpriteStateError* err) c
     return true;
 }
 
+void SpriteState::reloadImagePixmaps()
+{
+    for (QMutableHashIterator<Id, InputImage> it(_images); it.hasNext();) {
+        it.next();
+        InputImage& image =  it.value();
+        image.reloadImage();
+    }
+}
+
+void SpriteState::reloadFramePixmaps(const InputImage& img)
+{
+    for (QHashIterator<Id, LvkFrame> it(_frames); it.hasNext();) {
+        it.next();
+        const LvkFrame& frame =  it.value();
+        if (img.id != NullId && frame.imgId == img.id) {
+            reloadFramePixmap(frame);
+        }
+    }
+}
+
 const QString& SpriteState::errorMessage(SpriteStateError err)
 {
     static const QString strErrNone                 = tr("No error");

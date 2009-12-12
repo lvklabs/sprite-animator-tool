@@ -36,3 +36,8 @@ bool InputImage::fromString(const QString& str)
         return false;
     }
 }
+
+void InputImage::reloadImage()
+{
+    pixmap = QPixmap(filename);
+}
