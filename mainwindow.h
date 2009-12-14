@@ -127,10 +127,16 @@ private slots:
     void exportAsFile();
     void exit();
 
-    void addRecentFileMenu(const QString& filename);
-    void storeRecentFile(const QString& filename);
+    void undo();
+    void redo();
+
+    void showFramesTab();
+    void showAnimationsTab();
 
     void about();
+
+    void addRecentFileMenu(const QString& filename);
+    void storeRecentFile(const QString& filename);
 
     void addImageDialog();
     void showSelImage(int row);
