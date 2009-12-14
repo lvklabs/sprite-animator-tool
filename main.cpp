@@ -83,7 +83,11 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
         if (argc == 5) {
             if (std::string(argv[3]) == "--output-dir") {
                 outputDir = argv[4];
-                // TODO check if outputDir exists
+                if (!QDir(outputDir).exists()) {
+                    std::cerr << binName << ": Error: Output directory '" << argv[4]
+                              << "' does not exist." << std::endl;
+                    exit(-1);
+                }
             } else {
                 showHelp(binName);
                 exit(-1);
