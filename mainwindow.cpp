@@ -249,7 +249,7 @@ void MainWindow::saveAsFile()
     static QString filename = "";
 
     filename = QFileDialog::getOpenFileName(
-            this, tr("Save file"), QFileInfo(filename).absolutePath(), "");
+            this, tr("Save file"), QFileInfo(filename).absolutePath(), "*.lvks");
 
     if (!filename.isEmpty()) {
         SpriteStateError err;
@@ -266,7 +266,7 @@ void MainWindow::openFileDialog()
     static QString filename = "";
 
     filename = QFileDialog::getOpenFileName(
-            this, tr("Open file"), QFileInfo(filename).absolutePath(), "");
+            this, tr("Open file"), QFileInfo(filename).absolutePath(), "*.lvks");
 
     SpriteStateError err;
     if (!openFile(filename, &err)) {
@@ -454,18 +454,15 @@ void MainWindow::closeFile()
     clearPreviewAnimation();
 }
 
-bool MainWindow::exportFile(const QString& filename)
-{
-    return _sprState.exportSprite(filename);
-}
-
 void MainWindow::exportFile()
 {
     if (_exportFileName.isEmpty()) {
         exportAsFile();
     } else {
-        if (!_sprState.exportSprite(_exportFileName)) {
-           infoDialog(tr("Cannot save") + _exportFileName);
+        SpriteStateError err;
+        if (!_sprState.exportSprite(_exportFileName, QString(), &err)) {
+           infoDialog(tr("Cannot export '") + _exportFileName + "' "
+                      + SpriteState::errorMessage(err));
            return;
         }
     }
@@ -476,11 +473,13 @@ void MainWindow::exportAsFile()
     static QString exportFileName = "";
 
     exportFileName = QFileDialog::getSaveFileName(
-            this, tr("Export file"), QFileInfo(exportFileName).absolutePath(), "*.lkot");
+            this, tr("Export file"), QFileInfo(exportFileName).absolutePath(), "*.lkot *.lkob");
 
     if (!exportFileName.isEmpty()) {
-        if (!_sprState.exportSprite(exportFileName)) {
-           infoDialog(tr("Cannot export ") + exportFileName);
+        SpriteStateError err;
+        if (!_sprState.exportSprite(exportFileName, QString(), &err)) {
+           infoDialog(tr("Cannot export '") + exportFileName + "' "
+                      + SpriteState::errorMessage(err));
            return;
         }
         setCurrentExportFile(exportFileName);

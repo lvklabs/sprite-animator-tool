@@ -34,10 +34,6 @@ public slots:
     /// Opens an sprite file
     /// @returns true if success, false otherwise
     bool openFile(const QString& filename, SpriteState::SpriteStateError* err = 0);
-
-    /// Exports an sprite file to its binary format
-    /// @returns true if success, false otherwise
-    bool exportFile(const QString& filename);
     
 private:
 

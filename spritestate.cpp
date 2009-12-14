@@ -5,6 +5,8 @@
 #include <QTextStream>
 #include <QStringList>
 #include <QImageWriter>
+#include <QFileInfo>
+#include <QDir>
 
 #define setError(p, err_code) if (p) { *(p) = err_code; }
 
@@ -181,7 +183,7 @@ bool SpriteState::deserialize(const QString& filename, SpriteStateError* err)
                 state = StNoToken;
             } else {
                 if (tmpImage.fromString(line)) {
-                    _images.insert(tmpImage.id, tmpImage);
+                    addImage(tmpImage);
                 } else {
                     qDebug() << "Error: SpriteState::deserialize(): invalid image entry"
                              << line << "at line" << lineNumber;
@@ -196,7 +198,7 @@ bool SpriteState::deserialize(const QString& filename, SpriteStateError* err)
                 state = StNoToken;
             } else {
                 if (tmpFrame.fromString(line)) {
-                    _frames.insert(tmpFrame.id, tmpFrame);
+                    addFrame(tmpFrame);
                 } else {
                     qDebug() << "Error: SpriteState::deserialize(): invalid frame entry"
                              << line << "at line" << lineNumber;
@@ -222,7 +224,7 @@ bool SpriteState::deserialize(const QString& filename, SpriteStateError* err)
             } else {
                 if (tmpAni.fromString(line)) {
                     currentAniId = tmpAni.id;
-                    _animations.insert(tmpAni.id, tmpAni);
+                    addAnimation(tmpAni);
                 } else {
                     qDebug() << "Error: SpriteState::deserialize(): invalid animation entry"
                              << line << "at line" << lineNumber;
@@ -237,7 +239,7 @@ bool SpriteState::deserialize(const QString& filename, SpriteStateError* err)
                 state = StTokenAnimations;
             } else {
                 if (tmpAframe.fromString(line)) {
-                    _animations[currentAniId].aframes.insert(tmpAframe.id, tmpAframe);
+                    addAframe(tmpAframe, currentAniId);
                 } else {
                     qDebug() << "Error: SpriteState::deserialize(): invalid aframe entry"
                              << line << "at line" << lineNumber;
@@ -249,7 +251,7 @@ bool SpriteState::deserialize(const QString& filename, SpriteStateError* err)
 
         default:
             qDebug() << "Warning: SpriteState::deserialize(): Unhandled state "
-                     << state << "at line" << lineNumber;
+                     << (int)state << "at line" << lineNumber;
             break;
         }
     } while (true);
@@ -258,24 +260,24 @@ bool SpriteState::deserialize(const QString& filename, SpriteStateError* err)
 
     return (state != StError);
 }
-bool SpriteState::exportSprite(const QString& filename, SpriteStateError* err) const
+bool SpriteState::exportSprite(const QString& filename, const QString& outputDir_, SpriteStateError* err) const
 {
     setError(err, ErrNone);
 
-    QString binFileName;
-    QString textFileName;
-    if(filename.endsWith(".lkot")){
-        binFileName.append(filename);
-        binFileName.replace(".lkot", ".lkob");
-        textFileName.append(filename);
-    }else{
-        binFileName.append(filename + ".lkob");
-        textFileName.append(filename + ".lkot");
+    QFileInfo fileInfo(filename);
+
+    QString outputDir;
+    if (!outputDir_.isNull()) {
+        outputDir = outputDir_;
+    } else {
+        outputDir = fileInfo.path();
     }
+
+    QString binFileName  = outputDir + QDir::separator() + fileInfo.baseName() + ".lkob";
+    QString textFileName = outputDir + QDir::separator() + fileInfo.baseName() + ".lkot";
 
     QFile binOutput(binFileName);
     QFile textOutput(textFileName);
-
 
     if (binOutput.exists()) {
         if (!binOutput.remove()) {

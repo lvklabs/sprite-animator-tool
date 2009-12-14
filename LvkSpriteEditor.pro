@@ -25,5 +25,8 @@ HEADERS += mainwindow.h \
     settings.h \
     qinputimagewidget.h
 FORMS += mainwindow.ui
-DEFINES += DEBUG
-#DEFINES += DEBUG_SHOW_ID_COLS
+
+DEFINES += \
+    DEBUG\
+#    DEBUG_SHOW_ID_COLS\
+    QT_NO_DEBUG_OUTPUT

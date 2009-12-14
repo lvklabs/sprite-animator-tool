@@ -30,6 +30,10 @@ bool InputImage::fromString(const QString& str)
         id       = list.at(0).toInt();
         filename = list.at(1);
         pixmap   = QPixmap(filename);
+        if (pixmap.isNull()) {
+            qDebug() << "Warning InputImage::fromString(const QString&) null pixmap created from file"
+                     << filename;
+        }
         return true;
     } else {
         qDebug() << "Warning InputImage::fromString(const QString&) invalid string format";
