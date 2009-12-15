@@ -38,11 +38,11 @@ public:
 
     /// get pixmap data from image @param imgId
     const QPixmap& ipixmap(Id imgId)
-    { return _images[imgId].pixmap; }
+    { return (imgId != NullId) ? _images[imgId].pixmap : nullPixmap; }
 
     /// get pixmap data from frame @param frameId
     const QPixmap& fpixmap(Id frameId)
-    { return _fpixmaps[frameId]; }
+    { return (frameId != NullId) ? _fpixmaps[frameId] : nullPixmap; }
 
     /// get frame pixmaps hash
     const QHash<Id, QPixmap>& fpixmaps() const
@@ -148,6 +148,10 @@ public:
     static const QString& errorMessage(SpriteStateError err);
 
 private:
+
+    /// null pixmap
+    QPixmap nullPixmap;
+
     /// input images hash
     QHash<Id, InputImage>   _images;
 

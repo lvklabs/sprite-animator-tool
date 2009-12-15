@@ -125,14 +125,10 @@ void MainWindow::initSignals()
     connect(ui->actionFramesTab,     SIGNAL(triggered()),          this, SLOT(showFramesTab()));
     connect(ui->actionAnimationsTab, SIGNAL(triggered()),          this, SLOT(showAnimationsTab()));
     connect(ui->addImageButton,      SIGNAL(clicked()),            this, SLOT(addImageDialog()));
-    connect(ui->imgTableWidget,      SIGNAL(cellClicked(int,int)), this, SLOT(showSelImage(int)));
     connect(ui->removeImageButton,   SIGNAL(clicked()),            this, SLOT(removeSelImage()));
     connect(ui->addFrameButton,      SIGNAL(clicked()),            this, SLOT(addFrameFromImgRegion()));
-    connect(ui->framesTableWidget,   SIGNAL(cellClicked(int,int)), this, SLOT(showSelFrame(int)));
     connect(ui->removeFrameButton,   SIGNAL(clicked()),            this, SLOT(removeSelFrame()));
     connect(ui->addAniButton,        SIGNAL(clicked()),            this, SLOT(addAnimationDialog()));
-    connect(ui->aframesTableWidget,  SIGNAL(cellClicked(int,int)), this, SLOT(showSelAframe(int)));
-    connect(ui->aniTableWidget,      SIGNAL(cellClicked(int,int)), this, SLOT(showAframes(int)));
     connect(ui->removeAniButton,     SIGNAL(clicked()),            this, SLOT(removeSelAnimation()));
     connect(ui->refreshAniButton,    SIGNAL(clicked()),            this, SLOT(previewAnimation()));
     connect(ui->addAframeButton,     SIGNAL(clicked()),            this, SLOT(addAframeDialog()));
@@ -151,6 +147,11 @@ void MainWindow::initSignals()
     connect(ui->frameZoomOutButton,  SIGNAL(clicked()),  ui->framePreview,  SLOT(zoomOut()));
     connect(ui->aframeZoomInButton,  SIGNAL(clicked()),  ui->aframePreview, SLOT(zoomIn()));
     connect(ui->aframeZoomOutButton, SIGNAL(clicked()),  ui->aframePreview, SLOT(zoomOut()));
+
+    connect(ui->imgTableWidget,      SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showSelImage(int)));
+    connect(ui->framesTableWidget,   SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showSelFrame(int)));
+    connect(ui->aframesTableWidget,  SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showSelAframe(int)));
+    connect(ui->aniTableWidget,      SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showAframes(int)));
 
     cellChangedSignals(true);
 }
@@ -581,7 +582,7 @@ void MainWindow::addImage(const InputImage& image)
 
 void MainWindow::showSelImage(int row)
 {
-    Id imgId = getImageId(row);
+    Id imgId = (row == -1) ? NullId : getImageId(row);
     showImage(imgId);
 }
 
@@ -723,23 +724,27 @@ void MainWindow::addFrame(const LvkFrame &frame)
 
 void MainWindow::showSelFrame(int row)
 {
-    Id frameId = getFrameId(row);
+    Id frameId = (row == -1) ? NullId : getFrameId(row);
     showFrame(frameId);
 }
 
 void MainWindow::showFrame(Id frameId)
 {
-    LvkFrame frame = _sprState.frame(frameId);
+    /* show frame preview */
     const QPixmap& selPixmap = _sprState.fpixmap(frameId);
-    
     ui->framePreview->setPixmap(selPixmap);
 
-    /* show input image with frame rect */
-    for (int r = 0; r < ui->imgTableWidget->rowCount(); r++) {
-        if (frame.imgId == getImageId(r)) {
-            ui->imgTableWidget->selectRow(r);
-            showSelImageWithFrameRect(r, frame.rect());
-            break;
+    /* show frame rect in the input image*/
+    if (frameId == NullId) {
+        showSelImageWithFrameRect(-1, QRect());
+    } else {
+        LvkFrame frame = _sprState.frame(frameId);
+        for (int r = 0; r < ui->imgTableWidget->rowCount(); r++) {
+            if (frame.imgId == getImageId(r)) {
+                ui->imgTableWidget->selectRow(r);
+                showSelImageWithFrameRect(r, frame.rect());
+                break;
+            }
         }
     }
 }
@@ -840,6 +845,11 @@ void MainWindow::showAframes(int row)
     for (QHashIterator<Id, LvkAframe> it(ani.aframes); it.hasNext();){
         LvkAframe aFrame = it.next().value();
         addAframe_(aFrame,animationId);
+    }
+
+    if (ui->aframesTableWidget->rowCount() > 0) {
+        ui->aframesTableWidget->selectRow(0);
+        showSelAframe(0);
     }
 
     cellChangedSignals(true);
@@ -993,7 +1003,7 @@ void MainWindow::addAframe_(const LvkAframe& aframe, Id aniId)
 
 void MainWindow::showSelAframe(int row)
 {
-    Id frameId = getAFrameFrameId(row);
+    Id frameId = (row == -1) ? NullId : getAFrameFrameId(row);
     showAframe(frameId);
 }
 
