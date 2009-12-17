@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QMouseEvent>
 #include <cmath>
+#include <QApplication>
 
 #include "qinputimagewidget.h"
 
@@ -121,7 +122,9 @@ void QInputImageWidget::paintEvent(QPaintEvent */*event*/)
     QPainter painter(this);
     painter.drawPixmap(0, 0, _pixmap);
 
-    if (_mouseLinesVisible) {
+    bool ctrlKeyPressed = QApplication::keyboardModifiers() & Qt::ControlModifier;;
+
+    if (_mouseLinesVisible && ctrlKeyPressed ) {
         int mx = pixelate(_mouseX) - 1;
         int my = pixelate(_mouseY) - 1;
         painter.setPen(Qt::gray);

@@ -147,7 +147,7 @@
          </widget>
         </item>
         <item row="4" column="0">
-         <widget class="QTableWidget" name="framesTableWidget">
+         <widget class="LvkTableWidget" name="framesTableWidget">
           <property name="minimumSize">
            <size>
             <width>250</width>
@@ -166,7 +166,8 @@
            </font>
           </property>
           <property name="toolTip">
-           <string>Double-click or F2 to edit the fields</string>
+           <string>Double-click or F2 to edit the fields
+Alt + Up or Alt + Down to increase or decrease numeric fields</string>
           </property>
           <property name="editTriggers">
            <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
@@ -215,7 +216,7 @@ p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Sans'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Left click: &lt;/span&gt;To define a rectangular area in the image (&lt;span style=&quot; font-style:italic;&quot;&gt;Currently, only from left to right and from top to bottom&lt;/span&gt;)&lt;/p&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Right click:&lt;/span&gt; To remove the rectangular area&lt;/p&gt;
-&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Crtl key:&lt;/span&gt; Hold to display mouse guidelines&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="widgetResizable">
            <bool>false</bool>
@@ -472,14 +473,15 @@ p, li { white-space: pre-wrap; }
          </widget>
         </item>
         <item row="4" column="0">
-         <widget class="QTableWidget" name="aframesTableWidget">
+         <widget class="LvkTableWidget" name="aframesTableWidget">
           <property name="font">
            <font>
             <pointsize>8</pointsize>
            </font>
           </property>
           <property name="toolTip">
-           <string>Double-click or F2 to edit the fields</string>
+           <string>Double-click or F2 to edit the fields
+Alt + Up or Alt + Down to increase or decrease numeric fields</string>
           </property>
           <property name="editTriggers">
            <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
@@ -543,8 +545,8 @@ p, li { white-space: pre-wrap; }
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>98</width>
-             <height>28</height>
+             <width>340</width>
+             <height>592</height>
             </rect>
            </property>
           </widget>
@@ -560,8 +562,8 @@ p, li { white-space: pre-wrap; }
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>98</width>
-             <height>28</height>
+             <width>545</width>
+             <height>555</height>
             </rect>
            </property>
            <widget class="QGraphicsView" name="aniPreview">
@@ -894,6 +896,11 @@ p, li { white-space: pre-wrap; }
    <class>QInputImageWidget</class>
    <extends>QWidget</extends>
    <header location="global">qinputimagewidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>LvkTableWidget</class>
+   <extends>QTableWidget</extends>
+   <header>lvktablewidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

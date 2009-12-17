@@ -12,7 +12,8 @@ SOURCES += main.cpp \
     lvkaframe.cpp \
     lvkframegraphicsgroup.cpp \
     lvkaction.cpp \
-    qinputimagewidget.cpp
+    qinputimagewidget.cpp \
+    lvktablewidget.cpp
 HEADERS += mainwindow.h \
     spritestate.h \
     lvkframe.h \
@@ -23,7 +24,8 @@ HEADERS += mainwindow.h \
     lvkframegraphicsgroup.h \
     lvkaction.h \
     settings.h \
-    qinputimagewidget.h
+    qinputimagewidget.h \
+    lvktablewidget.h
 FORMS += mainwindow.ui
 
 DEFINES += \
