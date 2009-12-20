@@ -255,7 +255,7 @@ void MainWindow::saveAsFile()
     filename = QFileDialog::getOpenFileName(
             this, tr("Save file"), QFileInfo(filename).absolutePath(), "*.lvks");
 
-    if (!filename.isEmpty()) {
+    if (!filename.isNull()) {
         SpriteStateError err;
         if (!_sprState.serialize(filename, &err)) {
            infoDialog(tr("Cannot save ") + filename + ". " + SpriteState::errorMessage(err));
@@ -272,10 +272,13 @@ void MainWindow::openFileDialog()
     filename = QFileDialog::getOpenFileName(
             this, tr("Open file"), QFileInfo(filename).absolutePath(), "*.lvks");
 
-    SpriteStateError err;
-    if (!openFile(filename, &err)) {
-        infoDialog("Cannot open " + filename + ". " + SpriteState::errorMessage(err));
+    if (!filename.isNull()) {
+        SpriteStateError err;
+        if (!openFile(filename, &err)) {
+            infoDialog("Cannot open " + filename + ". " + SpriteState::errorMessage(err));
+        }
     }
+
 }
 
 bool MainWindow::openFile(const QString& filename_, SpriteStateError* err)
