@@ -10,33 +10,52 @@
 
 QInputImageWidget::QInputImageWidget(QWidget *parent)
         : QWidget(parent), _rect(0,0,0,0), _mouseRect(0,0,0,0), _mouseX(-1), _mouseY(-1),
-          _rectVisible(true), _mouseLinesVisible(true), _zoom(ZOOM_MIN)
+          _rectVisible(true), _mouseLinesVisible(true), _zoom(ZOOM_MIN), _pCache(0)
 {
-    setMouseTracking(true);
+    _c      = pow(ZOOM_FACTOR, _zoom);
+    _pCache = new QPixmap[ZOOM_MAX + 1];
 
-    _c = pow(ZOOM_FACTOR, _zoom);
+    setMouseTracking(true);
 }
 
 void QInputImageWidget::setPixmap(const QPixmap &pixmap)
 {
     setFrameRect(pixmap.rect());
-    _pixmap = pixmap.isNull() ? pixmap : pixmap.scaled(pixmap.size()*pow(ZOOM_FACTOR, _zoom));
-    resize(_pixmap.size());
+
+    /* clean pixmap cache */
+    _pCache[0] = pixmap;
+    for (int i = 1; i < ZOOM_MAX + 1; ++i) {
+        _pCache[i] = QPixmap();
+    }
+
+    resize(getScaledPixmap().size());
 }
+
+QPixmap& QInputImageWidget::getScaledPixmap()
+{
+    if ( _pCache[0].isNull()) {
+        return _pCache[0];
+    } else {
+        if (_pCache[_zoom].isNull()) {
+            _pCache[_zoom] = _pCache[0].scaled(_pCache[0].size()*pow(ZOOM_FACTOR, _zoom));
+        }
+        return _pCache[_zoom];
+    }
+}
+
+// TODO: do not delete _mouseRect
+#define ZOOM_COMMON() \
+            _c = pow(ZOOM_FACTOR, _zoom);\
+            _scaledRect = rtoz(_rect);\
+            _mouseRect.setRect(0, 0, 0, 0);\
+            getScaledPixmap();\
+            emit mouseRectChanged(ztor(_mouseRect));
 
 void QInputImageWidget::zoomIn()
 {
     if (_zoom < ZOOM_MAX) {
         _zoom++;
-        _c = pow(ZOOM_FACTOR, _zoom);
-        _scaledRect = rtoz(_rect);
-        _mouseRect.setRect(0, 0, 0, 0); // TODO: do not delete mouse rect
-        emit mouseRectChanged(ztor(_mouseRect));
-
-        if (!_pixmap.isNull()) {
-            _pixmap = _pixmap.scaled(_pixmap.size()*ZOOM_FACTOR);  // TODO: make a cache
-        }
-
+        ZOOM_COMMON();
         resize(size()*ZOOM_FACTOR);
     }
 }
@@ -45,15 +64,7 @@ void QInputImageWidget::zoomOut()
 {
     if (_zoom > ZOOM_MIN) {
         _zoom--;
-        _c = pow(ZOOM_FACTOR, _zoom);
-        _scaledRect = rtoz(_rect);
-        _mouseRect.setRect(0, 0, 0, 0); // TODO: do not delete mouse rect
-        emit mouseRectChanged(ztor(_mouseRect));
-
-        if (!_pixmap.isNull()) {
-            _pixmap = _pixmap.scaled(_pixmap.size()/ZOOM_FACTOR); // TODO: make a cache
-        }
-
+        ZOOM_COMMON();
         resize(size()/ZOOM_FACTOR);
     }
 }
@@ -120,9 +131,9 @@ const QRect QInputImageWidget::mouseFrameRect() const
 void QInputImageWidget::paintEvent(QPaintEvent */*event*/)
 {
     QPainter painter(this);
-    painter.drawPixmap(0, 0, _pixmap);
+    painter.drawPixmap(0, 0, getScaledPixmap());
 
-    bool ctrlKeyPressed = QApplication::keyboardModifiers() & Qt::ControlModifier;;
+    bool ctrlKeyPressed = QApplication::keyboardModifiers() & Qt::ControlModifier;
 
     if (_mouseLinesVisible && ctrlKeyPressed ) {
         int mx = pixelate(_mouseX) - 1;
@@ -135,34 +146,33 @@ void QInputImageWidget::paintEvent(QPaintEvent */*event*/)
     if (_rectVisible) {
         QRect rect;
 
+        /* draw frame rect */
         rect = _scaledRect;
-        rect.setWidth(_scaledRect.width() - 1);
-        rect.setHeight(_scaledRect.height() - 1);
-        painter.setPen(Qt::red);
-        painter.drawRect(rect);
+        if (!rect.isEmpty()) {
+            rect.setWidth(_scaledRect.width() - 1);
+            rect.setHeight(_scaledRect.height() - 1);
+            painter.setPen(Qt::red);
+            painter.drawRect(rect);
+        }
 
-        rect = _mouseRect;
-//@ w,h<0
+        /* draw mouse rect */
+        rect = _mouseRect.normalized();
+        if (!rect.isEmpty()) {
 //        if (rect.width() < 0) {
-//            rect.setX(rect.x() - 1);
 //            rect.setWidth(rect.width() + 1);
 //        } else {
-//@
             rect.setWidth(rect.width() - 1);
-//@ w,h<0
 //        }
 //        if (rect.height() < 0) {
-//            rect.setY(rect.y() - 1);
 //            rect.setHeight(rect.height() + 1);
 //        } else {
-//@
             rect.setHeight(rect.height() - 1);
-//@ w,h<0
 //        }
-//@
-        painter.setPen(Qt::black);
-        painter.setPen(Qt::DashLine);
-        painter.drawRect(rect);
+            painter.setPen(Qt::black);
+            painter.setPen(Qt::DashLine);
+            painter.drawRect(rect);
+        }
+
     }
 }
 
@@ -170,12 +180,12 @@ void QInputImageWidget::paintEvent(QPaintEvent */*event*/)
 void QInputImageWidget::mousePressEvent(QMouseEvent *event)
 {
     if (event->buttons() & Qt::LeftButton) {
-        _mouseRect.setX(pixelate(event->x()));
-        _mouseRect.setY(pixelate(event->y()));
+        _mouseRect.setRect(pixelate(event->x()), pixelate(event->y()), 0, 0);
+        emit mouseRectChanged(ztor(_mouseRect));
+        update();
     } else if (event->buttons() & Qt::RightButton) {
         _mouseRect.setRect(0, 0, 0, 0);
         emit mouseRectChanged(ztor(_mouseRect));
-
         update();
     }
 }
@@ -192,13 +202,15 @@ void QInputImageWidget::mouseMoveEvent(QMouseEvent *event)
             int w = _mouseX - _mouseRect.x();
             int h = _mouseY - _mouseRect.y();
 
-            if (w < 0 || h < 0) {
-                return;
-            }
             _mouseRect.setWidth(pixelate(w));
             _mouseRect.setHeight(pixelate(h));
-            emit mouseRectChanged(ztor(_mouseRect));
 
+//            if (w < 0) {
+//            }
+//            if (h < 0) {
+//            }
+
+            emit mouseRectChanged(ztor(_mouseRect));
         }
     }
 
@@ -207,6 +219,29 @@ void QInputImageWidget::mouseMoveEvent(QMouseEvent *event)
 
 void QInputImageWidget::mouseReleaseEvent(QMouseEvent */*event*/)
 {
+//    if (_mouseRect.width() < 0) {
+//        _mouseRect.setX(_mouseRect.x()+1);
+//    }
+//    if (_mouseRect.height() < 0) {
+//        _mouseRect.setY(_mouseRect.y()+1);
+//    }
+    _mouseRect = _mouseRect.normalized();
+    emit mouseRectChanged(ztor(_mouseRect));
+    update();
+}
+
+void QInputImageWidget::wheelEvent(QWheelEvent *event)
+{
+    bool ctrlKeyPressed = QApplication::keyboardModifiers() & Qt::ControlModifier;;
+    if (ctrlKeyPressed) {
+        if (event->delta() > 0) {
+            zoomIn();
+        } else if (event->delta() < 0) {
+            zoomOut();
+        }
+        event->accept();
+    }
+    event->ignore();
 }
 
 void QInputImageWidget::resize(const QSize &size)
@@ -219,4 +254,11 @@ void QInputImageWidget::resize(const QSize &size)
 void QInputImageWidget::resize(int w, int h)
 {
     resize(QSize(w, h));
+}
+
+QInputImageWidget::~QInputImageWidget()
+{
+    if (_pCache) {
+        delete[] _pCache;
+    }
 }
