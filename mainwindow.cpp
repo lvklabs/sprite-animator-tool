@@ -105,6 +105,7 @@ MainWindow::MainWindow(QWidget *parent)
     initTables();
     initRecentFilesMenu();
     showFramesTab();
+    showFramePreview();
 
     resize(1204, 768);
     updateGeometry();
@@ -112,46 +113,56 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::initSignals()
 {
-    connect(ui->actionSave,          SIGNAL(triggered()),          this, SLOT(saveFile()));
-    connect(ui->actionSaveAs,        SIGNAL(triggered()),          this, SLOT(saveAsFile()));
-    connect(ui->actionOpen,          SIGNAL(triggered()),          this, SLOT(openFileDialog()));
-    connect(ui->actionClose,         SIGNAL(triggered()),          this, SLOT(closeFile()));
-    connect(ui->actionExport,        SIGNAL(triggered()),          this, SLOT(exportFile()));
-    connect(ui->actionExportAs,      SIGNAL(triggered()),          this, SLOT(exportAsFile()));
-    connect(ui->actionUndo,          SIGNAL(triggered()),          this, SLOT(undo()));
-    connect(ui->actionRedo,          SIGNAL(triggered()),          this, SLOT(redo()));
-    connect(ui->actionExit,          SIGNAL(triggered()),          this, SLOT(exit()));
-    connect(ui->actionAbout,         SIGNAL(triggered()),          this, SLOT(about()));
-    connect(ui->actionFramesTab,     SIGNAL(triggered()),          this, SLOT(showFramesTab()));
-    connect(ui->actionAnimationsTab, SIGNAL(triggered()),          this, SLOT(showAnimationsTab()));
-    connect(ui->addImageButton,      SIGNAL(clicked()),            this, SLOT(addImageDialog()));
-    connect(ui->removeImageButton,   SIGNAL(clicked()),            this, SLOT(removeSelImage()));
-    connect(ui->addFrameButton,      SIGNAL(clicked()),            this, SLOT(addFrameFromImgRegion()));
-    connect(ui->removeFrameButton,   SIGNAL(clicked()),            this, SLOT(removeSelFrame()));
-    connect(ui->addAniButton,        SIGNAL(clicked()),            this, SLOT(addAnimationDialog()));
-    connect(ui->removeAniButton,     SIGNAL(clicked()),            this, SLOT(removeSelAnimation()));
-    connect(ui->refreshAniButton,    SIGNAL(clicked()),            this, SLOT(previewAnimation()));
-    connect(ui->addAframeButton,     SIGNAL(clicked()),            this, SLOT(addAframeDialog()));
-    connect(ui->removeAframeButton,  SIGNAL(clicked()),            this, SLOT(removeSelAframe()));
-    connect(ui->aniDecSpeedButton,   SIGNAL(clicked()),            this, SLOT(decAniSpeed()));
-    connect(ui->aniIncSpeedButton,   SIGNAL(clicked()),            this, SLOT(incAniSpeed()));
+    connect(ui->actionSave,            SIGNAL(triggered()),          this, SLOT(saveFile()));
+    connect(ui->actionSaveAs,          SIGNAL(triggered()),          this, SLOT(saveAsFile()));
+    connect(ui->actionOpen,            SIGNAL(triggered()),          this, SLOT(openFileDialog()));
+    connect(ui->actionClose,           SIGNAL(triggered()),          this, SLOT(closeFile()));
+    connect(ui->actionExport,          SIGNAL(triggered()),          this, SLOT(exportFile()));
+    connect(ui->actionExportAs,        SIGNAL(triggered()),          this, SLOT(exportAsFile()));
+    connect(ui->actionUndo,            SIGNAL(triggered()),          this, SLOT(undo()));
+    connect(ui->actionRedo,            SIGNAL(triggered()),          this, SLOT(redo()));
+    connect(ui->actionExit,            SIGNAL(triggered()),          this, SLOT(exit()));
+    connect(ui->actionAbout,           SIGNAL(triggered()),          this, SLOT(about()));
+    connect(ui->actionFramesTab,       SIGNAL(triggered()),          this, SLOT(showFramesTab()));
+    connect(ui->actionAnimationsTab,   SIGNAL(triggered()),          this, SLOT(showAnimationsTab()));
+    connect(ui->actionAddImage,        SIGNAL(triggered()),          this, SLOT(addImageDialog()));
+    connect(ui->actionAddFrame,        SIGNAL(triggered()),          this, SLOT(addFrameFromImgRegion()));
+    connect(ui->actionAddAnimation,    SIGNAL(triggered()),          this, SLOT(addAnimationDialog()));
+    connect(ui->actionShowHideFramesPreview, SIGNAL(triggered()),  this, SLOT(hideShowFramePreview()));
+    connect(ui->actionRemoveImage,     SIGNAL(triggered()),          this, SLOT(removeSelImage()));
+    connect(ui->actionRemoveFrame,     SIGNAL(triggered()),          this, SLOT(removeSelFrame()));
+    connect(ui->actionRemoveAnimation, SIGNAL(triggered()),        this, SLOT(removeSelAnimation()));
+    connect(ui->actionRefreshAnimation,SIGNAL(triggered()),       this, SLOT(previewAnimation()));
 
-    connect(ui->imgPreview,          SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
-    connect(ui->framePreview,        SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
-    connect(ui->aframePreview,       SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
-    connect(ui->imgPreview,          SIGNAL(mouseRectChanged(const QRect&)), this, SLOT(showMouseRect(const QRect&)));
+    connect(ui->addImageButton,        SIGNAL(clicked()),            this, SLOT(addImageDialog()));
+    connect(ui->removeImageButton,     SIGNAL(clicked()),            this, SLOT(removeSelImage()));
+    connect(ui->addFrameButton,        SIGNAL(clicked()),            this, SLOT(addFrameFromImgRegion()));
+    connect(ui->removeFrameButton,     SIGNAL(clicked()),            this, SLOT(removeSelFrame()));
+    connect(ui->addAniButton,          SIGNAL(clicked()),            this, SLOT(addAnimationDialog()));
+    connect(ui->removeAniButton,       SIGNAL(clicked()),            this, SLOT(removeSelAnimation()));
+    connect(ui->refreshAniButton,      SIGNAL(clicked()),            this, SLOT(previewAnimation()));
+    connect(ui->addAframeButton,       SIGNAL(clicked()),            this, SLOT(addAframeDialog()));
+    connect(ui->removeAframeButton,    SIGNAL(clicked()),            this, SLOT(removeSelAframe()));
+    connect(ui->aniDecSpeedButton,     SIGNAL(clicked()),            this, SLOT(decAniSpeed()));
+    connect(ui->aniIncSpeedButton,     SIGNAL(clicked()),            this, SLOT(incAniSpeed()));
+    connect(ui->hideFramePreviewButton,SIGNAL(clicked()),         this, SLOT(hideShowFramePreview()));
 
-    connect(ui->imgZoomInButton,     SIGNAL(clicked()),  ui->imgPreview,    SLOT(zoomIn()));
-    connect(ui->imgZoomOutButton,    SIGNAL(clicked()),  ui->imgPreview,    SLOT(zoomOut()));
-    connect(ui->frameZoomInButton,   SIGNAL(clicked()),  ui->framePreview,  SLOT(zoomIn()));
-    connect(ui->frameZoomOutButton,  SIGNAL(clicked()),  ui->framePreview,  SLOT(zoomOut()));
-    connect(ui->aframeZoomInButton,  SIGNAL(clicked()),  ui->aframePreview, SLOT(zoomIn()));
-    connect(ui->aframeZoomOutButton, SIGNAL(clicked()),  ui->aframePreview, SLOT(zoomOut()));
+    connect(ui->imgPreview,            SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
+    connect(ui->framePreview,          SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
+    connect(ui->aframePreview,         SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
+    connect(ui->imgPreview,            SIGNAL(mouseRectChanged(const QRect&)), this, SLOT(showMouseRect(const QRect&)));
 
-    connect(ui->imgTableWidget,      SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showSelImage(int)));
-    connect(ui->framesTableWidget,   SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showSelFrame(int)));
-    connect(ui->aframesTableWidget,  SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showSelAframe(int)));
-    connect(ui->aniTableWidget,      SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showAframes(int)));
+    connect(ui->imgZoomInButton,       SIGNAL(clicked()),  ui->imgPreview,    SLOT(zoomIn()));
+    connect(ui->imgZoomOutButton,      SIGNAL(clicked()),  ui->imgPreview,    SLOT(zoomOut()));
+    connect(ui->frameZoomInButton,     SIGNAL(clicked()),  ui->framePreview,  SLOT(zoomIn()));
+    connect(ui->frameZoomOutButton,    SIGNAL(clicked()),  ui->framePreview,  SLOT(zoomOut()));
+    connect(ui->aframeZoomInButton,    SIGNAL(clicked()),  ui->aframePreview, SLOT(zoomIn()));
+    connect(ui->aframeZoomOutButton,   SIGNAL(clicked()),  ui->aframePreview, SLOT(zoomOut()));
+
+    connect(ui->imgTableWidget,        SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showSelImage(int)));
+    connect(ui->framesTableWidget,     SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showSelFrame(int)));
+    connect(ui->aframesTableWidget,    SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showSelAframe(int)));
+    connect(ui->aniTableWidget,        SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showAframes(int)));
 
     cellChangedSignals(true);
 }
@@ -800,6 +811,40 @@ void MainWindow::addAnimationDialog()
     }
 }
 
+void MainWindow::hideFramePreview()
+{
+    ui->hSpacerFramePreview->changeSize(0, 0, QSizePolicy::Minimum, QSizePolicy::Preferred);
+    ui->frameZoomInButton->hide();
+    ui->frameZoomOutButton->hide();
+    ui->framePreviewScroll->hide();
+    ui->hideFramePreviewButton->setText("<");
+    ui->hideFramePreviewButton->setToolTip(tr("Show frames preview"));
+    ui->framePreviewLayout->update();
+}
+
+void MainWindow::showFramePreview()
+{
+    ui->hSpacerFramePreview->changeSize(0, 0, QSizePolicy::Expanding, QSizePolicy::Preferred);
+    ui->frameZoomInButton->show();
+    ui->frameZoomOutButton->show();
+    ui->framePreviewScroll->show();
+    ui->hideFramePreviewButton->setText(">");
+    ui->hideFramePreviewButton->setToolTip(tr("Hide frames preview"));
+    ui->framePreviewLayout->update();
+}
+
+void MainWindow::hideShowFramePreview()
+{
+    static bool visible = true;
+
+    if (visible) {
+        hideFramePreview();
+    } else {
+        showFramePreview();
+    }
+    visible = !visible;
+}
+
 void MainWindow::addAnimation(const LvkAnimation& ani)
 {
     /* state */
@@ -1338,6 +1383,20 @@ void MainWindow::about()
  {
      QCoreApplication::exit(0);
  }
+
+void MainWindow::keyPressEvent(QKeyEvent *event)
+{
+    if (event->modifiers() & Qt::ControlModifier) {
+        ui->imgPreview->update();
+    }
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent *event)
+{
+    if (event->modifiers() & Qt::ControlModifier) {
+        ui->imgPreview->update();
+    }
+}
 
 MainWindow::~MainWindow()
 {

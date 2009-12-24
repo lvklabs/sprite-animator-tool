@@ -34,7 +34,11 @@ public slots:
     /// Opens an sprite file
     /// @returns true if success, false otherwise
     bool openFile(const QString& filename, SpriteState::SpriteStateError* err = 0);
-    
+
+protected:
+    virtual void keyPressEvent(QKeyEvent *event);
+    virtual void keyReleaseEvent(QKeyEvent *event);
+
 private:
 
     Ui::MainWindow *ui;
@@ -150,6 +154,10 @@ private slots:
     void showFrame(Id frameId);
     void removeSelFrame();
     void removeFrame(int row);
+
+    void hideFramePreview();
+    void showFramePreview();
+    void hideShowFramePreview();
 
     void addAnimationDialog();
     void showAframes(int row);

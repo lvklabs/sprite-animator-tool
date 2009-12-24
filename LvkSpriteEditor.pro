@@ -27,8 +27,13 @@ HEADERS += mainwindow.h \
     qinputimagewidget.h \
     lvktablewidget.h
 FORMS += mainwindow.ui
+RESOURCES += res.qrc
 
-DEFINES += \
-    DEBUG\
-#    DEBUG_SHOW_ID_COLS\
-    QT_NO_DEBUG_OUTPUT
+debug { 
+    DEFINES += DEBUG \ 
+# DEBUG_SHOW_ID_COLS
+}
+
+release {
+    DEFINES += QT_NO_DEBUG_OUTPUT
+}

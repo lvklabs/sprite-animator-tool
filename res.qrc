@@ -1,0 +1,19 @@
+<RCC>
+    <qresource prefix="/buttons" >
+        <file alias="button-zoom-in" >res/zoom-in.png</file>
+        <file alias="button-zoom-out" >res/zoom-out.png</file>
+        <file alias="button-show" >res/show.png</file>
+        <file alias="button-hide" >res/hide.png</file>
+        <file alias="button-remove-image" >res/remove-image.png</file>
+        <file alias="button-add-image" >res/add-image.png</file>
+        <file alias="button-add-aframe" >res/add-aframe.png</file>
+        <file alias="button-add-frame" >res/add-frame.png</file>
+        <file alias="button-remove-aframe" >res/remove-aframe.png</file>
+        <file alias="button-remove-frame" >res/remove-frame.png</file>
+        <file alias="button-add-animation" >res/add-animation.png</file>
+        <file alias="button-remove-animation" >res/remove-animation.png</file>
+        <file alias="button-decrease-speed" >res/decrease-speed.png</file>
+        <file alias="button-increase-speed" >res/increase-speed.png</file>
+        <file alias="button-refresh" >res/refresh.png</file>
+    </qresource>
+</RCC>
