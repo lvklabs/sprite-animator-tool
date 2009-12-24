@@ -128,11 +128,11 @@ void MainWindow::initSignals()
     connect(ui->actionAddImage,        SIGNAL(triggered()),          this, SLOT(addImageDialog()));
     connect(ui->actionAddFrame,        SIGNAL(triggered()),          this, SLOT(addFrameFromImgRegion()));
     connect(ui->actionAddAnimation,    SIGNAL(triggered()),          this, SLOT(addAnimationDialog()));
-    connect(ui->actionShowHideFramesPreview, SIGNAL(triggered()),  this, SLOT(hideShowFramePreview()));
+    connect(ui->actionShowHideFramesPreview, SIGNAL(triggered()),    this, SLOT(hideShowFramePreview()));
     connect(ui->actionRemoveImage,     SIGNAL(triggered()),          this, SLOT(removeSelImage()));
     connect(ui->actionRemoveFrame,     SIGNAL(triggered()),          this, SLOT(removeSelFrame()));
-    connect(ui->actionRemoveAnimation, SIGNAL(triggered()),        this, SLOT(removeSelAnimation()));
-    connect(ui->actionRefreshAnimation,SIGNAL(triggered()),       this, SLOT(previewAnimation()));
+    connect(ui->actionRemoveAnimation, SIGNAL(triggered()),          this, SLOT(removeSelAnimation()));
+    connect(ui->actionRefreshAnimation,SIGNAL(triggered()),          this, SLOT(previewAnimation()));
 
     connect(ui->addImageButton,        SIGNAL(clicked()),            this, SLOT(addImageDialog()));
     connect(ui->removeImageButton,     SIGNAL(clicked()),            this, SLOT(removeSelImage()));
@@ -145,7 +145,7 @@ void MainWindow::initSignals()
     connect(ui->removeAframeButton,    SIGNAL(clicked()),            this, SLOT(removeSelAframe()));
     connect(ui->aniDecSpeedButton,     SIGNAL(clicked()),            this, SLOT(decAniSpeed()));
     connect(ui->aniIncSpeedButton,     SIGNAL(clicked()),            this, SLOT(incAniSpeed()));
-    connect(ui->hideFramePreviewButton,SIGNAL(clicked()),         this, SLOT(hideShowFramePreview()));
+    connect(ui->hideFramePreviewButton,SIGNAL(clicked()),            this, SLOT(hideShowFramePreview()));
 
     connect(ui->imgPreview,            SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
     connect(ui->framePreview,          SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
@@ -817,7 +817,7 @@ void MainWindow::hideFramePreview()
     ui->frameZoomInButton->hide();
     ui->frameZoomOutButton->hide();
     ui->framePreviewScroll->hide();
-    ui->hideFramePreviewButton->setText("<");
+    ui->hideFramePreviewButton->setIcon(QIcon(":/buttons/button-show"));
     ui->hideFramePreviewButton->setToolTip(tr("Show frames preview"));
     ui->framePreviewLayout->update();
 }
@@ -828,7 +828,7 @@ void MainWindow::showFramePreview()
     ui->frameZoomInButton->show();
     ui->frameZoomOutButton->show();
     ui->framePreviewScroll->show();
-    ui->hideFramePreviewButton->setText(">");
+    ui->hideFramePreviewButton->setIcon(QIcon(":/buttons/button-hide"));
     ui->hideFramePreviewButton->setToolTip(tr("Hide frames preview"));
     ui->framePreviewLayout->update();
 }
