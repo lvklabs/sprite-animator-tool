@@ -9,11 +9,16 @@
 // TODO: Clean code!
 
 QInputImageWidget::QInputImageWidget(QWidget *parent)
-        : QWidget(parent), _rect(0,0,0,0), _mouseRect(0,0,0,0), _mouseX(-1), _mouseY(-1),
-          _rectVisible(true), _mouseLinesVisible(true), _zoom(ZOOM_MIN), _pCache(0)
+        : QWidget(parent), _frect(0,0,0,0), _mouseRect(0,0,0,0), _mouseX(-1), _mouseY(-1),
+          _frectVisible(true), _mouseLinesVisible(true), _zoom(ZOOM_MIN), _pCache(0)
 {
     _c      = pow(ZOOM_FACTOR, _zoom);
     _pCache = new QPixmap[ZOOM_MAX + 1];
+
+    _frectPen.setColor(Qt::red);
+    _frectPen.setStyle(Qt::SolidLine);
+    _mouseRectPen.setColor(Qt::black);
+    _mouseRectPen.setStyle(Qt::DashLine);
 
     setMouseTracking(true);
 }
@@ -46,7 +51,7 @@ QPixmap& QInputImageWidget::getScaledPixmap()
 // TODO: do not delete _mouseRect
 #define ZOOM_COMMON() \
             _c = pow(ZOOM_FACTOR, _zoom);\
-            _scaledRect = rtoz(_rect);\
+            _scaledFrect = rtoz(_frect);\
             _mouseRect.setRect(0, 0, 0, 0);\
             getScaledPixmap();\
             emit mouseRectChanged(ztor(_mouseRect));
@@ -91,13 +96,13 @@ QRect QInputImageWidget::rtoz(const QRect& rect) const
 
 void QInputImageWidget::setFrameRectVisible(bool visible)
 {
-    _rectVisible = visible;
+    _frectVisible = visible;
     update();
 }
 
 bool QInputImageWidget::frameRectVisible() const
 {
-    return _rectVisible;
+    return _frectVisible;
 }
 
 void QInputImageWidget::setMouseLinesVisible(bool visible)
@@ -113,14 +118,14 @@ bool QInputImageWidget::mouseLinesRectVisible() const
 
 void QInputImageWidget::setFrameRect(const QRect &rect)
 {
-    _rect = rect;
-    _scaledRect = rtoz(rect);
+    _frect = rect;
+    _scaledFrect = rtoz(rect);
     update();
 }
 
 const QRect QInputImageWidget::frameRect() const
 {
-    return _rect;
+    return _frect;
 }
 
 const QRect QInputImageWidget::mouseFrameRect() const
@@ -143,36 +148,26 @@ void QInputImageWidget::paintEvent(QPaintEvent */*event*/)
         painter.drawLine(0, my, width(),my);
     }
 
-    if (_rectVisible) {
+    if (_frectVisible) {
         QRect rect;
 
         /* draw frame rect */
-        rect = _scaledRect;
+        rect = _scaledFrect;
         if (!rect.isEmpty()) {
-            rect.setWidth(_scaledRect.width() - 1);
-            rect.setHeight(_scaledRect.height() - 1);
-            painter.setPen(Qt::red);
+            rect.setWidth(_scaledFrect.width() - 1);
+            rect.setHeight(_scaledFrect.height() - 1);
+            painter.setPen(_frectPen);
             painter.drawRect(rect);
         }
 
         /* draw mouse rect */
         rect = _mouseRect.normalized();
         if (!rect.isEmpty()) {
-//        if (rect.width() < 0) {
-//            rect.setWidth(rect.width() + 1);
-//        } else {
             rect.setWidth(rect.width() - 1);
-//        }
-//        if (rect.height() < 0) {
-//            rect.setHeight(rect.height() + 1);
-//        } else {
             rect.setHeight(rect.height() - 1);
-//        }
-            painter.setPen(Qt::black);
-            painter.setPen(Qt::DashLine);
+            painter.setPen(_mouseRectPen);
             painter.drawRect(rect);
         }
-
     }
 }
 
@@ -197,18 +192,13 @@ void QInputImageWidget::mouseMoveEvent(QMouseEvent *event)
 
     emit mousePositionChanged(ztor(_mouseX), ztor(_mouseY));
 
-    if (_rectVisible) {
+    if (_frectVisible) {
         if (event->buttons() & Qt::LeftButton) {
             int w = _mouseX - _mouseRect.x();
             int h = _mouseY - _mouseRect.y();
 
             _mouseRect.setWidth(pixelate(w));
             _mouseRect.setHeight(pixelate(h));
-
-//            if (w < 0) {
-//            }
-//            if (h < 0) {
-//            }
 
             emit mouseRectChanged(ztor(_mouseRect));
         }
@@ -220,10 +210,10 @@ void QInputImageWidget::mouseMoveEvent(QMouseEvent *event)
 void QInputImageWidget::mouseReleaseEvent(QMouseEvent */*event*/)
 {
 //    if (_mouseRect.width() < 0) {
-//        _mouseRect.setX(_mouseRect.x()+1);
+//        _mouseRect.setWidth(_mouseRect.width() - 1);
 //    }
 //    if (_mouseRect.height() < 0) {
-//        _mouseRect.setY(_mouseRect.y()+1);
+//        _mouseRect.setHeight(_mouseRect.height() - 1);
 //    }
     _mouseRect = _mouseRect.normalized();
     emit mouseRectChanged(ztor(_mouseRect));

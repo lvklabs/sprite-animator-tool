@@ -3,10 +3,7 @@
 
 #include <QLabel>
 #include <QRect>
-
-// TODO: optimize the class to work nice with the
-// highest levels of zoom. Currently, the class
-// is very slow with big images and zoom > 3
+#include <QPen>
 
 class QInputImageWidget : public QWidget
 {
@@ -62,7 +59,7 @@ private:
     /// @overload
     QRect ztor(const QRect& rect) const;
 
-    /// Make @param value congruent 0 modulus _c
+    /// pixelate value
     inline int pixelate(int value) const
     {
         if (value > 0) {
@@ -70,21 +67,24 @@ private:
             return (value < 0) ? 0 : value;
         } else if (value < 0) {
             value +=  (-1*value) % _c;
-            return (value > 0) ? 0 : value;
+            return (value > 0) ? 0 : value + 1;
         }
         return 0;
     }
 
     int      _c;             /* heavily used coeficient */
-    QRect    _rect;          /* main rect */
-    QRect    _scaledRect;    /* main rect scaled by _zoom */
+    QRect    _frect;         /* frame rect */
+    QRect    _scaledFrect;   /* frame rect scaled by _zoom */
     QRect    _mouseRect;     /* mouse rect */
     int      _mouseX;        /* mouse current x position */
     int      _mouseY;        /* mouse current y position */
-    bool     _rectVisible;   /* turn on/off visible rects */
+    bool     _frectVisible;  /* turn on/off visible rects */
     bool     _mouseLinesVisible; /* turn on/off mouse lines */
     int      _zoom;          /* current zoom level */
     QPixmap *_pCache;        /* pixmaps cache */
+    QPen     _frectPen;      /* pen used to draw the frame rect */
+    QPen     _mouseRectPen;  /* pen used to draw the mouse rect */
+
 
     QPixmap& getScaledPixmap();
 
