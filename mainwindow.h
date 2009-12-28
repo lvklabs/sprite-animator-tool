@@ -33,7 +33,7 @@ public:
 public slots:
     /// Opens an sprite file
     /// @returns true if success, false otherwise
-    bool openFile(const QString& filename, SpriteState::SpriteStateError* err = 0);
+    bool openFile(const QString& filename);
 
 protected:
     virtual void keyPressEvent(QKeyEvent *event);
@@ -126,6 +126,7 @@ private slots:
     void saveFile();
     void saveAsFile();
     void openFileDialog();
+    bool openFile_(const QString& filename, SpriteState::SpriteStateError* err = 0);
     void closeFile();
     void exportFile();
     void exportAsFile();

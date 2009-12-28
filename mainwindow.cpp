@@ -284,15 +284,22 @@ void MainWindow::openFileDialog()
             this, tr("Open file"), QFileInfo(filename).absolutePath(), "*.lvks");
 
     if (!filename.isNull()) {
-        SpriteStateError err;
-        if (!openFile(filename, &err)) {
-            infoDialog("Cannot open " + filename + ". " + SpriteState::errorMessage(err));
-        }
+        openFile(filename);
     }
-
 }
 
-bool MainWindow::openFile(const QString& filename_, SpriteStateError* err)
+bool MainWindow::openFile(const QString& filename)
+{
+    SpriteStateError err;
+
+    if (!openFile_(filename, &err)) {
+        infoDialog(tr("Cannot open ") + filename + ". " + SpriteState::errorMessage(err));
+        return false;
+    }
+    return true;
+}
+
+bool MainWindow::openFile_(const QString& filename_, SpriteStateError* err)
 {
     QString filename = QFileInfo(filename_).absoluteFilePath();
 

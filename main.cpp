@@ -55,10 +55,7 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
             exit(-1);
         }
 
-        SpriteStateError err;
-        if (!w.openFile(QString(param.c_str()), &err)) {
-            std::cerr << binName << ": Error: Cannot open '" << param << "' "
-                      << SpriteState::errorMessage(err).toStdString() << std::endl;
+        if (!w.openFile(QString(param.c_str()))) {
             exit(-1);
         }
     } else if (argc == 3 || argc == 5) {
@@ -121,8 +118,8 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
 
 void showHelp(const  std::string& binName)
 {
-    std::cout << "Usage: " << binName << " [\"sprite_file\"]" << std::endl;
-    std::cout << "       " << binName << " --export \"sprite_file\" [--output-dir \"dir\"]" << std::endl;
+    std::cout << "Usage: " << binName << " [sprite-file]" << std::endl;
+    std::cout << "       " << binName << " --export sprite-file [--output-dir directory]" << std::endl;
     std::cout << "       " << binName << " --version" << std::endl;
     std::cout << "       " << binName << " --help" << std::endl;
 }
