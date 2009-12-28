@@ -131,13 +131,13 @@ public:
         ErrInvalidFormat,
     } SpriteStateError;
 
-    /// serialize instance to @param filename
+    /// save instance to @param filename
     /// NOTE: Input image filenames cannot contain the charater ',',
     ///       otherwise deserialize() will fail
-    bool serialize(const QString& filename, SpriteStateError* err = 0) const;
+    bool save(const QString& filename, SpriteStateError* err = 0) const;
 
-    /// deserialize instance from @param filename
-    bool deserialize(const QString& filename, SpriteStateError* err = 0);
+    /// load instance from @param filename
+    bool load(const QString& filename, SpriteStateError* err = 0);
 
     /// export sprite file @param filename.
     /// If @param outputDir is null, the sprite file directory is used.

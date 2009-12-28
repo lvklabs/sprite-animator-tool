@@ -252,7 +252,7 @@ void MainWindow::saveFile()
         saveAsFile();
     } else {
         SpriteStateError err;
-        if (!_sprState.serialize(_filename, &err)) {
+        if (!_sprState.save(_filename, &err)) {
            infoDialog(tr("Cannot save") + _filename + ". " + SpriteState::errorMessage(err));
            return;
         }
@@ -268,7 +268,7 @@ void MainWindow::saveAsFile()
 
     if (!filename.isNull()) {
         SpriteStateError err;
-        if (!_sprState.serialize(filename, &err)) {
+        if (!_sprState.save(filename, &err)) {
            infoDialog(tr("Cannot save ") + filename + ". " + SpriteState::errorMessage(err));
            return;
         }
@@ -301,6 +301,13 @@ bool MainWindow::openFile(const QString& filename)
 
 bool MainWindow::openFile_(const QString& filename_, SpriteStateError* err)
 {
+    if (!QFile::exists(filename_)) {
+        if (err) {
+            *err = SpriteState::ErrFileDoesNotExist;
+        }
+        return false;
+    }
+
     QString filename = QFileInfo(filename_).absoluteFilePath();
 
     closeFile();
@@ -308,7 +315,7 @@ bool MainWindow::openFile_(const QString& filename_, SpriteStateError* err)
 
     SpriteState tmp;
 
-    if (!tmp.deserialize(filename, err)) {
+    if (!tmp.load(filename, err)) {
         closeFile();
         return false;
     }

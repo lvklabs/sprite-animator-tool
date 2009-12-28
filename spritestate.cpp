@@ -23,14 +23,14 @@ void SpriteState::clear()
     _fpixmaps.clear();
 }
 
-bool SpriteState::serialize(const QString& filename, SpriteStateError* err) const
+bool SpriteState::save(const QString& filename, SpriteStateError* err) const
 {
     setError(err, ErrNone);
 
     QFile file(filename);
 
     if (!file.open(QFile::WriteOnly | QFile::Text)) {
-        qDebug() <<  "Error: SpriteState::serialize(): could not open"
+        qDebug() <<  "Error: SpriteState::save(): could not open"
                  << filename << "in rw mode";
         setError(err, ErrCantOpenReadWriteMode);
         return false;
@@ -82,7 +82,7 @@ bool SpriteState::serialize(const QString& filename, SpriteStateError* err) cons
     return true;
 }
 
-bool SpriteState::deserialize(const QString& filename, SpriteStateError* err)
+bool SpriteState::load(const QString& filename, SpriteStateError* err)
 {
     setError(err, ErrNone);
 
@@ -99,7 +99,7 @@ bool SpriteState::deserialize(const QString& filename, SpriteStateError* err)
     }
 
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
-        qDebug() <<  "Error: SpriteState::serialize(): could not open"
+        qDebug() <<  "Error: SpriteState::load(): could not open"
                  << filename << "in ro mode";
         setError(err, ErrCantOpenReadMode);
         return false;
@@ -149,7 +149,7 @@ bool SpriteState::deserialize(const QString& filename, SpriteStateError* err)
                 state = StNoToken;
                 continue;
             } else {
-                qDebug() << "Error: SpriteState::deserialize(): Invalid LvkSprite file format"
+                qDebug() << "Error: SpriteState::load(): Invalid LvkSprite file format"
                          << "at line" << lineNumber;
                 setError(err, ErrInvalidFormat);
                 state = StError;
@@ -166,12 +166,12 @@ bool SpriteState::deserialize(const QString& filename, SpriteStateError* err)
             } else if (line == "animations(") {
                 state = StTokenAnimations;
             } else if (line == "aframes(") {
-                qDebug() << "Error: SpriteState::deserialize(): Unspected token"
+                qDebug() << "Error: SpriteState::load(): Unspected token"
                          << line << "at line" << lineNumber;
                 setError(err, ErrInvalidFormat);
                 state = StError;
             } else {
-                qDebug() << "Error: SpriteState::deserialize(): Unknown token"
+                qDebug() << "Error: SpriteState::load(): Unknown token"
                          << line << "at line" << lineNumber;
                 setError(err, ErrInvalidFormat);
                 state = StError;
@@ -185,7 +185,7 @@ bool SpriteState::deserialize(const QString& filename, SpriteStateError* err)
                 if (tmpImage.fromString(line)) {
                     addImage(tmpImage);
                 } else {
-                    qDebug() << "Error: SpriteState::deserialize(): invalid image entry"
+                    qDebug() << "Error: SpriteState::load(): invalid image entry"
                              << line << "at line" << lineNumber;
                     setError(err, ErrInvalidFormat);
                     state = StError;
@@ -200,7 +200,7 @@ bool SpriteState::deserialize(const QString& filename, SpriteStateError* err)
                 if (tmpFrame.fromString(line)) {
                     addFrame(tmpFrame);
                 } else {
-                    qDebug() << "Error: SpriteState::deserialize(): invalid frame entry"
+                    qDebug() << "Error: SpriteState::load(): invalid frame entry"
                              << line << "at line" << lineNumber;
                     setError(err, ErrInvalidFormat);
                     state = StError;
@@ -216,7 +216,7 @@ bool SpriteState::deserialize(const QString& filename, SpriteStateError* err)
                 if (currentAniId != NullId) {
                     state = StTokenAframes;
                 } else {
-                    qDebug() << "Error: SpriteState::deserialize(): null animation id"
+                    qDebug() << "Error: SpriteState::load(): null animation id"
                              << "at line" << lineNumber;
                     setError(err, ErrInvalidFormat);
                     state = StError;
@@ -226,7 +226,7 @@ bool SpriteState::deserialize(const QString& filename, SpriteStateError* err)
                     currentAniId = tmpAni.id;
                     addAnimation(tmpAni);
                 } else {
-                    qDebug() << "Error: SpriteState::deserialize(): invalid animation entry"
+                    qDebug() << "Error: SpriteState::load(): invalid animation entry"
                              << line << "at line" << lineNumber;
                     setError(err, ErrInvalidFormat);
                     state = StError;
@@ -241,7 +241,7 @@ bool SpriteState::deserialize(const QString& filename, SpriteStateError* err)
                 if (tmpAframe.fromString(line)) {
                     addAframe(tmpAframe, currentAniId);
                 } else {
-                    qDebug() << "Error: SpriteState::deserialize(): invalid aframe entry"
+                    qDebug() << "Error: SpriteState::load(): invalid aframe entry"
                              << line << "at line" << lineNumber;
                     setError(err, ErrInvalidFormat);
                     state = StError;
@@ -250,7 +250,7 @@ bool SpriteState::deserialize(const QString& filename, SpriteStateError* err)
             break;
 
         default:
-            qDebug() << "Warning: SpriteState::deserialize(): Unhandled state "
+            qDebug() << "Warning: SpriteState::load(): Unhandled state "
                      << (int)state << "at line" << lineNumber;
             break;
         }
@@ -281,7 +281,7 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
 
     if (binOutput.exists()) {
         if (!binOutput.remove()) {
-            qDebug() <<  "Error: SpriteState::serializeOutput():"
+            qDebug() <<  "Error: SpriteState::exportSprite():"
                      << binOutput.fileName() << "already exists and cannot be removed";
             setError(err, ErrCantOpenReadWriteMode);
             return false;
@@ -289,14 +289,14 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
     }
 
     if (!binOutput.open(QFile::WriteOnly | QFile::Append)) {
-        qDebug() <<  "Error: SpriteState::serializeOutput(): could not open "
+        qDebug() <<  "Error: SpriteState::exportSprite(): could not open "
                  << binOutput.fileName() << " in WriteOnly mode";
         setError(err, ErrCantOpenReadWriteMode);
         return false;
     }
 
     if (!textOutput.open(QFile::WriteOnly | QFile::Text)) {
-        qDebug() <<  "Error: SpriteState::serializeOutput(): could not open "
+        qDebug() <<  "Error: SpriteState::exportSprite(): could not open "
                  << textOutput.fileName() << " in WriteOnly mode";
         setError(err, ErrCantOpenReadWriteMode);
         return false;
