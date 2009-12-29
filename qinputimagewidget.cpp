@@ -140,12 +140,25 @@ void QInputImageWidget::paintEvent(QPaintEvent */*event*/)
 
     bool ctrlKeyPressed = QApplication::keyboardModifiers() & Qt::ControlModifier;
 
-    if (_mouseLinesVisible && ctrlKeyPressed ) {
-        int mx = pixelate(_mouseX) - 1;
-        int my = pixelate(_mouseY) - 1;
+    if (_mouseLinesVisible && ctrlKeyPressed) {
+        int mx;
+        int my;
+
+        if (QApplication::mouseButtons() == Qt::LeftButton) {
+            mx = _mouseRect.x() + _mouseRect.width() - 1;
+            my = _mouseRect.y() + _mouseRect.height() - 1;
+        } else {
+            mx = pixelate(_mouseX);
+            my = pixelate(_mouseY);
+        }
+
         painter.setPen(Qt::gray);
         painter.drawLine(mx, 0,  mx, height());
         painter.drawLine(0, my, width(),my);
+
+        setCursor(QCursor(Qt::BlankCursor));
+    } else {
+        setCursor(QCursor(Qt::ArrowCursor));
     }
 
     if (_frectVisible) {
@@ -209,12 +222,6 @@ void QInputImageWidget::mouseMoveEvent(QMouseEvent *event)
 
 void QInputImageWidget::mouseReleaseEvent(QMouseEvent */*event*/)
 {
-//    if (_mouseRect.width() < 0) {
-//        _mouseRect.setWidth(_mouseRect.width() - 1);
-//    }
-//    if (_mouseRect.height() < 0) {
-//        _mouseRect.setHeight(_mouseRect.height() - 1);
-//    }
     _mouseRect = _mouseRect.normalized();
     emit mouseRectChanged(ztor(_mouseRect));
     update();
