@@ -14,7 +14,7 @@
 #include "lvkframe.h"
 #include "lvkanimation.h"
 #include "lvkaframe.h"
-#include "spritestate.h"
+#include "undospritestate.h"
 #include "lvkframegraphicsgroup.h"
 
 namespace Ui
@@ -60,7 +60,7 @@ private:
     void setCurrentExportFile(const QString& exportFileName);
 
     /// current sprite state
-    SpriteState _sprState;
+    UndoSpriteState _sprState;
 
     /// Counter. Next image id
     Id _imgId;
@@ -150,7 +150,7 @@ private slots:
     void removeSelImage();
     void removeImage(int row);
 
-    bool addFrameFromImgRegion();
+    bool addFrameDialog();
     void showSelFrame(int row);
     void showFrame(Id frameId);
     void removeSelFrame();

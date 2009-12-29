@@ -76,10 +76,9 @@ bool yesNoDialog(const QString& str)
 {
     QMessageBox msg;
     msg.setText(str);
-    msg.addButton(QMessageBox::Yes);
-    msg.addButton(QMessageBox::No);
-    msg.exec();
-    return msg.result(); // FIXME the return value is wrong
+    msg.addButton(QObject::tr("Yes"), QMessageBox::YesRole);
+    msg.addButton(QObject::tr("No"), QMessageBox::NoRole);
+    return !msg.exec();
 }
 
 MainWindow::MainWindow(QWidget *parent)
@@ -105,7 +104,7 @@ MainWindow::MainWindow(QWidget *parent)
     initTables();
     initRecentFilesMenu();
     showFramesTab();
-    showFramePreview();
+    hideFramePreview();
 
     resize(1204, 768);
     updateGeometry();
@@ -126,7 +125,7 @@ void MainWindow::initSignals()
     connect(ui->actionFramesTab,       SIGNAL(triggered()),          this, SLOT(showFramesTab()));
     connect(ui->actionAnimationsTab,   SIGNAL(triggered()),          this, SLOT(showAnimationsTab()));
     connect(ui->actionAddImage,        SIGNAL(triggered()),          this, SLOT(addImageDialog()));
-    connect(ui->actionAddFrame,        SIGNAL(triggered()),          this, SLOT(addFrameFromImgRegion()));
+    connect(ui->actionAddFrame,        SIGNAL(triggered()),          this, SLOT(addFrameDialog()));
     connect(ui->actionAddAnimation,    SIGNAL(triggered()),          this, SLOT(addAnimationDialog()));
     connect(ui->actionShowHideFramesPreview, SIGNAL(triggered()),    this, SLOT(hideShowFramePreview()));
     connect(ui->actionRemoveImage,     SIGNAL(triggered()),          this, SLOT(removeSelImage()));
@@ -136,7 +135,7 @@ void MainWindow::initSignals()
 
     connect(ui->addImageButton,        SIGNAL(clicked()),            this, SLOT(addImageDialog()));
     connect(ui->removeImageButton,     SIGNAL(clicked()),            this, SLOT(removeSelImage()));
-    connect(ui->addFrameButton,        SIGNAL(clicked()),            this, SLOT(addFrameFromImgRegion()));
+    connect(ui->addFrameButton,        SIGNAL(clicked()),            this, SLOT(addFrameDialog()));
     connect(ui->removeFrameButton,     SIGNAL(clicked()),            this, SLOT(removeSelFrame()));
     connect(ui->addAniButton,          SIGNAL(clicked()),            this, SLOT(addAnimationDialog()));
     connect(ui->removeAniButton,       SIGNAL(clicked()),            this, SLOT(removeSelAnimation()));
@@ -561,6 +560,8 @@ void MainWindow::showAnimationsTab()
 
 void MainWindow::addImageDialog()
 {
+    showFramesTab();
+
     static QString filename = "";
 
     filename = QFileDialog::getOpenFileName(
@@ -628,10 +629,7 @@ void MainWindow::showSelImageWithFrameRect(int row, const QRect& rect)
 
 void MainWindow::removeSelImage()
 {
-// FIX yesNoDialog
-//    if (!yesNoDialog(tr("Are you sure you want to remove the image?"))) {
-//        return;
-//    }
+    showFramesTab();
 
     int currentRow = ui->imgTableWidget->currentRow();
 
@@ -639,6 +637,12 @@ void MainWindow::removeSelImage()
         infoDialog(tr("No image selected"));
         return;
     }
+
+    QString imgFilename = ui->imgTableWidget->item(currentRow, ColImageFilename)->text();
+    if (!yesNoDialog(tr("Are you sure you want to remove the image '") + imgFilename  + tr("'?"))) {
+        return;
+    }
+
     removeImage(currentRow);
 
     ui->imgPreview->setPixmap(QPixmap());
@@ -670,8 +674,10 @@ void MainWindow::removeImage(int row)
     }
 }
 
-bool MainWindow::addFrameFromImgRegion()
+bool MainWindow::addFrameDialog()
 {
+    showFramesTab();
+
     if (ui->imgTableWidget->currentRow() == -1) {
         infoDialog(tr("No input image selected"));
         return false;
@@ -696,6 +702,15 @@ bool MainWindow::addFrameFromImgRegion()
         int h;
 
         QRect frameRect = ui->imgPreview->mouseFrameRect();
+
+        if (frameRect.width() == 0) {
+            infoDialog(tr("Cannot add a frame with null width"));
+            return false;
+        }
+        if (frameRect.height() == 0) {
+            infoDialog(tr("Cannot add a frame with null height"));
+            return false;
+        }
 
         if (frameRect.isNull()) {
             ox = 0;
@@ -779,10 +794,7 @@ void MainWindow::showFrame(Id frameId)
 
 void MainWindow::removeSelFrame()
 {
-// FIX yesNoDialog
-//    if (!yesNoDialog(tr("Are you sure you want to remove the frame?"))) {
-//        return;
-//    }
+    showFramesTab();
 
     int currentRow = ui->framesTableWidget->currentRow();
 
@@ -790,6 +802,12 @@ void MainWindow::removeSelFrame()
         infoDialog(tr("No frame selected"));
         return;
     }
+
+    QString frameName = ui->framesTableWidget->item(currentRow, ColFrameName)->text();
+    if (!yesNoDialog(tr("Are you sure you want to remove the frame '") + frameName  + tr("'?"))) {
+        return;
+    }
+
     removeFrame(currentRow);
 }
 
@@ -811,6 +829,8 @@ void MainWindow::removeFrame(int row)
 
 void MainWindow::addAnimationDialog()
 {
+    showAnimationsTab();
+
     bool ok;
     QString name = QInputDialog::getText(this, tr("New animation"),
                                          tr("Animation name:"),
@@ -849,7 +869,7 @@ void MainWindow::showFramePreview()
 
 void MainWindow::hideShowFramePreview()
 {
-    static bool visible = true;
+    static bool visible = false;
 
     if (visible) {
         hideFramePreview();
@@ -952,15 +972,17 @@ void MainWindow::clearPreviewAnimation()
 
 void MainWindow::removeSelAnimation()
 {
-// FIX yesNoDialog
-//    if (!yesNoDialog(tr("Are you sure you want to remove the animation?"))) {
-//        return;
-//    }
+    showAnimationsTab();
 
     int currentRow = ui->aniTableWidget->currentRow();
 
     if (currentRow == -1) {
         infoDialog(tr("No animation selected"));
+        return;
+    }
+
+    QString aniName = ui->aniTableWidget->item(currentRow, ColAniName)->text();
+    if (!yesNoDialog(tr("Are you sure you want to remove the animation '") + aniName  + tr("'?"))) {
         return;
     }
 
@@ -1082,10 +1104,7 @@ void MainWindow::showAframe(Id frameId)
 
 void MainWindow::removeSelAframe()
 {
-// FIX yesNoDialog
-//    if (!yesNoDialog(tr("Are you sure you want to remove the frame?"))) {
-//        return;
-//    }
+    showAnimationsTab();
 
     int currentRow = ui->aframesTableWidget->currentRow();
 
@@ -1093,6 +1112,11 @@ void MainWindow::removeSelAframe()
         infoDialog(tr("No frame selected"));
         return;
     }
+
+    if (!yesNoDialog(tr("Are you sure you want to remove the selected frame?"))) {
+        return;
+    }
+
     removeAframe(currentRow);
 }
 
@@ -1380,12 +1404,16 @@ void MainWindow::showMouseRect(const QRect& rect)
 
 void MainWindow::undo()
 {
-    infoDialog("Not implemented");
+    if (_sprState.canUndo()) {
+        infoDialog(tr("Could not undo"));
+    }
 }
 
 void MainWindow::redo()
 {
-    infoDialog("Not implemented");
+    if (_sprState.canRedo()) {
+        infoDialog(tr("Could not redo"));
+    }
 }
 
 void MainWindow::about()
@@ -1395,7 +1423,9 @@ void MainWindow::about()
 
  void MainWindow::exit()
  {
-     QCoreApplication::exit(0);
+     if (yesNoDialog(tr("Are you sure you want to exit?"))) {
+         QCoreApplication::exit(0);
+     }
  }
 
 void MainWindow::keyPressEvent(QKeyEvent *event)

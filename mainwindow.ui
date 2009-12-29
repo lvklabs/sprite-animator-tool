@@ -559,8 +559,8 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>372</width>
-               <height>584</height>
+               <width>96</width>
+               <height>26</height>
               </rect>
              </property>
             </widget>
@@ -712,8 +712,8 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>372</width>
-               <height>545</height>
+               <width>96</width>
+               <height>26</height>
               </rect>
              </property>
              <widget class="QGraphicsView" name="aniPreview">
@@ -970,7 +970,7 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
      <x>0</x>
      <y>0</y>
      <width>1199</width>
-     <height>27</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
@@ -1205,13 +1205,25 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
    </property>
   </action>
   <action name="actionAddAframe">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Add frame to current animation...</string>
    </property>
+   <property name="visible">
+    <bool>false</bool>
+   </property>
   </action>
   <action name="actionRemoveAframe">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Remove frame from current animation</string>
+   </property>
+   <property name="visible">
+    <bool>false</bool>
    </property>
   </action>
   <action name="actionRefreshAnimation">
