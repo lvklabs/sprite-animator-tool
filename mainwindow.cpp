@@ -710,21 +710,20 @@ bool MainWindow::addFrameDialog()
 
         QRect frameRect = ui->imgPreview->mouseFrameRect();
 
-        if (frameRect.width() == 0) {
-            infoDialog(tr("Cannot add a frame with null width"));
-            return false;
-        }
-        if (frameRect.height() == 0) {
-            infoDialog(tr("Cannot add a frame with null height"));
-            return false;
-        }
-
         if (frameRect.isNull()) {
             ox = 0;
             oy = 0;
             w  = _sprState.ipixmap(imgId).width();
             h  = _sprState.ipixmap(imgId).height();
         } else {
+            if (frameRect.width() == 0) {
+                infoDialog(tr("Cannot add a frame with null width"));
+                return false;
+            }
+            if (frameRect.height() == 0) {
+                infoDialog(tr("Cannot add a frame with null height"));
+                return false;
+            }
             ox = frameRect.x();
             oy = frameRect.y();
             w  = frameRect.width();
