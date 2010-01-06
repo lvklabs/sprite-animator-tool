@@ -260,12 +260,16 @@ void MainWindow::saveFile()
 
 void MainWindow::saveAsFile()
 {
-    static QString filename = "";
+    static QString lastDir = "";
+
+    QString filename;
 
     filename = QFileDialog::getOpenFileName(
-            this, tr("Save file"), QFileInfo(filename).absolutePath(), "*.lvks");
+            this, tr("Save file"), lastDir, "*.lvks;; *.*");
 
     if (!filename.isNull()) {
+        lastDir = QFileInfo(filename).absolutePath();
+
         SpriteStateError err;
         if (!_sprState.save(filename, &err)) {
            infoDialog(tr("Cannot save ") + filename + ". " + SpriteState::errorMessage(err));
@@ -277,12 +281,15 @@ void MainWindow::saveAsFile()
 
 void MainWindow::openFileDialog()
 {
-    static QString filename = "";
+    static QString lastDir = "";
+
+    QString filename;
 
     filename = QFileDialog::getOpenFileName(
-            this, tr("Open file"), QFileInfo(filename).absolutePath(), "*.lvks");
+            this, tr("Open file"), lastDir, "*.lvks;; *.*");
 
     if (!filename.isNull()) {
+        lastDir = QFileInfo(filename).absolutePath();
         openFile(filename);
     }
 }
@@ -504,7 +511,7 @@ void MainWindow::exportAsFile()
     static QString exportFileName = "";
 
     exportFileName = QFileDialog::getSaveFileName(
-            this, tr("Export file"), QFileInfo(exportFileName).absolutePath(), "*.lkot *.lkob");
+            this, tr("Export file"), QFileInfo(exportFileName).absolutePath(), "*.lkot *.lkob;; *.*");
 
     if (!exportFileName.isEmpty()) {
         SpriteStateError err;
@@ -562,13 +569,20 @@ void MainWindow::addImageDialog()
 {
     showFramesTab();
 
-    static QString filename = "";
+    static QString lastDir = "";
 
-    filename = QFileDialog::getOpenFileName(
-            this, tr("Add Image"), QFileInfo(filename).absolutePath(), "");
+    QStringList filenames;
 
-    if (!filename.isEmpty()) {
-        addImage(InputImage(_imgId++, filename));
+    filenames = QFileDialog::getOpenFileNames(
+            this, tr("Add Image"), lastDir,
+            "Images(*.png *.jpg *.jpeg *.xpm *.xbm *.bmp *.tif *.tiff);; *.*");
+
+    if (filenames.size() > 0) {
+        lastDir = QFileInfo(filenames[0]).absolutePath();
+
+        for (int i = 0; i < filenames.size(); ++i) {
+            addImage(InputImage(_imgId++, filenames[i]));
+        }
     }
 }
 
