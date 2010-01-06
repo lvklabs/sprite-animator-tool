@@ -694,43 +694,51 @@ bool MainWindow::addFrameDialog()
     QString name = QInputDialog::getText(this, tr("New frame"),
                                          tr("Frame name:"),
                                          QLineEdit::Normal, "", &ok);
-    if (ok) {
-        name = name.trimmed();
-        if (name.isEmpty())  {
-            infoDialog(tr("Cannot add a frame without name"));
-            return false;
-        }
+    if (!ok) {
+        return false;
+    }
 
-        Id imgId = selectedImgId();
+    name = name.trimmed();
+    if (name.isEmpty())  {
+        infoDialog(tr("Cannot add a frame without name"));
+        return false;
+    } else if (name.contains(",")) {
+        infoDialog(tr("Frame name cannot contain the character ','"));
+        return false;
+    }
 
-        int ox;
-        int oy;
-        int w;
-        int h;
+    Id imgId = selectedImgId();
 
-        QRect frameRect = ui->imgPreview->mouseFrameRect();
+    int ox;
+    int oy;
+    int w;
+    int h;
 
-        if (frameRect.isNull()) {
-            ox = 0;
-            oy = 0;
-            w  = _sprState.ipixmap(imgId).width();
-            h  = _sprState.ipixmap(imgId).height();
-        } else {
-            if (frameRect.width() == 0) {
-                infoDialog(tr("Cannot add a frame with null width"));
-                return false;
-            }
-            if (frameRect.height() == 0) {
-                infoDialog(tr("Cannot add a frame with null height"));
-                return false;
-            }
-            ox = frameRect.x();
-            oy = frameRect.y();
-            w  = frameRect.width();
-            h  = frameRect.height();
-        }
+    QRect frameRect = ui->imgPreview->mouseFrameRect();
+    bool validRect = true;
+
+    if (frameRect.isNull()) {
+        /* add frame using the whole image */
+        ox = 0;
+        oy = 0;
+        w  = _sprState.ipixmap(imgId).width();
+        h  = _sprState.ipixmap(imgId).height();
+    } else if (frameRect.width() == 0) {
+        infoDialog(tr("Cannot add a frame with null width"));
+        validRect = false;
+    } else if (frameRect.height() == 0) {
+        infoDialog(tr("Cannot add a frame with null height"));
+        validRect = false;
+    } else {
+        /* add frame from selection in the input image */
+        ox = frameRect.x();
+        oy = frameRect.y();
+        w  = frameRect.width();
+        h  = frameRect.height();
+    }
+
+    if (validRect) {
         addFrame(LvkFrame(_frameId++, imgId, ox, oy, w, h, name));
-
         return true;
     }
     return false;
