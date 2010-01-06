@@ -26,6 +26,9 @@
     </property>
     <item row="0" column="1">
      <widget class="QTabWidget" name="tabWidget">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -39,7 +42,7 @@
        </size>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="framesTab">
        <attribute name="title">
@@ -134,7 +137,7 @@ p, li { white-space: pre-wrap; }
           <item row="0" column="3">
            <widget class="QToolButton" name="removeImageButton">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="toolTip">
              <string>Remove selected input image</string>
@@ -204,7 +207,7 @@ p, li { white-space: pre-wrap; }
           <item row="0" column="5">
            <widget class="QToolButton" name="addFrameButton">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="toolTip">
              <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
@@ -225,7 +228,7 @@ p, li { white-space: pre-wrap; }
           <item row="0" column="6">
            <widget class="QToolButton" name="removeFrameButton">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="toolTip">
              <string>Remove selected frame</string>
@@ -559,8 +562,8 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>96</width>
-               <height>26</height>
+               <width>372</width>
+               <height>585</height>
               </rect>
              </property>
             </widget>
@@ -586,7 +589,7 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
           <item row="0" column="1">
            <widget class="QToolButton" name="removeAniButton">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="toolTip">
              <string extracomment="Remove selected animation">Remove current animation</string>
@@ -617,7 +620,7 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
           <item row="0" column="3">
            <widget class="QToolButton" name="addAframeButton">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="toolTip">
              <string extracomment="Add frame to the current animation">Add new frame to the current animation</string>
@@ -634,7 +637,7 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
           <item row="0" column="4">
            <widget class="QToolButton" name="removeAframeButton">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="toolTip">
              <string extracomment="Remove selected frame from current animation">Remove selected frame from current animation</string>
@@ -712,8 +715,8 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>96</width>
-               <height>26</height>
+               <width>372</width>
+               <height>546</height>
               </rect>
              </property>
              <widget class="QGraphicsView" name="aniPreview">

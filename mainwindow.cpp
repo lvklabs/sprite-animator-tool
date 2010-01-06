@@ -619,8 +619,6 @@ void MainWindow::addImage(const InputImage& image)
     cellChangedSignals(true);
 
     showImage(image.id);
-    ui->removeImageButton->setEnabled(true);
-    ui->addFrameButton->setEnabled(true);
 }
 
 void MainWindow::showSelImage(int row)
@@ -671,11 +669,6 @@ void MainWindow::removeImage(int row)
     cellChangedSignals(false);
     ui->imgTableWidget->removeRow(row);
     cellChangedSignals(true);
-
-    if (ui->imgTableWidget->rowCount() == 0) {
-        ui->removeImageButton->setEnabled(false);
-        ui->addFrameButton->setEnabled(false);
-    }
 
     _sprState.removeImage(imgId);
 
@@ -776,7 +769,6 @@ void MainWindow::addFrame(const LvkFrame &frame)
     ui->imgTableWidget->setCurrentItem(item_id);
 
     showFrame(frame.id);
-    ui->removeFrameButton->setEnabled(true);
 }
 
 void MainWindow::showSelFrame(int row)
@@ -833,9 +825,6 @@ void MainWindow::removeFrame(int row)
     ui->framesTableWidget->removeRow(row);
     cellChangedSignals(true);
 
-    if (ui->framesTableWidget->rowCount() == 0) {
-        ui->removeFrameButton->setEnabled(false);
-    }
     ui->framePreview->setPixmap(QPixmap());
 
     _sprState.removeFrame(frameId);
@@ -912,9 +901,6 @@ void MainWindow::addAnimation(const LvkAnimation& ani)
     ui->aniTableWidget->setItem(rows, ColAniName, item_name);
     ui->aniTableWidget->setCurrentItem(item_id);
     cellChangedSignals(true);
-
-    ui->removeAniButton->setEnabled(true);
-    ui->addAframeButton->setEnabled(true);
 
     showAframes(rows);
     clearPreviewAnimation();
@@ -1013,11 +999,6 @@ void MainWindow::removeAnimation(int row)
     ui->aniTableWidget->removeRow(row);
     cellChangedSignals(true);
 
-    if (ui->aniTableWidget->rowCount() == 0) {
-        ui->removeAniButton->setEnabled(false);
-        ui->addAframeButton->setEnabled(false);
-    }
-
     clearPreviewAnimation();
 
     _sprState.removeAnimation(aniId);
@@ -1093,7 +1074,6 @@ void MainWindow::addAframe_(const LvkAframe& aframe, Id aniId)
     cellChangedSignals(true);
 
     showAframe(aframe.id);
-    ui->removeAframeButton->setEnabled(true);
 
     previewAnimation();
 }
@@ -1142,9 +1122,6 @@ void MainWindow::removeAframe(int row)
     ui->aframesTableWidget->removeRow(row);
     cellChangedSignals(true);
 
-    if (ui->aframesTableWidget->rowCount() == 0) {
-        ui->removeAframeButton->setEnabled(false);
-    }
     ui->aframePreview->setPixmap(QPixmap());
 
     _sprState.removeAframe(frameId, selectedAniId());
