@@ -23,7 +23,7 @@ void SpriteState::clear()
     _fpixmaps.clear();
 }
 
-bool SpriteState::save(const QString& filename, SpriteStateError* err) const
+bool SpriteState::save(const QString& filename, SpriteStateError* err)
 {
     setError(err, ErrNone);
 

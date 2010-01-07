@@ -65,21 +65,6 @@ enum {
 #define selectedAniId()         getAnimationId(ui->aniTableWidget->currentRow())
 #define selectedAframeId()      getAFrameId(ui->aframesTableWidget->currentRow())
 
-void infoDialog(const QString& str)
-{
-    QMessageBox msg;
-    msg.setText(str);
-    msg.exec();
-}
-
-bool yesNoDialog(const QString& str)
-{
-    QMessageBox msg;
-    msg.setText(str);
-    msg.addButton(QObject::tr("Yes"), QMessageBox::YesRole);
-    msg.addButton(QObject::tr("No"), QMessageBox::NoRole);
-    return !msg.exec();
-}
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow), _imgId(0), _frameId(0), _aniId(0), _aframeId(0),
@@ -115,7 +100,7 @@ void MainWindow::initSignals()
     connect(ui->actionSave,            SIGNAL(triggered()),          this, SLOT(saveFile()));
     connect(ui->actionSaveAs,          SIGNAL(triggered()),          this, SLOT(saveAsFile()));
     connect(ui->actionOpen,            SIGNAL(triggered()),          this, SLOT(openFileDialog()));
-    connect(ui->actionClose,           SIGNAL(triggered()),          this, SLOT(closeFile()));
+    connect(ui->actionClose,           SIGNAL(triggered()),          this, SLOT(closeFile_checkUnsaved()));
     connect(ui->actionExport,          SIGNAL(triggered()),          this, SLOT(exportFile()));
     connect(ui->actionExportAs,        SIGNAL(triggered()),          this, SLOT(exportAsFile()));
     connect(ui->actionUndo,            SIGNAL(triggered()),          this, SLOT(undo()));
@@ -245,42 +230,75 @@ void MainWindow::initTables()
 #endif
 }
 
-void MainWindow::saveFile()
+bool MainWindow::saveFile()
 {
+    bool success = true;
+
     if (_filename.isEmpty()) {
-        saveAsFile();
+        success = saveAsFile();
     } else {
         SpriteStateError err;
         if (!_sprState.save(_filename, &err)) {
            infoDialog(tr("Cannot save") + _filename + ". " + SpriteState::errorMessage(err));
-           return;
+           success = false;
         }
     }
+
+    return success;
 }
 
-void MainWindow::saveAsFile()
+bool MainWindow::saveAsFile()
 {
     static QString lastDir = "";
-
-    QString filename;
+    bool           success = true;
+    QString        filename;
 
     filename = QFileDialog::getOpenFileName(
             this, tr("Save file"), lastDir, "*.lvks;; *.*");
 
-    if (!filename.isNull()) {
+    if (filename.isNull()) {
+        success = false;
+    } else {
         lastDir = QFileInfo(filename).absolutePath();
 
         SpriteStateError err;
         if (!_sprState.save(filename, &err)) {
            infoDialog(tr("Cannot save ") + filename + ". " + SpriteState::errorMessage(err));
-           return;
+           success = false;
         }
         setCurrentFile(filename);
     }
+    return success;
+}
+
+DialogButton MainWindow::saveChangesDialog()
+{
+    QString msg;
+
+    if (_filename.isEmpty()) {
+        msg = tr("Save changes to file before closing?");
+    } else {
+        msg = tr("Save changes to file '") + _filename + tr("' before closing?");
+    }
+
+    DialogButton button =  yesNoCancelDialog(msg);
+
+    if (button == YesButton) {
+        if (!saveFile()) {
+             button = CancelButton;
+        }
+    }
+    return button;
 }
 
 void MainWindow::openFileDialog()
 {
+    if (_sprState.hasUnsavedChanges()) {
+        if (saveChangesDialog() == CancelButton) {
+            return;
+        }
+    }
+
     static QString lastDir = "";
 
     QString filename;
@@ -292,6 +310,16 @@ void MainWindow::openFileDialog()
         lastDir = QFileInfo(filename).absolutePath();
         openFile(filename);
     }
+}
+
+bool MainWindow::openFile_checkUnsaved(const QString& filename)
+{
+    if (_sprState.hasUnsavedChanges()) {
+        if (saveChangesDialog() == CancelButton) {
+            return false;
+        }
+    }
+    return openFile(filename);
 }
 
 bool MainWindow::openFile(const QString& filename)
@@ -363,6 +391,8 @@ bool MainWindow::openFile_(const QString& filename_, SpriteStateError* err)
             _aframeId = std::max(_aframeId, aframe.id + 1);
         }
     }
+
+    _sprState.markAsSaved();
 
     /* UI - tables and previews */
 
@@ -462,7 +492,17 @@ void MainWindow::addRecentFileMenu(const QString& filename)
     ui->actionNoRecentFiles->setVisible(false);
     LvkAction* action = new LvkAction(filename);
     ui->actionOpenRecent->addAction(action);
-    connect(action, SIGNAL(triggered(QString)), this, SLOT(openFile(QString)));
+    connect(action, SIGNAL(triggered(QString)), this, SLOT(openFile_checkUnsaved(QString)));
+}
+
+void MainWindow::closeFile_checkUnsaved()
+{
+    if (_sprState.hasUnsavedChanges()) {
+        if (saveChangesDialog() == CancelButton) {
+            return;
+        }
+    }
+    closeFile();
 }
 
 void MainWindow::closeFile()
@@ -1419,12 +1459,21 @@ void MainWindow::about()
     infoDialog(QString(APP_NAME)  + " " + QString(APP_VERSION));
 }
 
- void MainWindow::exit()
- {
-     if (yesNoDialog(tr("Are you sure you want to exit?"))) {
-         QCoreApplication::exit(0);
-     }
- }
+void MainWindow::exit()
+{
+    if (_sprState.hasUnsavedChanges()) {
+        if (saveChangesDialog() == CancelButton) {
+            return;
+        }
+    }
+    QCoreApplication::exit(0);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    event->ignore();
+    exit();
+}
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {

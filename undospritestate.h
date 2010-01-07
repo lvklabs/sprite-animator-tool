@@ -19,8 +19,37 @@ public:
     bool canRedo();
 
     bool hasUnsavedChanges();
+    void markAsSaved();
+
+    /* inherited methods */
+
+    InputImage&   image(Id imgId);
+    LvkFrame&     frame(Id frameId);
+    LvkAnimation& animation(Id aniId);
+    LvkAframe&    aframe(Id aniId, Id aframeId);
+
+    void addImage(const InputImage& img);
+    void addFrame(const LvkFrame& frame);
+    void addAnimation(const LvkAnimation& ani);
+    void addAframe(const LvkAframe& aframe, Id aniId);
+
+    void removeImage(Id id);
+    void removeFrame(Id id);
+    void removeAnimation(Id id);
+    void removeAframe(Id aframeId, Id aniId);
+
+    void clear();
+    bool save(const QString& filename, SpriteStateError* err = 0);
+    bool load(const QString& filename, SpriteStateError* err = 0);
+
+    void reloadFramePixmap(const LvkFrame& frame);
+    void reloadImagePixmaps();
+    void reloadFramePixmaps(const InputImage& img = InputImage());
 
 private:
+    class StateChange;
+
+    bool _unsaved;
 
 };
 

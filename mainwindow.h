@@ -8,6 +8,7 @@
 #include <QSettings>
 #include <QTableWidget>
 #include <QLabel>
+#include <QCloseEvent>
 
 #include "types.h"
 #include "inputimage.h"
@@ -16,6 +17,8 @@
 #include "lvkaframe.h"
 #include "undospritestate.h"
 #include "lvkframegraphicsgroup.h"
+#include "dialogs.h"
+
 
 namespace Ui
 {
@@ -36,6 +39,7 @@ public slots:
     bool openFile(const QString& filename);
 
 protected:
+    virtual void closeEvent(QCloseEvent *event);
     virtual void keyPressEvent(QKeyEvent *event);
     virtual void keyReleaseEvent(QKeyEvent *event);
 
@@ -123,14 +127,19 @@ private:
     { setItem(table, row, col, QString::number(value)); }
 
 private slots:
-    void saveFile();
-    void saveAsFile();
+    bool saveFile();
+    bool saveAsFile();
     void openFileDialog();
-    bool openFile_(const QString& filename, SpriteState::SpriteStateError* err = 0);
     void closeFile();
     void exportFile();
     void exportAsFile();
     void exit();
+
+    bool openFile_(const QString& filename, SpriteState::SpriteStateError* err = 0);
+
+    DialogButton saveChangesDialog();
+    bool openFile_checkUnsaved(const QString& filename);
+    void closeFile_checkUnsaved();
 
     void undo();
     void redo();

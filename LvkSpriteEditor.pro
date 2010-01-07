@@ -14,7 +14,8 @@ SOURCES += main.cpp \
     lvkaction.cpp \
     qinputimagewidget.cpp \
     lvktablewidget.cpp \
-    undospritestate.cpp
+    undospritestate.cpp \
+    dialogs.cpp
 HEADERS += mainwindow.h \
     spritestate.h \
     lvkframe.h \
@@ -27,7 +28,8 @@ HEADERS += mainwindow.h \
     settings.h \
     qinputimagewidget.h \
     lvktablewidget.h \
-    undospritestate.h
+    undospritestate.h \
+    dialogs.h
 FORMS += mainwindow.ui
 RESOURCES += res.qrc
 
