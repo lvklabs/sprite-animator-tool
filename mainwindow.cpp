@@ -347,9 +347,7 @@ bool MainWindow::openFile_(const QString& filename_, SpriteStateError* err)
     closeFile();
     setCurrentFile(filename);
 
-    SpriteState tmp;
-
-    if (!tmp.load(filename, err)) {
+    if (!_sprState.load(filename, err)) {
         closeFile();
         return false;
     }
@@ -358,28 +356,28 @@ bool MainWindow::openFile_(const QString& filename_, SpriteStateError* err)
 
     /* load input images */
 
-    for (QHashIterator<Id, InputImage> it(tmp.images()); it.hasNext();) {
+    for (QHashIterator<Id, InputImage> it(_sprState.images()); it.hasNext();) {
         it.next();
         const InputImage& image =  it.value();
-        addImage(image);
+        addImage_ui(image);
         _imgId = std::max(_imgId, image.id + 1);
     }
 
     /* load frames */
 
-    for (QHashIterator<Id, LvkFrame> it(tmp.frames()); it.hasNext();) {
+    for (QHashIterator<Id, LvkFrame> it(_sprState.frames()); it.hasNext();) {
         it.next();
         const LvkFrame& frame =  it.value();
-        addFrame(frame);
+        addFrame_ui(frame);
         _frameId = std::max(_frameId, frame.id + 1);
     }
 
     /* load animations */
 
-    for (QHashIterator<Id, LvkAnimation> it(tmp.animations()); it.hasNext();) {
+    for (QHashIterator<Id, LvkAnimation> it(_sprState.animations()); it.hasNext();) {
         it.next();
         const LvkAnimation& ani =  it.value();
-        addAnimation(ani);
+        addAnimation_ui(ani);
         _aniId = std::max(_aniId, ani.id + 1);
 
         /* load aframes */
@@ -387,12 +385,10 @@ bool MainWindow::openFile_(const QString& filename_, SpriteStateError* err)
         for (QHashIterator<Id, LvkAframe> it2(it.value().aframes); it2.hasNext();) {
             it2.next();
             const LvkAframe& aframe =  it2.value();
-            addAframe(aframe, ani.id);
+            addAframe_ui(aframe, ani.id);
             _aframeId = std::max(_aframeId, aframe.id + 1);
         }
     }
-
-    _sprState.markAsSaved();
 
     /* UI - tables and previews */
 
@@ -629,9 +625,18 @@ void MainWindow::addImageDialog()
 void MainWindow::addImage(const InputImage& image)
 {
     /* State */
+    if (!image.filename.isEmpty()) {
+        _sprState.addImage(image);
+    }
 
+    /* UI */
+    addImage_ui(image);
+}
+
+void MainWindow::addImage_ui(const InputImage& image)
+{
     QString filename(image.filename);
-    
+
     if (filename.isEmpty()) {
         infoDialog(tr("Empty Filename"));
         return;
@@ -641,10 +646,6 @@ void MainWindow::addImage(const InputImage& image)
     } else if (QImage(filename).isNull()) {
         infoDialog(filename + tr(" has an invalid image format"));
     }
-
-    _sprState.addImage(image);
-
-    /* UI */
 
     int rows = ui->imgTableWidget->rowCount();
 
@@ -791,7 +792,11 @@ void MainWindow::addFrame(const LvkFrame &frame)
     _sprState.addFrame(frame);
 
     /* UI */
+    addFrame_ui(frame);
+}
 
+void MainWindow::addFrame_ui(const LvkFrame &frame)
+{
     QTableWidgetItem* item_id   = new QTableWidgetItem(QString::number(frame.id));
     QTableWidgetItem* item_ox   = new QTableWidgetItem(QString::number(frame.ox));
     QTableWidgetItem* item_oy   = new QTableWidgetItem(QString::number(frame.oy));
@@ -932,11 +937,14 @@ void MainWindow::hideShowFramePreview()
 void MainWindow::addAnimation(const LvkAnimation& ani)
 {
     /* state */
-
     _sprState.addAnimation(ani);
 
     /* UI */
+    addAnimation_ui(ani);
+}
 
+void MainWindow::addAnimation_ui(const LvkAnimation& ani)
+{
     int rows = ui->aniTableWidget->rowCount();
 
     QTableWidgetItem* item_id   = new QTableWidgetItem(QString::number(ani.id));
@@ -973,7 +981,7 @@ void MainWindow::showAframes(int row)
     LvkAnimation ani = _sprState.animations().value(animationId);
     for (QHashIterator<Id, LvkAframe> it(ani.aframes); it.hasNext();){
         LvkAframe aFrame = it.next().value();
-        addAframe_(aFrame,animationId);
+        addAframe_ui(aFrame,animationId);
     }
 
     if (ui->aframesTableWidget->rowCount() > 0) {
@@ -1095,10 +1103,10 @@ void MainWindow::addAframe(const LvkAframe& aframe, Id aniId)
     _sprState.addAframe(aframe, aniId);
     
     /* UI */
-    addAframe_(aframe, aniId);
+    addAframe_ui(aframe, aniId);
 }
 
-void MainWindow::addAframe_(const LvkAframe& aframe, Id aniId)
+void MainWindow::addAframe_ui(const LvkAframe& aframe, Id aniId)
 {
     QTableWidgetItem* item_id    = new QTableWidgetItem(QString::number(aframe.id));
     QTableWidgetItem* item_fid   = new QTableWidgetItem(QString::number(aframe.frameId));

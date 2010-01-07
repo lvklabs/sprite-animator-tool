@@ -100,15 +100,26 @@ private:
     /// Add new input image
     void addImage(const InputImage& image);
 
+    /// Add new input image but just updates ui (i.e sprite state is unchanged)
+    void addImage_ui(const InputImage& image);
+
     /// Add new frame
     void addFrame(const LvkFrame& frame);
+
+    /// Add new frame but just updates ui (i.e sprite state is unchanged)
+    void addFrame_ui(const LvkFrame& frame);
 
     /// Add new animation
     void addAnimation(const LvkAnimation& ani);
 
+    /// Add new animation but just updates ui (i.e sprite state is unchanged)
+    void addAnimation_ui(const LvkAnimation& ani);
+
     /// Add new animation frame to the animation @param aniId
     void addAframe(const LvkAframe& aframe, Id aniId);
-    void addAframe_(const LvkAframe& aframe, Id aniId);
+
+    /// Add new aframe but just updates ui (i.e sprite state is unchanged)
+    void addAframe_ui(const LvkAframe& aframe, Id aniId);
 
     /// shorthand to handle tables
     inline QString getItem(const QTableWidget* table, int row, int col)
