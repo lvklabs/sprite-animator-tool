@@ -32,7 +32,7 @@ struct LvkFrame
     bool fromString(const QString& str);
 
     /// returns a QRect with the values ox, oy, w and h
-    QRect rect();
+    QRect rect() const;
 };
 
 #endif // LVKFRAME_H

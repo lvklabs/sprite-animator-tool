@@ -834,7 +834,7 @@ void MainWindow::showFrame(Id frameId)
     if (frameId == NullId) {
         showSelImageWithFrameRect(-1, QRect());
     } else {
-        LvkFrame frame = _sprState.frame(frameId);
+        const LvkFrame frame = _sprState.const_frame(frameId);
         for (int r = 0; r < ui->imgTableWidget->rowCount(); r++) {
             if (frame.imgId == getImageId(r)) {
                 ui->imgTableWidget->selectRow(r);

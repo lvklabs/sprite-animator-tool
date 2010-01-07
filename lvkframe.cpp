@@ -47,7 +47,7 @@ bool LvkFrame::fromString(const QString& str)
     }
 }
 
-QRect LvkFrame::rect()
+QRect LvkFrame::rect() const
 {
     return QRect(ox, oy, w, h);
 }
