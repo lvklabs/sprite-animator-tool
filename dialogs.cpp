@@ -26,9 +26,9 @@ bool yesNoDialog(const QString& str)
         return true;
     }
     if (msg.clickedButton() == no) {
-        return NoButton;
+        return false;
     }
-    return NoButton;
+    return false;
 }
 
 DialogButton yesNoCancelDialog(const QString& str)
