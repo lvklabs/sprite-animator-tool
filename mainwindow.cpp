@@ -352,45 +352,43 @@ bool MainWindow::openFile_(const QString& filename_, SpriteStateError* err)
         return false;
     }
 
-    cellChangedSignals(false);
-
-    /* load input images */
+     /* input images */
 
     for (QHashIterator<Id, InputImage> it(_sprState.images()); it.hasNext();) {
         it.next();
         const InputImage& image =  it.value();
-        addImage_ui(image);
-        _imgId = std::max(_imgId, image.id + 1);
+        _imgId = std::max(_imgId, image.id + 1); // dirty!
     }
 
-    /* load frames */
+    /* frames */
 
+    ui->framesTableWidget->clearContents();
     for (QHashIterator<Id, LvkFrame> it(_sprState.frames()); it.hasNext();) {
         it.next();
         const LvkFrame& frame =  it.value();
-        addFrame_ui(frame);
-        _frameId = std::max(_frameId, frame.id + 1);
+        _frameId = std::max(_frameId, frame.id + 1);  // dirty!
     }
 
-    /* load animations */
+    /* animations */
 
+    ui->aniTableWidget->clearContents();
     for (QHashIterator<Id, LvkAnimation> it(_sprState.animations()); it.hasNext();) {
         it.next();
         const LvkAnimation& ani =  it.value();
-        addAnimation_ui(ani);
-        _aniId = std::max(_aniId, ani.id + 1);
+        _aniId = std::max(_aniId, ani.id + 1);  // dirty!
 
-        /* load aframes */
+        /* aframes */
 
         for (QHashIterator<Id, LvkAframe> it2(it.value().aframes); it2.hasNext();) {
             it2.next();
             const LvkAframe& aframe =  it2.value();
-            addAframe_ui(aframe, ani.id);
-            _aframeId = std::max(_aframeId, aframe.id + 1);
+            _aframeId = std::max(_aframeId, aframe.id + 1);  // dirty!
         }
     }
 
     /* UI - tables and previews */
+
+    refresh_ui();
 
     if (ui->imgTableWidget->rowCount() > 0) {
         ui->imgTableWidget->selectRow(0);
@@ -417,9 +415,85 @@ bool MainWindow::openFile_(const QString& filename_, SpriteStateError* err)
         ui->aframePreview->setPixmap(QPixmap());
     }
 
-    cellChangedSignals(true);
-
     return true;
+}
+
+void MainWindow::refresh_ui()
+{
+    refresh_imgTable();
+    refresh_frameTable();
+    refresh_aniTable();
+    refresh_aframeTable();
+    previewAnimation();
+}
+
+void MainWindow::refresh_imgTable()
+{
+    cellChangedSignals(false);
+
+    ui->imgTableWidget->clearContents();
+    ui->imgTableWidget->setRowCount(0);
+
+    for (QHashIterator<Id, InputImage> it(_sprState.images()); it.hasNext();) {
+        it.next();
+        const InputImage& image =  it.value();
+        addImage_ui(image);
+    }
+
+    cellChangedSignals(true);
+}
+
+void MainWindow::refresh_frameTable()
+{
+    cellChangedSignals(false);
+
+    ui->framesTableWidget->clearContents();
+    ui->framesTableWidget->setRowCount(0);
+
+    for (QHashIterator<Id, LvkFrame> it(_sprState.frames()); it.hasNext();) {
+        it.next();
+        const LvkFrame& frame =  it.value();
+        addFrame_ui(frame);
+    }
+
+    cellChangedSignals(true);
+}
+
+void MainWindow::refresh_aniTable()
+{
+    cellChangedSignals(false);
+
+    ui->aniTableWidget->clearContents();
+    ui->aniTableWidget->setRowCount(0);
+
+    for (QHashIterator<Id, LvkAnimation> it(_sprState.animations()); it.hasNext();) {
+        it.next();
+        const LvkAnimation& ani =  it.value();
+        addAnimation_ui(ani);
+    }
+
+    cellChangedSignals(true);
+}
+
+void MainWindow::refresh_aframeTable()
+{
+    cellChangedSignals(false);
+
+    ui->aframesTableWidget->clearContents();
+    ui->aframesTableWidget->setRowCount(0);
+
+    int row = ui->aniTableWidget->currentRow();
+    if (row != -1) {
+        Id aniId = getAnimationId(row);
+        
+        for (QHashIterator<Id, LvkAframe> it2(_sprState.aframes(aniId)); it2.hasNext();) {
+            it2.next();
+            const LvkAframe& aframe =  it2.value();
+            addAframe_ui(aframe, aniId);
+        }
+    }
+    
+    cellChangedSignals(true);
 }
 
 void MainWindow::storeRecentFile(const QString& filename)
@@ -1451,14 +1525,16 @@ void MainWindow::showMouseRect(const QRect& rect)
 void MainWindow::undo()
 {
     if (_sprState.canUndo()) {
-        infoDialog(tr("Could not undo"));
+        _sprState.undo();
+        refresh_ui();
     }
 }
 
 void MainWindow::redo()
 {
     if (_sprState.canRedo()) {
-        infoDialog(tr("Could not redo"));
+        _sprState.redo();
+        refresh_ui();
     }
 }
 

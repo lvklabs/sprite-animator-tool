@@ -2,8 +2,10 @@
 #define UNDOSPRITESTATE_H
 
 #include "spritestate.h"
+#include "statecircularbuffer.h"
 
 class QObject;
+
 
 /// this class extends SpriteState to provide undo, redo features.
 /// it also provides the method hasUnsavedChanges()
@@ -42,15 +44,13 @@ public:
     bool save(const QString& filename, SpriteStateError* err = 0);
     bool load(const QString& filename, SpriteStateError* err = 0);
 
-    void reloadFramePixmap(const LvkFrame& frame);
-    void reloadImagePixmaps();
-    void reloadFramePixmaps(const InputImage& img = InputImage());
-
 private:
-    class StateChange;
+    StateCircularBuffer _stBuffer;
 
     bool _unsaved;
 
 };
+
+typedef StateCircularBuffer::StateChange StateChange;
 
 #endif // UNDOSPRITESTATE_H

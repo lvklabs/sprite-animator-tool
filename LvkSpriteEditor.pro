@@ -1,6 +1,14 @@
 # -------------------------------------------------
 # Project created by QtCreator 2009-08-31T19:58:15
 # -------------------------------------------------
+debug { 
+    DEFINES += DEBUG \ 
+# DEBUG_SHOW_ID_COLS
+}
+release {
+    DEFINES += QT_NO_DEBUG_OUTPUT
+}
+
 TARGET = LvkSpriteEditor
 TEMPLATE = app
 SOURCES += main.cpp \
@@ -15,7 +23,8 @@ SOURCES += main.cpp \
     qinputimagewidget.cpp \
     lvktablewidget.cpp \
     undospritestate.cpp \
-    dialogs.cpp
+    dialogs.cpp \
+    statecircularbuffer.cpp
 HEADERS += mainwindow.h \
     spritestate.h \
     lvkframe.h \
@@ -29,15 +38,7 @@ HEADERS += mainwindow.h \
     qinputimagewidget.h \
     lvktablewidget.h \
     undospritestate.h \
-    dialogs.h
+    dialogs.h \
+    statecircularbuffer.h
 FORMS += mainwindow.ui
 RESOURCES += res.qrc
-
-debug { 
-    DEFINES += DEBUG \ 
-# DEBUG_SHOW_ID_COLS
-}
-
-release {
-    DEFINES += QT_NO_DEBUG_OUTPUT
-}

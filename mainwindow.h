@@ -57,7 +57,7 @@ private:
     QSettings settings;
 
     /// sets current file and updates the main window title.
-	/// The filename will be stored in the recent files section in the config file
+    /// The filename will be stored in the recent files section in the config file
     void setCurrentFile(const QString& filename);
 
     /// sets current export file
@@ -137,6 +137,24 @@ private:
     inline void setItem(const QTableWidget* table, int row, int col, int value)
     { setItem(table, row, col, QString::number(value)); }
 
+    /// refresh whole user interface
+    void refresh_ui();
+
+    /// refresh images table ui
+    void refresh_imgTable();
+
+    /// refresh frames table ui
+    void refresh_frameTable();
+
+    /// refresh animations table ui
+    void refresh_aniTable();
+
+    /// refresh aframes table ui
+    void refresh_aframeTable();
+
+    /// opens an sprite file, returns the error in @param err if not a null pointer
+    bool openFile_(const QString& filename, SpriteState::SpriteStateError* err = 0);
+
 private slots:
     bool saveFile();
     bool saveAsFile();
@@ -145,8 +163,6 @@ private slots:
     void exportFile();
     void exportAsFile();
     void exit();
-
-    bool openFile_(const QString& filename, SpriteState::SpriteStateError* err = 0);
 
     DialogButton saveChangesDialog();
     bool openFile_checkUnsaved(const QString& filename);
