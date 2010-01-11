@@ -1,6 +1,8 @@
 #ifndef STATECIRCULARBUFFER_H
 #define STATECIRCULARBUFFER_H
 
+#include <QString>
+
 #include "inputimage.h"
 #include "lvkframe.h"
 #include "lvkanimation.h"
@@ -40,6 +42,18 @@ public:
         LvkFrame     frame;
         LvkAnimation ani;
         LvkAframe    aframe;
+
+        bool operator==(const Data& d)
+        {
+            return old_img    == d.old_img    &&
+                   old_frame  == d.old_frame  &&
+                   old_ani    == d.old_ani    &&
+                   old_aframe == d.old_aframe &&
+                   img        == d.img        &&
+                   frame      == d.frame      &&
+                   ani        == d.ani        &&
+                   aframe     == d.aframe;
+        }
     };
 
     struct StateChange {
@@ -47,6 +61,9 @@ public:
 
         StateChangeType type;
         Data            data;
+
+        bool operator==(const StateChange& st)
+        { return type == st.type && data == st.data; }
     };
 
     static const int BUFF_SIZE = MAX_UNDO_TIMES;
@@ -54,13 +71,15 @@ public:
     StateCircularBuffer();
     ~StateCircularBuffer();
 
-    void addState(StateChange st);
+    void addState(const StateChange& st);
     StateChange currentState();
     bool hasNextState();
     bool hasPrevState();
     void nextState();
     void prevState();
     void clear();
+
+    QString toString();
 
 private:
 
@@ -70,25 +89,23 @@ private:
 
     inline int inc(int& i)
     {
-        i++;
+        i = (i + 1) % BUFF_SIZE;
         if (i < 0) {
-            return i % BUFF_SIZE + BUFF_SIZE; /* i % BUFFER_SIZE is negative */
-        } else {
-            return i % BUFF_SIZE;
+            i += BUFF_SIZE;
         }
+        return i;
     }
 
     inline int dec(int& i)
     {
-        i--;
+        i = (i - 1) % BUFF_SIZE;
         if (i < 0) {
-            return i % BUFF_SIZE + BUFF_SIZE; /* i % BUFFER_SIZE is negative */
-        } else {
-            return i % BUFF_SIZE;
+            i += BUFF_SIZE;
         }
+        return i;
     }
 };
 
-
+typedef StateCircularBuffer::StateChange StateChange;
 
 #endif // STATECIRCULARBUFFER_H

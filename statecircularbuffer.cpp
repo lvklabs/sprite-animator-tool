@@ -1,3 +1,7 @@
+#ifdef DEBUG_UNDO
+#  include <QDebug>
+#endif
+
 #include "statecircularbuffer.h"
 
 
@@ -29,8 +33,12 @@ void StateCircularBuffer::clear()
     addState(StateChange());
 }
 
-void StateCircularBuffer::addState(StateChange st)
+void StateCircularBuffer::addState(const StateChange& st)
 {
+    if (_i >= 0  && _buf[_i] == st) {
+        return;
+    }
+
     inc(_i);
 
     _buf[_i] = st;
@@ -45,6 +53,11 @@ void StateCircularBuffer::addState(StateChange st)
             _buf[tmp].type = st_null;
         //}
     }
+
+#ifdef DEBUG_UNDO
+        qDebug() << " addState type" << st.type;
+        qDebug() << toString();
+#endif
 }
 
 StateCircularBuffer::StateChange StateCircularBuffer::currentState()
@@ -79,6 +92,11 @@ void StateCircularBuffer::nextState()
     if (hasNextState()) {
         inc(_i);
     }
+
+#ifdef DEBUG_UNDO
+        qDebug() << " nextState";
+        qDebug() << toString();
+#endif
 }
 
 void StateCircularBuffer::prevState()
@@ -86,4 +104,48 @@ void StateCircularBuffer::prevState()
     if (hasPrevState()) {
         dec(_i);
     }
+
+#ifdef DEBUG_UNDO
+        qDebug() << " prevState";
+        qDebug() << toString();
+#endif
+}
+
+QString StateCircularBuffer::toString()
+{
+    QString str;
+
+//    str.append("\n  ");
+    str.append(" ");
+    for (int i = 0; i < BUFF_SIZE; ++i) {
+        str.append(" ");
+        str.append(QString::number(i, 16));
+        str.append("  ");
+    }
+
+    str.append("\n | ");
+    for (int i = 0; i < BUFF_SIZE; ++i) {
+        if (_buf[i].type != st_null) {
+            str.append(QString::number(_buf[i].type, 16));
+        } else {
+            str.append(" ");
+        }
+        str.append(" | ");
+    }
+
+    str.append("\n  ");
+    for (int i = 0; i < BUFF_SIZE; ++i) {
+        str.append(" ");
+        if (i == _i) {
+            str.append("i");
+        } else {
+            str.append(" ");
+        }
+        if (i == _first) {
+            str.append("f ");
+        } else {
+            str.append("  ");
+        }
+    }
+    return str;
 }
