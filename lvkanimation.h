@@ -24,6 +24,10 @@ struct LvkAnimation
 
     /// initializes the current instance from the string @param str
     bool fromString(const QString& str);
+
+    /// operator ==
+    bool operator==(const LvkAnimation& a) const
+    { return id == a.id && name == a.name && aframes == a.aframes; }
 };
 
 #endif // LVKANIMATION_H

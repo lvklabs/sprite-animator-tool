@@ -33,6 +33,18 @@ struct LvkFrame
 
     /// returns a QRect with the values ox, oy, w and h
     QRect rect() const;
+
+    /// operator ==
+    bool operator==(const LvkFrame& f) const
+    {
+        return id    == f.id    &&
+               imgId == f.imgId &&
+               ox    == f.ox    &&
+               oy    == f.oy    &&
+               w     == f.w     &&
+               h     == f.h     &&
+               name  == f.name;
+    }
 };
 
 #endif // LVKFRAME_H

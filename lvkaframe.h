@@ -26,6 +26,16 @@ struct LvkAframe
 
     /// initializes the current instance from the string @param str
     bool fromString(const QString& str);
+
+    /// operator ==
+    bool operator==(const LvkAframe& f) const
+    {
+        return id      == f.id      &&
+               frameId == f.frameId &&
+               ox      == f.ox      &&
+               oy      == f.oy      &&
+               delay   == f.delay;
+    }
 };
 
 #endif // LVKAFRAME_H
