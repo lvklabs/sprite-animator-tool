@@ -49,9 +49,9 @@ void StateCircularBuffer::addState(const StateChange& st)
 
     if (hasNextState()) {
         int tmp = _i;
-        //while (inc(tmp) != _first && _buf[tmp].type != st_null) {
+        while (inc(tmp) != _first && _buf[tmp].type != st_null) {
             _buf[tmp].type = st_null;
-        //}
+        }
     }
 
 #ifdef DEBUG_UNDO
