@@ -15,7 +15,7 @@
 #include "lvkframe.h"
 #include "lvkanimation.h"
 #include "lvkaframe.h"
-#include "undospritestate.h"
+#include "spritestate2.h"
 #include "lvkframegraphicsgroup.h"
 #include "dialogs.h"
 
@@ -64,7 +64,7 @@ private:
     void setCurrentExportFile(const QString& exportFileName);
 
     /// current sprite state
-    UndoSpriteState _sprState;
+    SpriteState2 _sprState;
 
     /// Counter. Next image id
     Id _imgId;

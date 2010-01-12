@@ -15,7 +15,7 @@ SOURCES += main.cpp \
     lvkaction.cpp \
     qinputimagewidget.cpp \
     lvktablewidget.cpp \
-    undospritestate.cpp \
+    spritestate2.cpp \
     dialogs.cpp \
     statecircularbuffer.cpp
 HEADERS += mainwindow.h \
@@ -30,7 +30,7 @@ HEADERS += mainwindow.h \
     settings.h \
     qinputimagewidget.h \
     lvktablewidget.h \
-    undospritestate.h \
+    spritestate2.h \
     dialogs.h \
     statecircularbuffer.h
 FORMS += mainwindow.ui
