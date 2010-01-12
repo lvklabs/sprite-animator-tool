@@ -349,6 +349,14 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
     return true;
 }
 
+void SpriteState::reloadFramePixmap(const LvkFrame& frame)
+{
+    QPixmap tmp(ipixmap(frame.imgId));
+    QPixmap fpixmap(tmp.copy(frame.ox, frame.oy, frame.w, frame.h));
+    _fpixmaps.insert(frame.id, fpixmap);
+}
+
+
 void SpriteState::reloadImagePixmaps()
 {
     for (QMutableHashIterator<Id, InputImage> it(_images); it.hasNext();) {

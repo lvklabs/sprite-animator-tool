@@ -52,24 +52,6 @@ public:
     const QPixmap& fpixmap(Id frameId) /* const */
     { return (frameId != NullId) ? _fpixmaps[frameId] : nullPixmap; }
 
-    // basic mutable getters ****************************************************
-
-    /// get input image by Id
-    InputImage& image(Id imgId) /* const */
-    { return _images[imgId]; }
-
-    /// get frame by Id
-    LvkFrame& frame(Id frameId) /* const */
-    { return _frames[frameId]; }
-
-    /// get animation by Id
-    LvkAnimation& animation(Id aniId) /* const */
-    { return _animations[aniId]; }
-
-    /// get aframe by Id
-    LvkAframe& aframe(Id aniId, Id aframeId) /* const */
-    { return _animations[aniId].aframes[aframeId]; }
-
     // basic const getters ******************************************************
 
     /// get const input image by Id
@@ -87,6 +69,30 @@ public:
     /// get const aframe by Id
     const LvkAframe& const_aframe(Id aniId, Id aframeId) /* const */
     { return _animations[aniId].aframes[aframeId]; }
+
+    // update *******************************************************************
+
+    /// update image
+    void updateImage(const InputImage& img)
+    {
+        _images[img.id] = img;
+        reloadFramePixmaps(img);
+    }
+
+    /// update frame
+    void updateFrame(const LvkFrame& frame)
+    {
+        _frames[frame.id] = frame;
+        reloadFramePixmap(frame);
+    }
+
+    /// update animation
+    void updateAnimation(const LvkAnimation& ani)
+    { _animations[ani.id] = ani; }
+
+    /// update aframe
+    void updateAframe(const LvkAframe& aframe, Id aniId)
+    { _animations[aniId].aframes[aframe.id] = aframe; }
 
     // add *********************************************************************
 
@@ -130,25 +136,6 @@ public:
     /// remove aframe @param id in animation @param aniId
     void removeAframe(Id aframeId, Id aniId)
     { _animations[aniId].aframes.remove(aframeId); }
-
-
-    // misc ********************************************************************
-
-    // TODO (?) move this method inside LvkFrame 
-    /// force reload frame pixmap
-    void reloadFramePixmap(const LvkFrame& frame)
-    {
-        QPixmap tmp(ipixmap(frame.imgId));
-        QPixmap fpixmap(tmp.copy(frame.ox, frame.oy, frame.w, frame.h));
-        _fpixmaps.insert(frame.id, fpixmap);
-    }
-
-    /// force reload image pixmaps
-    void reloadImagePixmaps();
-
-    /// force reload frame pixmaps. If @param img is not null, then
-    /// only reloads those frames using the image @param img
-    void reloadFramePixmaps(const InputImage& img = InputImage());
 
     // Load, save, export ******************************************************-
 
@@ -196,9 +183,22 @@ protected:
     /// animations hash
     QHash<Id, LvkAnimation> _animations;
 
-    // TODO move frame pixmap into the LvkFrame classs (?)
+    // TODO (?) move frame pixmap into the LvkFrame classs
     /// Frame pixmaps
     QHash<Id, QPixmap>      _fpixmaps;
+
+
+    // TODO (?) move this method inside LvkFrame
+    /// force reload frame pixmap
+    void reloadFramePixmap(const LvkFrame& frame);
+
+    /// force reload image pixmaps
+    void reloadImagePixmaps();
+
+    /// force reload frame pixmaps. If @param img is not null, then
+    /// only reloads those frames using the image @param img
+    void reloadFramePixmaps(const InputImage& img = InputImage());
+
 };
 
 typedef SpriteState::SpriteStateError SpriteStateError;

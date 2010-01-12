@@ -12,25 +12,27 @@ UndoSpriteState::UndoSpriteState(QObject* parent)
 bool UndoSpriteState::undo()
 {
     if (canUndo()) {
+
+#ifdef DEBUG_UNDO
+        qDebug() << "--- Undo ---";
+#endif
         StateChange st = _stBuffer.currentState();
         _stBuffer.prevState();
 
-        qDebug() << "Undo" << st.type;
-
         switch (st.type) {
 
-        /* basic mutable getters */
-        case StateCircularBuffer::st_mutableGetImage:
-            SpriteState::addImage(st.data.old_img);
+        /* undo update */
+        case StateCircularBuffer::st_updateImage:
+            SpriteState::updateImage(st.data.old_img);
             break;
-        case StateCircularBuffer::st_mutableGetFrame:
-            SpriteState::addFrame(st.data.old_frame);
+        case StateCircularBuffer::st_updateFrame:
+            SpriteState::updateFrame(st.data.old_frame);
             break;
-        case StateCircularBuffer::st_mutableGetAnimation:
-            SpriteState::addAnimation(st.data.old_ani);
+        case StateCircularBuffer::st_updateAnimation:
+            SpriteState::updateAnimation(st.data.old_ani);
             break;
-        case StateCircularBuffer::st_mutableGetAframe:
-            SpriteState::addAframe(st.data.old_aframe, st.data.ani.id);
+        case StateCircularBuffer::st_updateAframe:
+            SpriteState::updateAframe(st.data.old_aframe, st.data.ani.id);
 
         /* undo add */
         case StateCircularBuffer::st_addImage:
@@ -75,25 +77,27 @@ bool UndoSpriteState::undo()
 bool UndoSpriteState::redo()
 {
     if (canRedo()) {
+
+#ifdef DEBUG_UNDO
+        qDebug() << "--- Redo --- ";
+#endif
         _stBuffer.nextState();
         StateChange st = _stBuffer.currentState();
 
-        qDebug() << "redo" << st.type;
-
         switch (st.type) {
 
-        /* basic mutable getters */
-        case StateCircularBuffer::st_mutableGetImage:
-            SpriteState::addImage(st.data.img);
+        /* redo update */
+        case StateCircularBuffer::st_updateImage:
+            SpriteState::updateImage(st.data.img);
             break;
-        case StateCircularBuffer::st_mutableGetFrame:
-            SpriteState::addFrame(st.data.frame);
+        case StateCircularBuffer::st_updateFrame:
+            SpriteState::updateFrame(st.data.frame);
             break;
-        case StateCircularBuffer::st_mutableGetAnimation:
-            SpriteState::addAnimation(st.data.ani);
+        case StateCircularBuffer::st_updateAnimation:
+            SpriteState::updateAnimation(st.data.ani);
             break;
-        case StateCircularBuffer::st_mutableGetAframe:
-            SpriteState::addAframe(st.data.aframe, st.data.ani.id);
+        case StateCircularBuffer::st_updateAframe:
+            SpriteState::updateAframe(st.data.aframe, st.data.ani.id);
 
         /* redo add */
         case StateCircularBuffer::st_addImage:
@@ -150,11 +154,6 @@ bool UndoSpriteState::hasUnsavedChanges()
     return _unsaved;
 }
 
-void UndoSpriteState::markAsSaved()
-{
-    _unsaved = false;
-}
-
  /* inherited methods */
 
 // Load, save, export ******************************************************
@@ -172,64 +171,85 @@ bool UndoSpriteState::load(const QString& filename, SpriteStateError* err)
     bool success = SpriteState::load(filename, err);
     _unsaved = !success;
 
+    if (success) {
+        _stBuffer.clear();
+    }
+
     return success;
 }
 
 void UndoSpriteState::clear()
 {
     _unsaved = false;
+    _stBuffer.clear();
     SpriteState::clear();
 }
 
-// basic mutable getters ****************************************************
+// update *******************************************************************
 
-InputImage& UndoSpriteState::image(Id imgId)
+void UndoSpriteState::updateImage(const InputImage& img)
 {
+    if (img == _images[img.id]) {
+        return;
+    }
+
     StateChange st;
-    st.type = StateCircularBuffer::st_mutableGetImage;
-    st.data.old_img = _images[imgId];
-    st.data.img = SpriteState::image(imgId);
+    st.type = StateCircularBuffer::st_updateImage;
+    st.data.old_img = _images[img.id];
+    st.data.img = img;
     _stBuffer.addState(st);
     _unsaved = true;
 
-    return SpriteState::image(imgId);
+    SpriteState::updateImage(img);
 }
 
-LvkFrame& UndoSpriteState::frame(Id frameId)
+void UndoSpriteState::updateFrame(const LvkFrame& frame)
 {
+    if (frame == _frames[frame.id]) {
+        return;
+    }
+
     StateChange st;
-    st.type = StateCircularBuffer::st_mutableGetFrame;
-    st.data.old_frame = _frames[frameId];
-    st.data.frame = SpriteState::frame(frameId);
+    st.type = StateCircularBuffer::st_updateFrame;
+    st.data.old_frame = _frames[frame.id];
+    st.data.frame = frame;
     _stBuffer.addState(st);
     _unsaved = true;
 
-    return SpriteState::frame(frameId);
+    SpriteState::updateFrame(frame);
 }
 
-LvkAnimation& UndoSpriteState::animation(Id aniId)
+void UndoSpriteState::updateAnimation(const LvkAnimation& ani)
 {
+    if (ani == _animations[ani.id]) {
+        return;
+    }
+
     StateChange st;
-    st.type = StateCircularBuffer::st_mutableGetAnimation;
-    st.data.old_ani = _animations[aniId];
-    st.data.ani = SpriteState::animation(aniId);
+    st.type = StateCircularBuffer::st_updateAnimation;
+    st.data.old_ani = _animations[ani.id];
+    st.data.ani = ani;
     _stBuffer.addState(st);
     _unsaved = true;
 
-    return SpriteState::animation(aniId);
+    SpriteState::updateAnimation(ani);
 }
 
-LvkAframe& UndoSpriteState::aframe(Id aniId, Id aframeId)
+void UndoSpriteState::updateAframe(const LvkAframe& aframe, Id aniId)
 {
+    if (aframe == _animations[aniId].aframes[aframe.id]) {
+        return;
+    }
+
     StateChange st;
-    st.type = StateCircularBuffer::st_mutableGetAframe;
-    st.data.ani = _animations[aniId];
-    st.data.old_aframe = _animations[aniId].aframes[aframeId];
-    st.data.aframe = SpriteState::aframe(aniId, aframeId);
+    st.type = StateCircularBuffer::st_updateAframe;
+    st.data.ani.id = aniId;
+    st.data.old_aframe = _animations[aniId].aframes[aframe.id];
+    st.data.aframe = aframe;
     _stBuffer.addState(st);
     _unsaved = true;
 
-    return SpriteState::aframe(aniId, aframeId);
+    SpriteState::updateAframe(aframe, aniId);
 }
 
 // add *********************************************************************

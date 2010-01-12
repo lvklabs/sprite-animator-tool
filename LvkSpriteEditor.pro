@@ -1,13 +1,6 @@
 # -------------------------------------------------
 # Project created by QtCreator 2009-08-31T19:58:15
 # -------------------------------------------------
-debug { 
-    DEFINES += DEBUG \ 
-# DEBUG_SHOW_ID_COLS
-}
-release {
-    DEFINES += QT_NO_DEBUG_OUTPUT
-}
 
 TARGET = LvkSpriteEditor
 TEMPLATE = app
@@ -42,3 +35,8 @@ HEADERS += mainwindow.h \
     statecircularbuffer.h
 FORMS += mainwindow.ui
 RESOURCES += res.qrc
+
+#DEFINES += DEBUG
+#DEFINES += DEBUG_SHOW_ID_COLS
+#DEFINES += DEBUG_UNDO
+DEFINES += QT_NO_DEBUG_OUTPUT

@@ -15,10 +15,10 @@ public:
 
     enum StateChangeType {
         st_null,
-        st_mutableGetImage,
-        st_mutableGetFrame,
-        st_mutableGetAnimation,
-        st_mutableGetAframe,
+        st_updateImage,
+        st_updateFrame,
+        st_updateAnimation,
+        st_updateAframe,
         st_addImage,
         st_addFrame,
         st_addAnimation,

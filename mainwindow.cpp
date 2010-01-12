@@ -424,12 +424,17 @@ void MainWindow::refresh_ui()
     refresh_frameTable();
     refresh_aniTable();
     refresh_aframeTable();
-    previewAnimation();
+    if (currentAnimation && currentAnimation->isAnimated()) {
+        previewAnimation();
+    }
 }
 
 void MainWindow::refresh_imgTable()
 {
     cellChangedSignals(false);
+
+    int row = ui->imgTableWidget->currentRow();
+    int col = ui->imgTableWidget->currentColumn();
 
     ui->imgTableWidget->clearContents();
     ui->imgTableWidget->setRowCount(0);
@@ -440,12 +445,17 @@ void MainWindow::refresh_imgTable()
         addImage_ui(image);
     }
 
+    ui->imgTableWidget->setCurrentCell(row, col);
+
     cellChangedSignals(true);
 }
 
 void MainWindow::refresh_frameTable()
 {
     cellChangedSignals(false);
+
+    int row = ui->framesTableWidget->currentRow();
+    int col = ui->framesTableWidget->currentColumn();
 
     ui->framesTableWidget->clearContents();
     ui->framesTableWidget->setRowCount(0);
@@ -456,12 +466,17 @@ void MainWindow::refresh_frameTable()
         addFrame_ui(frame);
     }
 
+    ui->framesTableWidget->setCurrentCell(row, col);
+
     cellChangedSignals(true);
 }
 
 void MainWindow::refresh_aniTable()
 {
     cellChangedSignals(false);
+
+    int row = ui->aniTableWidget->currentRow();
+    int col = ui->aniTableWidget->currentColumn();
 
     ui->aniTableWidget->clearContents();
     ui->aniTableWidget->setRowCount(0);
@@ -472,6 +487,8 @@ void MainWindow::refresh_aniTable()
         addAnimation_ui(ani);
     }
 
+    ui->aniTableWidget->setCurrentCell(row, col);
+
     cellChangedSignals(true);
 }
 
@@ -479,12 +496,15 @@ void MainWindow::refresh_aframeTable()
 {
     cellChangedSignals(false);
 
+    int row = ui->aframesTableWidget->currentRow();
+    int col = ui->aframesTableWidget->currentColumn();
+
     ui->aframesTableWidget->clearContents();
     ui->aframesTableWidget->setRowCount(0);
 
-    int row = ui->aniTableWidget->currentRow();
-    if (row != -1) {
-        Id aniId = getAnimationId(row);
+    int ani_row = ui->aniTableWidget->currentRow();
+    if (ani_row != -1) {
+        Id aniId = getAnimationId(ani_row);
         
         for (QHashIterator<Id, LvkAframe> it2(_sprState.aframes(aniId)); it2.hasNext();) {
             it2.next();
@@ -492,6 +512,8 @@ void MainWindow::refresh_aframeTable()
             addAframe_ui(aframe, aniId);
         }
     }
+
+    ui->aframesTableWidget->setCurrentCell(row, col);
     
     cellChangedSignals(true);
 }
@@ -1268,12 +1290,13 @@ void MainWindow::incAniSpeed(int ms)
     Id aniId = selectedAniId();
 
     for (int r = 0; r < ui->aframesTableWidget->rowCount(); ++r) {
-        int& delay = _sprState.aframe(aniId, getAFrameId(r)).delay;
-        delay -= ms;
-        if (delay < 0) {
-            delay = 0;
+        LvkAframe aframe = _sprState.const_aframe(aniId, getAFrameId(r));
+        aframe.delay -= ms;
+        if (aframe.delay < 0) {
+            aframe.delay = 0;
         }
-        ui->aframesTableWidget->item(r, ColAframeDelay)->setText(QString::number(delay));
+        _sprState.updateAframe(aframe, aniId);
+        ui->aframesTableWidget->item(r, ColAframeDelay)->setText(QString::number(aframe.delay));
     }
     previewAnimation();
 }
@@ -1288,7 +1311,7 @@ void MainWindow::updateImgTable(int row, int col)
     QTableWidget* table    = ui->imgTableWidget;
     QString       newValue = getItem(table, row, col);
     Id            imgId    = getIdItem(table, row, ColImageId);
-    InputImage&   img      = _sprState.image(imgId);
+    InputImage    img      = _sprState.const_image(imgId);
 
     switch (col) {
     case ColImageId:
@@ -1310,7 +1333,7 @@ void MainWindow::updateImgTable(int row, int col)
             } else if (img.pixmap.isNull()) {
                 infoDialog(tr("The file contains an invalid image format"));
             }
-            _sprState.reloadFramePixmaps(img);
+            _sprState.updateImage(img);
 
             /* update UI */
 
@@ -1334,7 +1357,7 @@ void MainWindow::updateFramesTable(int row, int col)
     QTableWidget* table    = ui->framesTableWidget;
     QString       newValue = getItem(table, row, col);
     Id            frameId  = getIdItem(table, row, ColFrameId);
-    LvkFrame&     frame    = _sprState.frame(frameId);
+    LvkFrame      frame    = _sprState.const_frame(frameId);
 
     bool ok = true;
     int i = newValue.toInt(&ok);
@@ -1404,7 +1427,7 @@ void MainWindow::updateFramesTable(int row, int col)
         case ColFrameOy:
         case ColFrameW:
         case ColFrameH:
-            _sprState.reloadFramePixmap(frame);
+            _sprState.updateFrame(frame);
             ui->imgPreview->setFrameRect(frame.rect());
             showFrame(frame.id);
             break;
@@ -1420,7 +1443,7 @@ void MainWindow::updateAframesTable(int row, int col)
     QString       newValue = getItem(table, row, col);
     Id            aniId    = getIdItem(table, row, ColAframeAniId);
     Id            aframeId = getIdItem(table, row, ColAframeId);
-    LvkAframe&    aframe   = _sprState.aframe(aniId, aframeId);
+    LvkAframe     aframe   = _sprState.const_aframe(aniId, aframeId);
 
     bool ok = true;
     int i = newValue.toInt(&ok);
@@ -1470,8 +1493,11 @@ void MainWindow::updateAframesTable(int row, int col)
         break;
     }
 
-    if (ok && currentAnimation->isAnimated()) {
-        previewAnimation(); /* force refresh animation */
+    if (ok) {
+        _sprState.updateAframe(aframe, aniId);
+        if (currentAnimation->isAnimated()) {
+            previewAnimation(); /* force refresh animation */
+        }
     }
 }
 
@@ -1480,7 +1506,7 @@ void MainWindow::updateAniTable(int row, int col)
     QTableWidget* table    = ui->aniTableWidget;
     QString       newValue = getItem(table, row, col);
     Id            aniId    = getIdItem(table, row, ColAniId);
-    LvkAnimation& ani      = _sprState.animation(aniId);
+    LvkAnimation  ani      = _sprState.const_animation(aniId);
 
     switch (col) {
     case ColAniId:
@@ -1496,6 +1522,7 @@ void MainWindow::updateAniTable(int row, int col)
             setItem(table, row, col, ani.name);
         } else {
             ani.name = newValue;
+            _sprState.updateAnimation(ani);
         }
         break;
     }

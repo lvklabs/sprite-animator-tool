@@ -21,14 +21,13 @@ public:
     bool canRedo();
 
     bool hasUnsavedChanges();
-    void markAsSaved();
 
     /* inherited methods */
 
-    InputImage&   image(Id imgId);
-    LvkFrame&     frame(Id frameId);
-    LvkAnimation& animation(Id aniId);
-    LvkAframe&    aframe(Id aniId, Id aframeId);
+    void updateImage(const InputImage& img);
+    void updateFrame(const LvkFrame& frame);
+    void updateAnimation(const LvkAnimation& ani);
+    void updateAframe(const LvkAframe& aframe, Id aniId);
 
     void addImage(const InputImage& img);
     void addFrame(const LvkFrame& frame);
@@ -50,7 +49,5 @@ private:
     bool _unsaved;
 
 };
-
-typedef StateCircularBuffer::StateChange StateChange;
 
 #endif // UNDOSPRITESTATE_H

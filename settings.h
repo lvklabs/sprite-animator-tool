@@ -7,6 +7,10 @@
 #define MAX_RECENT_FILES        10
 #define KEY_RECENT_FILE         "RecentFiles/filename"
 
-#define MAX_UNDO_TIMES          200
+#ifdef DEBUG_UNDO
+#  define MAX_UNDO_TIMES          5
+#else
+#  define MAX_UNDO_TIMES          200
+#endif
 
 #endif // SETTINGS_H
