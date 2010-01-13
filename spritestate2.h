@@ -45,9 +45,6 @@ public:
 
 private:
     StateCircularBuffer _stBuffer;
-
-    bool _unsaved;
-
 };
 
 #endif // SPRITESTATE2_H

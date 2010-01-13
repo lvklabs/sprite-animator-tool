@@ -5,7 +5,7 @@
 #include "spritestate2.h"
 
 SpriteState2::SpriteState2(QObject* parent)
-    : SpriteState(parent), _unsaved(false)
+    : SpriteState(parent)
 {
 }
 
@@ -65,9 +65,6 @@ bool SpriteState2::undo()
         default:
             break;
         }
-
-        // TODO check if is saved.
-        _unsaved = true;
 
         return true;
     }
@@ -131,9 +128,6 @@ bool SpriteState2::redo()
             break;
         }
 
-        // TODO check if is saved.
-        _unsaved = true;
-
         return true;
     }
     return false;
@@ -151,7 +145,7 @@ bool SpriteState2::canRedo()
 
 bool SpriteState2::hasUnsavedChanges()
 {
-    return _unsaved;
+    return !_stBuffer.hasSavedFlag();
 }
 
  /* inherited methods */
@@ -161,7 +155,10 @@ bool SpriteState2::hasUnsavedChanges()
 bool SpriteState2::save(const QString& filename, SpriteStateError* err)
 {
     bool success = SpriteState::save(filename, err);
-    _unsaved = !success;
+
+    if (success) {
+        _stBuffer.setSavedFlag();
+    }
 
     return success;
 }
@@ -169,7 +166,6 @@ bool SpriteState2::save(const QString& filename, SpriteStateError* err)
 bool SpriteState2::load(const QString& filename, SpriteStateError* err)
 {
     bool success = SpriteState::load(filename, err);
-    _unsaved = !success;
 
     if (success) {
         _stBuffer.clear();
@@ -180,7 +176,6 @@ bool SpriteState2::load(const QString& filename, SpriteStateError* err)
 
 void SpriteState2::clear()
 {
-    _unsaved = false;
     _stBuffer.clear();
     SpriteState::clear();
 }
@@ -198,7 +193,6 @@ void SpriteState2::updateImage(const InputImage& img)
     st.data.old_img = _images[img.id];
     st.data.img = img;
     _stBuffer.addState(st);
-    _unsaved = true;
 
     SpriteState::updateImage(img);
 }
@@ -214,7 +208,6 @@ void SpriteState2::updateFrame(const LvkFrame& frame)
     st.data.old_frame = _frames[frame.id];
     st.data.frame = frame;
     _stBuffer.addState(st);
-    _unsaved = true;
 
     SpriteState::updateFrame(frame);
 }
@@ -230,7 +223,6 @@ void SpriteState2::updateAnimation(const LvkAnimation& ani)
     st.data.old_ani = _animations[ani.id];
     st.data.ani = ani;
     _stBuffer.addState(st);
-    _unsaved = true;
 
     SpriteState::updateAnimation(ani);
 }
@@ -247,7 +239,6 @@ void SpriteState2::updateAframe(const LvkAframe& aframe, Id aniId)
     st.data.old_aframe = _animations[aniId].aframes[aframe.id];
     st.data.aframe = aframe;
     _stBuffer.addState(st);
-    _unsaved = true;
 
     SpriteState::updateAframe(aframe, aniId);
 }
@@ -260,7 +251,6 @@ void SpriteState2::addImage(const InputImage& img)
     st.type = StateCircularBuffer::st_addImage;
     st.data.img = img;
     _stBuffer.addState(st);
-    _unsaved = true;
 
     SpriteState::addImage(img);
 }
@@ -271,7 +261,6 @@ void SpriteState2::addFrame(const LvkFrame& frame)
     st.type = StateCircularBuffer::st_addFrame;
     st.data.frame = frame;
     _stBuffer.addState(st);
-    _unsaved = true;
 
     SpriteState::addFrame(frame);
 }
@@ -282,7 +271,6 @@ void SpriteState2::addAnimation(const LvkAnimation& ani)
     st.type = StateCircularBuffer::st_addAnimation;
     st.data.ani = ani;
     _stBuffer.addState(st);
-    _unsaved = true;
 
     SpriteState::addAnimation(ani);
 }
@@ -294,7 +282,6 @@ void SpriteState2::addAframe(const LvkAframe& aframe, Id aniId)
     st.data.aframe = aframe;
     st.data.ani.id = aniId;
     _stBuffer.addState(st);
-    _unsaved = true;
 
     SpriteState::addAframe(aframe, aniId);
 }
@@ -307,7 +294,6 @@ void SpriteState2::removeImage(Id id)
     st.type = StateCircularBuffer::st_removeImage;
     st.data.img = _images[id];
     _stBuffer.addState(st);
-    _unsaved = true;
 
     SpriteState::removeImage(id);
 }
@@ -318,7 +304,6 @@ void SpriteState2::removeFrame(Id id)
     st.type = StateCircularBuffer::st_removeFrame;
     st.data.frame = _frames[id];
     _stBuffer.addState(st);
-    _unsaved = true;
 
     SpriteState::removeFrame(id);
 }
@@ -329,7 +314,6 @@ void SpriteState2::removeAnimation(Id id)
     st.type = StateCircularBuffer::st_removeAnimation;
     st.data.ani = _animations[id];
     _stBuffer.addState(st);
-    _unsaved = true;
 
     SpriteState::removeAnimation(id);
 }
@@ -341,7 +325,6 @@ void SpriteState2::removeAframe(Id aframeId, Id aniId)
     st.data.aframe = _animations[aniId].aframes[aframeId];
     st.data.ani.id = aniId;
     _stBuffer.addState(st);
-    _unsaved = true;
 
     SpriteState::removeAframe(aframeId, aniId);
 }

@@ -9,6 +9,10 @@
 #include "lvkaframe.h"
 #include "settings.h"
 
+/// This is an implementation of a circular buffer that stores sprite state changes.
+/// This is a helper class used in StateSprite2 to implement undo an redo.
+/// It also allows to mark an state as saved. After undoing and redoing, it keeps
+/// the track if we are in the saved or not.
 class StateCircularBuffer
 {
 public:
@@ -79,6 +83,12 @@ public:
     void prevState();
     void clear();
 
+    /// mark current state as saved (only the current state will have the saved flag)
+    void setSavedFlag();
+
+    /// returns true if the current state has the saved flag
+    bool hasSavedFlag();
+
     QString toString();
 
 private:
@@ -86,6 +96,7 @@ private:
     StateChange *_buf;    /* buffer */
     int          _i;      /* index to implement a circular buffer */
     int          _first;  /* first position in the buffer */
+    int          _saved;  /* saved position in the buffer, -1 if not saved */
 
     inline int inc(int& i)
     {

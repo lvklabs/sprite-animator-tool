@@ -22,19 +22,26 @@ StateCircularBuffer::~StateCircularBuffer()
 
 void StateCircularBuffer::clear()
 {
-    _i = -1;
-    _first = -1;
+    _i = 0;
+    _first = 0;
+    _saved = 0;
 
     for (int i = 0; i < BUFF_SIZE; ++i) {
         _buf[i].type = st_null;
     }
 
-    /* cheat: add a first null state to have an starting point */
-    addState(StateChange());
+    /* add a first null state to have an starting point */
+    _buf[_i] = StateChange();
+
+#ifdef DEBUG_UNDO
+        qDebug() << " clear";
+        qDebug() << toString();
+#endif
 }
 
 void StateCircularBuffer::addState(const StateChange& st)
 {
+    /* do not add consecutive equal states */
     if (_i >= 0  && _buf[_i] == st) {
         return;
     }
@@ -43,14 +50,24 @@ void StateCircularBuffer::addState(const StateChange& st)
 
     _buf[_i] = st;
 
-    if (_first == -1 || _i == _first) {
+    /* if the first state was overwritten */
+    if (_i == _first) {
         inc(_first);
     }
 
+    /* if the saved state was overwritten */
+    if (_i == _saved) {
+        _saved = -1;
+    }
+
+    /* overwrite all next states */
     if (hasNextState()) {
-        int tmp = _i;
-        while (inc(tmp) != _first && _buf[tmp].type != st_null) {
-            _buf[tmp].type = st_null;
+        int j = _i;
+        while (inc(j) != _first && _buf[j].type != st_null) {
+            _buf[j].type = st_null;
+            if (j == _saved) {
+                _saved = -1;
+            }
         }
     }
 
@@ -111,6 +128,21 @@ void StateCircularBuffer::prevState()
 #endif
 }
 
+void StateCircularBuffer::setSavedFlag()
+{
+    _saved = _i;
+
+#ifdef DEBUG_UNDO
+        qDebug() << " prevState";
+        qDebug() << toString();
+#endif
+}
+
+bool StateCircularBuffer::hasSavedFlag()
+{
+    return _saved == _i;
+}
+
 QString StateCircularBuffer::toString()
 {
     QString str;
@@ -135,7 +167,11 @@ QString StateCircularBuffer::toString()
 
     str.append("\n  ");
     for (int i = 0; i < BUFF_SIZE; ++i) {
-        str.append(" ");
+        if (i == _saved) {
+            str.append("s");
+        } else {
+            str.append(" ");
+        }
         if (i == _i) {
             str.append("i");
         } else {
