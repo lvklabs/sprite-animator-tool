@@ -13,7 +13,7 @@
 
 /// Groups all frames belonging to a single animation in a single QGraphicsItem,
 /// and implements the logic that will animate those frames.
-class LvkFrameGraphicsGroup : public QGraphicsItemGroup, public QObject
+class LvkAnimationWidget : public QGraphicsItemGroup, public QObject
 {
 private:
     /// container with the pixmap data for each frame
@@ -28,8 +28,8 @@ private:
     bool animated;
 
 public:
-    LvkFrameGraphicsGroup(const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps, QObject* parent = 0);
-    ~LvkFrameGraphicsGroup();
+    LvkAnimationWidget(const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps, QObject* parent = 0);
+    ~LvkAnimationWidget();
 
     void startAnimation();
     void stopAnimation();
@@ -46,8 +46,8 @@ private:
     void timerEvent(QTimerEvent* evt);
 
     /// hide copy and assign constructor
-    LvkFrameGraphicsGroup(const LvkFrameGraphicsGroup&);
-    LvkFrameGraphicsGroup& operator=(const LvkFrameGraphicsGroup&);
+    LvkAnimationWidget(const LvkAnimationWidget&);
+    LvkAnimationWidget& operator=(const LvkAnimationWidget&);
 };
 
 #endif // LVKFRAMEGRAPHICSGROUP_H

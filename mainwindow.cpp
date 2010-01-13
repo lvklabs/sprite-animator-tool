@@ -18,7 +18,6 @@
 #include "inputimage.h"
 #include "lvkframe.h"
 #include "lvkaframe.h"
-#include "lvkframegraphicsgroup.h"
 #include "settings.h"
 
 /// imgTableWidget columns
@@ -1108,7 +1107,7 @@ void MainWindow::previewAnimation()
         delete currentAnimation;
     }
     LvkAnimation selectedAni = _sprState.animations().value(selectedAniId());
-    currentAnimation = new LvkFrameGraphicsGroup(selectedAni, _sprState.fpixmaps());
+    currentAnimation = new LvkAnimationWidget(selectedAni, _sprState.fpixmaps());
     scene->addItem(currentAnimation);
     ui->aniPreview->setScene(scene);
     currentAnimation->startAnimation();

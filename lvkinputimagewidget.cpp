@@ -4,11 +4,11 @@
 #include <cmath>
 #include <QApplication>
 
-#include "qinputimagewidget.h"
+#include "lvkinputimagewidget.h"
 
 // TODO: Clean code!
 
-QInputImageWidget::QInputImageWidget(QWidget *parent)
+LvkInputImageWidget::LvkInputImageWidget(QWidget *parent)
         : QWidget(parent), _frect(0,0,0,0), _mouseRect(0,0,0,0), _mouseX(-1), _mouseY(-1),
           _frectVisible(true), _mouseLinesVisible(true), _zoom(ZOOM_MIN), _pCache(0)
 {
@@ -23,7 +23,7 @@ QInputImageWidget::QInputImageWidget(QWidget *parent)
     setMouseTracking(true);
 }
 
-void QInputImageWidget::setPixmap(const QPixmap &pixmap)
+void LvkInputImageWidget::setPixmap(const QPixmap &pixmap)
 {
     setFrameRect(pixmap.rect());
 
@@ -36,7 +36,7 @@ void QInputImageWidget::setPixmap(const QPixmap &pixmap)
     resize(getScaledPixmap().size());
 }
 
-QPixmap& QInputImageWidget::getScaledPixmap()
+QPixmap& LvkInputImageWidget::getScaledPixmap()
 {
     if ( _pCache[0].isNull()) {
         return _pCache[0];
@@ -56,7 +56,7 @@ QPixmap& QInputImageWidget::getScaledPixmap()
             getScaledPixmap();\
             emit mouseRectChanged(ztor(_mouseRect));
 
-void QInputImageWidget::zoomIn()
+void LvkInputImageWidget::zoomIn()
 {
     if (_zoom < ZOOM_MAX) {
         _zoom++;
@@ -65,7 +65,7 @@ void QInputImageWidget::zoomIn()
     }
 }
 
-void QInputImageWidget::zoomOut()
+void LvkInputImageWidget::zoomOut()
 {
     if (_zoom > ZOOM_MIN) {
         _zoom--;
@@ -74,7 +74,7 @@ void QInputImageWidget::zoomOut()
     }
 }
 
-QRect QInputImageWidget::ztor(const QRect& rect) const
+QRect LvkInputImageWidget::ztor(const QRect& rect) const
 {
     QRect tmp;
     tmp.setX(ztor(rect.x()));
@@ -84,7 +84,7 @@ QRect QInputImageWidget::ztor(const QRect& rect) const
     return tmp;
 }
 
-QRect QInputImageWidget::rtoz(const QRect& rect) const
+QRect LvkInputImageWidget::rtoz(const QRect& rect) const
 {
     QRect tmp;
     tmp.setX(rtoz(rect.x()));
@@ -94,46 +94,46 @@ QRect QInputImageWidget::rtoz(const QRect& rect) const
     return tmp;
 }
 
-void QInputImageWidget::setFrameRectVisible(bool visible)
+void LvkInputImageWidget::setFrameRectVisible(bool visible)
 {
     _frectVisible = visible;
     update();
 }
 
-bool QInputImageWidget::frameRectVisible() const
+bool LvkInputImageWidget::frameRectVisible() const
 {
     return _frectVisible;
 }
 
-void QInputImageWidget::setMouseLinesVisible(bool visible)
+void LvkInputImageWidget::setMouseLinesVisible(bool visible)
 {
     _mouseLinesVisible = visible;
     update();
 }
 
-bool QInputImageWidget::mouseLinesRectVisible() const
+bool LvkInputImageWidget::mouseLinesRectVisible() const
 {
     return _mouseLinesVisible;
 }
 
-void QInputImageWidget::setFrameRect(const QRect &rect)
+void LvkInputImageWidget::setFrameRect(const QRect &rect)
 {
     _frect = rect;
     _scaledFrect = rtoz(rect);
     update();
 }
 
-const QRect QInputImageWidget::frameRect() const
+const QRect LvkInputImageWidget::frameRect() const
 {
     return _frect;
 }
 
-const QRect QInputImageWidget::mouseFrameRect() const
+const QRect LvkInputImageWidget::mouseFrameRect() const
 {
     return ztor(_mouseRect);
 }
 
-void QInputImageWidget::paintEvent(QPaintEvent */*event*/)
+void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
 {
     QPainter painter(this);
     painter.drawPixmap(0, 0, getScaledPixmap());
@@ -185,7 +185,7 @@ void QInputImageWidget::paintEvent(QPaintEvent */*event*/)
 }
 
 
-void QInputImageWidget::mousePressEvent(QMouseEvent *event)
+void LvkInputImageWidget::mousePressEvent(QMouseEvent *event)
 {
     if (event->buttons() & Qt::LeftButton) {
         _mouseRect.setRect(pixelate(event->x()), pixelate(event->y()), 0, 0);
@@ -198,7 +198,7 @@ void QInputImageWidget::mousePressEvent(QMouseEvent *event)
     }
 }
 
-void QInputImageWidget::mouseMoveEvent(QMouseEvent *event)
+void LvkInputImageWidget::mouseMoveEvent(QMouseEvent *event)
 {
     _mouseX = event->x();
     _mouseY = event->y();
@@ -220,14 +220,14 @@ void QInputImageWidget::mouseMoveEvent(QMouseEvent *event)
     update();
 }
 
-void QInputImageWidget::mouseReleaseEvent(QMouseEvent */*event*/)
+void LvkInputImageWidget::mouseReleaseEvent(QMouseEvent */*event*/)
 {
     _mouseRect = _mouseRect.normalized();
     emit mouseRectChanged(ztor(_mouseRect));
     update();
 }
 
-void QInputImageWidget::wheelEvent(QWheelEvent *event)
+void LvkInputImageWidget::wheelEvent(QWheelEvent *event)
 {
     bool ctrlKeyPressed = QApplication::keyboardModifiers() & Qt::ControlModifier;;
     if (ctrlKeyPressed) {
@@ -241,19 +241,19 @@ void QInputImageWidget::wheelEvent(QWheelEvent *event)
     event->ignore();
 }
 
-void QInputImageWidget::resize(const QSize &size)
+void LvkInputImageWidget::resize(const QSize &size)
 {
     QWidget::resize(size);
     updateGeometry();
     update();
 }
 
-void QInputImageWidget::resize(int w, int h)
+void LvkInputImageWidget::resize(int w, int h)
 {
     resize(QSize(w, h));
 }
 
-QInputImageWidget::~QInputImageWidget()
+LvkInputImageWidget::~LvkInputImageWidget()
 {
     if (_pCache) {
         delete[] _pCache;

@@ -1,8 +1,8 @@
-#include "lvkframegraphicsgroup.h"
+#include "lvkanimationwidget.h"
 
 #include <QDebug>
 
-LvkFrameGraphicsGroup::LvkFrameGraphicsGroup(const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps, QObject* parent)
+LvkAnimationWidget::LvkAnimationWidget(const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps, QObject* parent)
         : QObject(parent), currentFrame(-1), currentTimer(0), animated(false)
 {
     for (QHashIterator<Id, LvkAframe> it(ani.aframes); it.hasNext();) {
@@ -17,14 +17,14 @@ LvkFrameGraphicsGroup::LvkFrameGraphicsGroup(const LvkAnimation& ani, const QHas
     }
 }
 
-LvkFrameGraphicsGroup::~LvkFrameGraphicsGroup()
+LvkAnimationWidget::~LvkAnimationWidget()
 {
     while (!pixmaps.isEmpty()) {
         delete pixmaps.takeFirst();
     }
 }
 
-int LvkFrameGraphicsGroup::nextFrame()
+int LvkAnimationWidget::nextFrame()
 {
     currentFrame++;
 
@@ -34,7 +34,7 @@ int LvkFrameGraphicsGroup::nextFrame()
     return currentFrame;
 }
 
-void LvkFrameGraphicsGroup::timerEvent(QTimerEvent* /*evt*/)
+void LvkAnimationWidget::timerEvent(QTimerEvent* /*evt*/)
 {
     killTimer(currentTimer);
     pixmaps[currentFrame]->setVisible(false);
@@ -43,7 +43,7 @@ void LvkFrameGraphicsGroup::timerEvent(QTimerEvent* /*evt*/)
     currentTimer = startTimer(delays[currentFrame]);
 }
 
-void LvkFrameGraphicsGroup::startAnimation()
+void LvkAnimationWidget::startAnimation()
 {
     if (pixmaps.size() > 0) {
         nextFrame();
@@ -53,7 +53,7 @@ void LvkFrameGraphicsGroup::startAnimation()
     }
 }
 
-void LvkFrameGraphicsGroup::stopAnimation()
+void LvkAnimationWidget::stopAnimation()
 {
     killTimer(currentTimer);
     currentFrame = -1;
@@ -61,7 +61,7 @@ void LvkFrameGraphicsGroup::stopAnimation()
     animated = false;
 }
 
-bool LvkFrameGraphicsGroup::isAnimated()
+bool LvkAnimationWidget::isAnimated()
 {
     return(animated);
 }

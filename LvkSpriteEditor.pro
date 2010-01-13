@@ -11,9 +11,9 @@ SOURCES += main.cpp \
     inputimage.cpp \
     lvkanimation.cpp \
     lvkaframe.cpp \
-    lvkframegraphicsgroup.cpp \
+    lvkanimationwidget.cpp \
     lvkaction.cpp \
-    qinputimagewidget.cpp \
+    lvkinputimagewidget.cpp \
     lvktablewidget.cpp \
     spritestate2.cpp \
     dialogs.cpp \
@@ -25,10 +25,10 @@ HEADERS += mainwindow.h \
     types.h \
     lvkanimation.h \
     lvkaframe.h \
-    lvkframegraphicsgroup.h \
+    lvkanimationwidget.h \
     lvkaction.h \
     settings.h \
-    qinputimagewidget.h \
+    lvkinputimagewidget.h \
     lvktablewidget.h \
     spritestate2.h \
     dialogs.h \

@@ -5,13 +5,13 @@
 #include <QRect>
 #include <QPen>
 
-class QInputImageWidget : public QWidget
+class LvkInputImageWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    QInputImageWidget(QWidget *parent = 0);
-    ~QInputImageWidget();
+    LvkInputImageWidget(QWidget *parent = 0);
+    ~LvkInputImageWidget();
 
     void setPixmap(const QPixmap &pixmap);
 

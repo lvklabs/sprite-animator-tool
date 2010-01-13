@@ -99,7 +99,7 @@ p, li { white-space: pre-wrap; }
             <property name="alignment">
              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
             </property>
-            <widget class="QInputImageWidget" name="imgPreview">
+            <widget class="LvkInputImageWidget" name="imgPreview">
              <property name="geometry">
               <rect>
                <x>0</x>
@@ -403,7 +403,7 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
             <property name="alignment">
              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
             </property>
-            <widget class="QInputImageWidget" name="framePreview">
+            <widget class="LvkInputImageWidget" name="framePreview">
              <property name="geometry">
               <rect>
                <x>0</x>
@@ -557,7 +557,7 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
             <property name="alignment">
              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
             </property>
-            <widget class="QInputImageWidget" name="aframePreview">
+            <widget class="LvkInputImageWidget" name="aframePreview">
              <property name="geometry">
               <rect>
                <x>0</x>
@@ -1241,9 +1241,9 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>QInputImageWidget</class>
+   <class>LvkInputImageWidget</class>
    <extends>QWidget</extends>
-   <header location="global">qinputimagewidget.h</header>
+   <header location="global">lvkinputimagewidget.h</header>
   </customwidget>
   <customwidget>
    <class>LvkTableWidget</class>
