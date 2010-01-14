@@ -67,7 +67,7 @@ enum {
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow), _imgId(0), _frameId(0), _aniId(0), _aframeId(0),
-      currentAnimation(0), statusBarMousePos(new QLabel()), statusBarRectSize(new QLabel())
+      statusBarMousePos(new QLabel()), statusBarRectSize(new QLabel())
 {
     ui->setupUi(this);
     ui->statusBar->addWidget(statusBarMousePos);
@@ -423,7 +423,8 @@ void MainWindow::refresh_ui()
     refresh_frameTable();
     refresh_aniTable();
     refresh_aframeTable();
-    if (currentAnimation && currentAnimation->isAnimated()) {
+
+    if (ui->aniPreview->isPlaying()) {
         previewAnimation();
     }
 }
@@ -1058,9 +1059,7 @@ void MainWindow::addAnimation_ui(const LvkAnimation& ani)
 
 void MainWindow::showAframes(int row)
 {
-    if (currentAnimation && currentAnimation->isAnimated()) {
-        currentAnimation->stopAnimation();
-    }
+    ui->aniPreview->stop();
 
     cellChangedSignals(false);
 
@@ -1097,27 +1096,14 @@ void MainWindow::previewAnimation()
         return;
     }
 
-    // TODO optimize this! If the animation did not change, do not delete and recreate
-    // the animation
-
-    static QGraphicsScene* scene = new QGraphicsScene;
-
-    if (currentAnimation) {
-        scene->removeItem(currentAnimation);
-        delete currentAnimation;
-    }
     LvkAnimation selectedAni = _sprState.animations().value(selectedAniId());
-    currentAnimation = new LvkAnimationWidget(selectedAni, _sprState.fpixmaps());
-    scene->addItem(currentAnimation);
-    ui->aniPreview->setScene(scene);
-    currentAnimation->startAnimation();
+    ui->aniPreview->setAnimation(selectedAni, _sprState.fpixmaps());
+    ui->aniPreview->play();
 }
 
 void MainWindow::clearPreviewAnimation()
 {
-    if (ui->aniPreview->scene() && currentAnimation) {
-        ui->aniPreview->scene()->removeItem(currentAnimation);
-    }
+    ui->aniPreview->clear();
 }
 
 void MainWindow::removeSelAnimation()
@@ -1494,7 +1480,7 @@ void MainWindow::updateAframesTable(int row, int col)
 
     if (ok) {
         _sprState.updateAframe(aframe, aniId);
-        if (currentAnimation->isAnimated()) {
+        if (ui->aniPreview->isPlaying()) {
             previewAnimation(); /* force refresh animation */
         }
     }

@@ -1,67 +1,86 @@
 #include "lvkanimationwidget.h"
 
 #include <QDebug>
+#include <QPainter>
 
-LvkAnimationWidget::LvkAnimationWidget(const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps, QObject* parent)
-        : QObject(parent), currentFrame(-1), currentTimer(0), animated(false)
+
+LvkAnimationWidget::LvkAnimationWidget(QWidget* parent, const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps)
+        : QWidget(parent), _currentFrame(-1), _currentTimer(0), _isPlaying(false)
 {
+    setAnimation(ani, fpixmaps);
+}
+
+void LvkAnimationWidget::setAnimation(const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps)
+{
+    clear();
+
     for (QHashIterator<Id, LvkAframe> it(ani.aframes); it.hasNext();) {
         LvkAframe aframe = it.next().value();
-        pixmaps << new QGraphicsPixmapItem(fpixmaps.value(aframe.frameId));
-        delays  << aframe.delay;
+        _fpixmaps << QPixmap(fpixmaps.value(aframe.frameId));
+        _delays  << aframe.delay;
     }
 
-   for (int i = 0; i < pixmaps.size(); ++i) {
-        pixmaps[i]->setVisible(false);
-        addToGroup(pixmaps[i]);
-    }
+    repaint();
 }
 
-LvkAnimationWidget::~LvkAnimationWidget()
+void LvkAnimationWidget::clear()
 {
-    while (!pixmaps.isEmpty()) {
-        delete pixmaps.takeFirst();
-    }
+    stop();
+    _fpixmaps.clear();
+    _delays.clear();
+
+    repaint();
 }
 
-int LvkAnimationWidget::nextFrame()
+void LvkAnimationWidget::nextFrame()
 {
-    currentFrame++;
+    _currentFrame++;
 
-    if(currentFrame >= pixmaps.size()) {
-        currentFrame = 0;
+    if(_currentFrame >= _fpixmaps.size()) {
+        _currentFrame = 0;
     }
-    return currentFrame;
+
+    repaint();
 }
 
-void LvkAnimationWidget::timerEvent(QTimerEvent* /*evt*/)
+void LvkAnimationWidget::timerEvent(QTimerEvent* /*event*/)
 {
-    killTimer(currentTimer);
-    pixmaps[currentFrame]->setVisible(false);
+    killTimer(_currentTimer);
     nextFrame();
-    pixmaps[currentFrame]->setVisible(true);
-    currentTimer = startTimer(delays[currentFrame]);
+    _currentTimer = startTimer(_delays[_currentFrame]);
 }
 
-void LvkAnimationWidget::startAnimation()
+void LvkAnimationWidget::paintEvent(QPaintEvent */*event*/)
 {
-    if (pixmaps.size() > 0) {
-        nextFrame();
-        currentTimer = startTimer(delays[currentFrame]);
-        pixmaps[currentFrame]->setVisible(true);
-        animated = true;
+    QPainter painter(this);
+    if (_fpixmaps.size() > 0 && _currentFrame >= 0) {
+        painter.drawPixmap(1, 1, _fpixmaps[_currentFrame]);
     }
+    painter.drawRect(0, 0, width() - 1, height() - 1);
 }
 
-void LvkAnimationWidget::stopAnimation()
+void LvkAnimationWidget::play()
 {
-    killTimer(currentTimer);
-    currentFrame = -1;
-    currentTimer = 0;
-    animated = false;
+    if (_fpixmaps.size() > 0) {
+        nextFrame();
+        _currentTimer = startTimer(_delays[_currentFrame]);
+        _isPlaying = true;
+    }
+
+    repaint();
 }
 
-bool LvkAnimationWidget::isAnimated()
+void LvkAnimationWidget::stop()
 {
-    return(animated);
+    killTimer(_currentTimer);
+    _currentFrame = -1;
+    _currentTimer = 0;
+    _isPlaying = false;
+
+    repaint();
+}
+
+bool LvkAnimationWidget::isPlaying()
+{
+    return _isPlaying;
 }

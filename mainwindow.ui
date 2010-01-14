@@ -719,7 +719,7 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
                <height>546</height>
               </rect>
              </property>
-             <widget class="QGraphicsView" name="aniPreview">
+             <widget class="LvkAnimationWidget" name="aniPreview">
               <property name="geometry">
                <rect>
                 <x>0</x>

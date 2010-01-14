@@ -16,7 +16,6 @@
 #include "lvkanimation.h"
 #include "lvkaframe.h"
 #include "spritestate2.h"
-#include "lvkanimationwidget.h"
 #include "dialogs.h"
 
 
@@ -77,9 +76,6 @@ private:
 
     /// Counter. Next animation frame id
     Id _aframeId;
-
-    /// Current animation
-    LvkAnimationWidget* currentAnimation;
 
     /// Labels to show information in the status bar
     QLabel* statusBarMousePos;
