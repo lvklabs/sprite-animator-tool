@@ -1144,6 +1144,7 @@ void MainWindow::changePreviewScrSize(const QString &text)
     for (int i = 0; i < ui->previewScrSizeCombo->count(); ++i) {
         if (res == ui->previewScrSizeCombo->itemText(i)) {
             found = true;
+            break;
         }
     }
     if (!found) {
