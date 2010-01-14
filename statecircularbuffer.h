@@ -9,8 +9,8 @@
 #include "lvkaframe.h"
 #include "settings.h"
 
-/// This is an implementation of a circular buffer that stores sprite state changes.
-/// This is a helper class used in StateSprite2 to implement undo an redo.
+/// This is an implementation of a circular buffer that stores changes in the sprite state.
+/// This is a helper class used in StateSprite2 to implement undo and redo.
 /// It also allows to mark an state as saved. After undoing and redoing, it keeps
 /// the track if we are in the saved or not.
 class StateCircularBuffer
