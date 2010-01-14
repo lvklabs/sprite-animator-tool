@@ -17,6 +17,7 @@ public:
                        const QHash<Id, QPixmap>& fpixmaps = QHash<Id, QPixmap>());
 
     void setAnimation(const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps);
+    void setScreenSize(int w, int h);
     void play();
     void stop();
     bool isPlaying();
@@ -36,6 +37,8 @@ private:
     int  _currentFrame;
     int  _currentTimer;
     bool _isPlaying;
+    int  _scrW;
+    int  _scrH;
 
     void nextFrame();
 };

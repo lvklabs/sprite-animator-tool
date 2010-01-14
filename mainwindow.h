@@ -201,6 +201,7 @@ private slots:
     void clearPreviewAnimation();
     void incAniSpeed(int ms = 10);
     void decAniSpeed(int ms = 10);
+    void changePreviewScrSize(const QString& text);
 
     void addAframeDialog();
     void showSelAframe(int row);

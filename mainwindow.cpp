@@ -126,6 +126,8 @@ void MainWindow::initSignals()
     connect(ui->aniIncSpeedButton,     SIGNAL(clicked()),            this, SLOT(incAniSpeed()));
     connect(ui->hideFramePreviewButton,SIGNAL(clicked()),            this, SLOT(hideShowFramePreview()));
 
+    connect(ui->previewScrSizeCombo,  SIGNAL(activated(QString)), this, SLOT(changePreviewScrSize(const QString &)));
+
     connect(ui->imgPreview,            SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
     connect(ui->framePreview,          SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
     connect(ui->aframePreview,         SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
@@ -1100,6 +1102,53 @@ void MainWindow::previewAnimation()
 void MainWindow::clearPreviewAnimation()
 {
     ui->aniPreview->clear();
+}
+
+void MainWindow::changePreviewScrSize(const QString &text)
+{
+    bool ok;
+    QString res = text;
+
+    if (res == tr("Custom...")) {
+        res = QInputDialog::getText(this,
+                              tr("Insert custom screen resolution"),
+                              tr("Insert custom screen resolution in format <width>x<height>"),
+                              QLineEdit::Normal, "", &ok);
+        if (!ok) {
+            return;
+        }
+    }
+
+    QStringList split = res.split("x");
+
+    if (split.size() != 2) {
+        infoDialog(tr("Invalid resolution. Use <width>x<height>."));
+        return;
+    }
+
+    int w = QString(split.at(0)).toInt(&ok);
+    if (!ok || w <= 0) {
+        infoDialog(tr("Invalid width size."));
+        return;
+    }
+
+    int h = QString(split.at(1)).toInt(&ok);
+    if (!ok || h <= 0) {
+        infoDialog(tr("Invalid height size."));
+        return;
+    }
+
+    ui->aniPreview->setScreenSize(w, h);
+
+    bool found = false;
+    for (int i = 0; i < ui->previewScrSizeCombo->count(); ++i) {
+        if (res == ui->previewScrSizeCombo->itemText(i)) {
+            found = true;
+        }
+    }
+    if (!found) {
+        ui->previewScrSizeCombo->addItem(res);
+    }
 }
 
 void MainWindow::removeSelAnimation()

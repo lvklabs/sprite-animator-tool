@@ -719,14 +719,20 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
                <height>546</height>
               </rect>
              </property>
-             <widget class="LvkAnimationWidget" name="aniPreview">
+             <widget class="LvkAnimationWidget" name="aniPreview" native="true">
               <property name="geometry">
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>320</width>
-                <height>480</height>
+                <width>1024</width>
+                <height>768</height>
                </rect>
+              </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
               </property>
              </widget>
             </widget>
@@ -806,13 +812,46 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="aniResolutionCombo">
+             <widget class="QComboBox" name="previewScrSizeCombo">
               <property name="toolTip">
                <string>Resolution</string>
               </property>
+              <property name="currentIndex">
+               <number>4</number>
+              </property>
               <item>
                <property name="text">
-                <string>320x480 (iPhone)</string>
+                <string>128x160</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>172x220</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>240x320</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>320x240</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>320x480</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>480x320</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Custom...</string>
                </property>
               </item>
              </widget>
@@ -1249,6 +1288,11 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
    <class>LvkTableWidget</class>
    <extends>QTableWidget</extends>
    <header>lvktablewidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>LvkAnimationWidget</class>
+   <extends>QWidget</extends>
+   <header>lvkanimationwidget.h</header>
   </customwidget>
  </customwidgets>
  <resources>

@@ -5,7 +5,7 @@
 
 
 LvkAnimationWidget::LvkAnimationWidget(QWidget* parent, const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps)
-        : QWidget(parent), _currentFrame(-1), _currentTimer(0), _isPlaying(false)
+        : QWidget(parent), _currentFrame(-1), _currentTimer(0), _isPlaying(false), _scrW(320), _scrH(480)
 {
     setAnimation(ani, fpixmaps);
 }
@@ -18,6 +18,16 @@ void LvkAnimationWidget::setAnimation(const LvkAnimation& ani, const QHash<Id, Q
         LvkAframe aframe = it.next().value();
         _fpixmaps << QPixmap(fpixmaps.value(aframe.frameId));
         _delays  << aframe.delay;
+    }
+
+    repaint();
+}
+
+void LvkAnimationWidget::setScreenSize(int w, int h)
+{
+    if (w > 0 && h > 0) {
+        _scrW = w;
+        _scrH = h;
     }
 
     repaint();
@@ -56,7 +66,7 @@ void LvkAnimationWidget::paintEvent(QPaintEvent */*event*/)
     if (_fpixmaps.size() > 0 && _currentFrame >= 0) {
         painter.drawPixmap(1, 1, _fpixmaps[_currentFrame]);
     }
-    painter.drawRect(0, 0, width() - 1, height() - 1);
+    painter.drawRect(0, 0, _scrW - 1, _scrH - 1);
 }
 
 void LvkAnimationWidget::play()
