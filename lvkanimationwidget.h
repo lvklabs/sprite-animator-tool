@@ -5,6 +5,7 @@
 #include <QList>
 #include <QPixmap>
 #include <QTimerEvent>
+#include <QPoint>
 
 #include "lvkanimation.h"
 
@@ -26,6 +27,7 @@ public:
 protected:
     virtual void timerEvent(QTimerEvent* event);
     virtual void paintEvent(QPaintEvent *event);
+    virtual void mousePressEvent(QMouseEvent *event);
 
 private:
     LvkAnimationWidget(const LvkAnimationWidget&);
@@ -33,12 +35,15 @@ private:
 
     QList<QPixmap> _fpixmaps;
     QList<int> _delays;
+    QList<int> _oxs;
+    QList<int> _oys;
 
-    int  _currentFrame;
-    int  _currentTimer;
-    bool _isPlaying;
-    int  _scrW;
-    int  _scrH;
+    int    _currentFrame;
+    int    _currentTimer;
+    bool   _isPlaying;
+    int    _scrW;
+    int    _scrH;
+    QPoint _origin;
 
     void nextFrame();
 };

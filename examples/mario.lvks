@@ -24,16 +24,18 @@ frames(
 # Animation frames
 # format: aframeId,frameId,delay,ox,oy
 animations(
-	0,1
+	0,walk
 	aframes(
 		2,2,180,0,0
 		3,3,180,0,0
 	)
 
-	1,2
+	1,jump
 	aframes(
-		0,0,200,0,0
-		1,1,200,0,0
+		1,0,80,0,0
+		5,0,80,0,-10
+		6,0,180,0,-15
+		7,0,80,0,-10
 	)
 
 )

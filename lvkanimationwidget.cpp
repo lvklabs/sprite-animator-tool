@@ -2,10 +2,12 @@
 
 #include <QDebug>
 #include <QPainter>
+#include <QMouseEvent>
 
 
 LvkAnimationWidget::LvkAnimationWidget(QWidget* parent, const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps)
-        : QWidget(parent), _currentFrame(-1), _currentTimer(0), _isPlaying(false), _scrW(320), _scrH(480)
+        : QWidget(parent), _currentFrame(-1), _currentTimer(0), _isPlaying(false), _scrW(320), _scrH(480),
+          _origin(QPoint(0,0))
 {
     setAnimation(ani, fpixmaps);
 }
@@ -17,7 +19,9 @@ void LvkAnimationWidget::setAnimation(const LvkAnimation& ani, const QHash<Id, Q
     for (QHashIterator<Id, LvkAframe> it(ani.aframes); it.hasNext();) {
         LvkAframe aframe = it.next().value();
         _fpixmaps << QPixmap(fpixmaps.value(aframe.frameId));
-        _delays  << aframe.delay;
+        _delays   << aframe.delay;
+        _oxs      << aframe.ox;
+        _oys      << aframe.oy;
     }
 
     repaint();
@@ -36,8 +40,13 @@ void LvkAnimationWidget::setScreenSize(int w, int h)
 void LvkAnimationWidget::clear()
 {
     stop();
+
     _fpixmaps.clear();
     _delays.clear();
+    _oxs.clear();
+    _oys.clear();
+    _origin.setX(0);
+    _origin.setY(0);
 
     repaint();
 }
@@ -64,9 +73,24 @@ void LvkAnimationWidget::paintEvent(QPaintEvent */*event*/)
 {
     QPainter painter(this);
     if (_fpixmaps.size() > 0 && _currentFrame >= 0) {
-        painter.drawPixmap(1, 1, _fpixmaps[_currentFrame]);
+        painter.drawPixmap(_origin.x() + _oxs[_currentFrame],
+                           _origin.y() + _oys[_currentFrame],
+                           _fpixmaps[_currentFrame]);
     }
-    painter.drawRect(0, 0, _scrW - 1, _scrH - 1);
+    painter.drawRect(0, 0, _scrW, _scrH);
+}
+
+void LvkAnimationWidget::mousePressEvent(QMouseEvent *event)
+{
+    if (event->buttons() == Qt::LeftButton) {
+        _origin.setX(event->x());
+        _origin.setY(event->y());
+    } else {
+        _origin.setX(0);
+        _origin.setY(0);
+    }
+
+    repaint();
 }
 
 void LvkAnimationWidget::play()

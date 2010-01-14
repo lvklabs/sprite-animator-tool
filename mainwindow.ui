@@ -734,6 +734,10 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
+              <property name="toolTip">
+               <string>Left click: To change the position of the animation.
+Right click: To reset the position</string>
+              </property>
              </widget>
             </widget>
            </widget>
