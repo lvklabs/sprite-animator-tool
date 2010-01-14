@@ -96,24 +96,21 @@ public:
 
     // add *********************************************************************
 
-    /// add new input image
-    void addImage(const InputImage& img)
-    {  _images.insert(img.id, img); }
+    /// Add new input image. If the image Id is null, then addImage() auto-asigns
+    /// an unique Id
+    void addImage(InputImage& img);
 
-    /// add new frame
-    void addFrame(const LvkFrame& frame)
-    {
-        _frames.insert(frame.id, frame);
-        reloadFramePixmap(frame);
-    }
+    /// Add new frame. If the frame Id is null, then addFrame() auto-asigns
+    /// an unique Id
+    void addFrame(LvkFrame& frame);
 
-    /// add new animation
-    void addAnimation(const LvkAnimation& ani)
-    { _animations.insert(ani.id, ani); }
+    /// Add new animation. If the animation Id is null, then addAnimation()
+    /// auto-asigns an unique Id
+    void addAnimation(LvkAnimation& ani);
 
-    /// add new aframe to the animation @param aniId
-    void addAframe(const LvkAframe& aframe, Id aniId)
-    { _animations[aniId].aframes.insert(aframe.id, aframe); }
+    /// Add new aframe to the animation @param aniId. If the aframe Id is null,
+    /// then addAframe() auto-asigns an unique Id
+    void addAframe(LvkAframe& aframe, Id aniId);
 
 
     // remove ******************************************************************
@@ -170,6 +167,18 @@ public:
 
 
 protected:
+
+    /// Counter. Next image id
+    Id _imgId;
+
+    /// Counter. Next frame id
+    Id _frameId;
+
+    /// Counter. Next animation id
+    Id _aniId;
+
+    /// Counter. Next animation frame id
+    Id _aframeId;
 
     /// null pixmap
     QPixmap nullPixmap;

@@ -11,12 +11,58 @@
 #define setError(p, err_code) if (p) { *(p) = err_code; }
 
 SpriteState::SpriteState(QObject* parent)
-        : QObject(parent)
+        : QObject(parent), _imgId(0), _frameId(0), _aniId(0), _aframeId(0)
 {
+}
+
+void SpriteState::addImage(InputImage& img)
+{
+    if (img.id == NullId) {
+        img.id = _imgId++;
+    } else {
+        _imgId = std::max(_imgId, img.id + 1);
+    }
+    _images.insert(img.id, img);
+}
+
+void SpriteState::addFrame(LvkFrame& frame)
+{
+    if (frame.id == NullId) {
+        frame.id = _frameId++;
+    } else {
+        _frameId = std::max(_frameId, frame.id + 1);
+    }
+    reloadFramePixmap(frame);
+    _frames.insert(frame.id, frame);
+}
+
+void SpriteState::addAnimation(LvkAnimation& ani)
+{
+    if (ani.id == NullId) {
+        ani.id = _aniId++;
+    } else {
+        _aniId = std::max(_aniId, ani.id + 1);
+    }
+    _animations.insert(ani.id, ani);
+}
+
+void SpriteState::addAframe(LvkAframe& aframe, Id aniId)
+{
+    if (aframe.id == NullId) {
+        aframe.id = _aframeId++;
+    } else {
+        _aframeId = std::max(_aframeId, aframe.id + 1);
+    }
+    _animations[aniId].aframes.insert(aframe.id, aframe);
 }
 
 void SpriteState::clear()
 {
+    _imgId    = 0;
+    _frameId  = 0;
+    _aniId    = 0;
+    _aframeId = 0;
+
     _images.clear();
     _frames.clear();
     _animations.clear();

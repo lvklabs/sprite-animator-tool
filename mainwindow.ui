@@ -1064,7 +1064,7 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
    </widget>
    <widget class="QMenu" name="menuActions">
     <property name="title">
-     <string>Actions</string>
+     <string>Sprite</string>
     </property>
     <addaction name="actionAddImage"/>
     <addaction name="actionAddFrame"/>

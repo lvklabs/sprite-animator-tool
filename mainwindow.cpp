@@ -66,7 +66,7 @@ enum {
 
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow), _imgId(0), _frameId(0), _aniId(0), _aframeId(0),
+    : QMainWindow(parent), ui(new Ui::MainWindow),
       statusBarMousePos(new QLabel()), statusBarRectSize(new QLabel())
 {
     ui->setupUi(this);
@@ -349,40 +349,6 @@ bool MainWindow::openFile_(const QString& filename_, SpriteStateError* err)
         return false;
     }
 
-     /* input images */
-
-    for (QHashIterator<Id, InputImage> it(_sprState.images()); it.hasNext();) {
-        it.next();
-        const InputImage& image =  it.value();
-        _imgId = std::max(_imgId, image.id + 1); // dirty!
-    }
-
-    /* frames */
-
-    ui->framesTableWidget->clearContents();
-    for (QHashIterator<Id, LvkFrame> it(_sprState.frames()); it.hasNext();) {
-        it.next();
-        const LvkFrame& frame =  it.value();
-        _frameId = std::max(_frameId, frame.id + 1);  // dirty!
-    }
-
-    /* animations */
-
-    ui->aniTableWidget->clearContents();
-    for (QHashIterator<Id, LvkAnimation> it(_sprState.animations()); it.hasNext();) {
-        it.next();
-        const LvkAnimation& ani =  it.value();
-        _aniId = std::max(_aniId, ani.id + 1);  // dirty!
-
-        /* aframes */
-
-        for (QHashIterator<Id, LvkAframe> it2(it.value().aframes); it2.hasNext();) {
-            it2.next();
-            const LvkAframe& aframe =  it2.value();
-            _aframeId = std::max(_aframeId, aframe.id + 1);  // dirty!
-        }
-    }
-
     /* UI - tables and previews */
 
     refresh_ui();
@@ -597,11 +563,6 @@ void MainWindow::closeFile_checkUnsaved()
 
 void MainWindow::closeFile()
 {
-    _imgId    = 0;
-    _frameId  = 0;
-    _aniId    = 0;
-    _aframeId = 0;
-
     _sprState.clear();
     setCurrentFile("");
 
@@ -711,20 +672,22 @@ void MainWindow::addImageDialog()
         lastDir = QFileInfo(filenames[0]).absolutePath();
 
         for (int i = 0; i < filenames.size(); ++i) {
-            addImage(InputImage(_imgId++, filenames[i]));
+            addImage(InputImage(NullId, filenames[i]));
         }
     }
 }
 
 void MainWindow::addImage(const InputImage& image)
 {
+    InputImage image_ = image;
+
     /* State */
-    if (!image.filename.isEmpty()) {
-        _sprState.addImage(image);
+    if (!image_.filename.isEmpty()) {
+        _sprState.addImage(image_);
     }
 
     /* UI */
-    addImage_ui(image);
+    addImage_ui(image_);
 }
 
 void MainWindow::addImage_ui(const InputImage& image)
@@ -873,7 +836,7 @@ bool MainWindow::addFrameDialog()
     }
 
     if (validRect) {
-        addFrame(LvkFrame(_frameId++, imgId, ox, oy, w, h, name));
+        addFrame(LvkFrame(NullId, imgId, ox, oy, w, h, name));
         return true;
     }
     return false;
@@ -881,12 +844,14 @@ bool MainWindow::addFrameDialog()
 
 void MainWindow::addFrame(const LvkFrame &frame)
 {
+    LvkFrame frame_ = frame;
+
     /* state */
 
-    _sprState.addFrame(frame);
+    _sprState.addFrame(frame_);
 
     /* UI */
-    addFrame_ui(frame);
+    addFrame_ui(frame_);
 }
 
 void MainWindow::addFrame_ui(const LvkFrame &frame)
@@ -990,7 +955,7 @@ void MainWindow::addAnimationDialog()
             infoDialog(tr("Cannot add an animation without name"));
             return;
         }
-        addAnimation(LvkAnimation(_aniId++, name));
+        addAnimation(LvkAnimation(NullId, name));
     }
 }
 
@@ -1030,11 +995,13 @@ void MainWindow::hideShowFramePreview()
 
 void MainWindow::addAnimation(const LvkAnimation& ani)
 {
+    LvkAnimation ani_ = ani;
+
     /* state */
-    _sprState.addAnimation(ani);
+    _sprState.addAnimation(ani_);
 
     /* UI */
-    addAnimation_ui(ani);
+    addAnimation_ui(ani_);
 }
 
 void MainWindow::addAnimation_ui(const LvkAnimation& ani)
@@ -1219,18 +1186,20 @@ void MainWindow::addAframeDialog()
         }
         Id frameId = tokens.at(1).toInt();
 
-        addAframe(LvkAframe(_aframeId++, frameId), selectedAniId());
+        addAframe(LvkAframe(NullId, frameId), selectedAniId());
     }
 }
 
 
 void MainWindow::addAframe(const LvkAframe& aframe, Id aniId)
 {
+    LvkAframe aframe_ = aframe;
+
     /* state */
-    _sprState.addAframe(aframe, aniId);
+    _sprState.addAframe(aframe_, aniId);
     
     /* UI */
-    addAframe_ui(aframe, aniId);
+    addAframe_ui(aframe_, aniId);
 }
 
 void MainWindow::addAframe_ui(const LvkAframe& aframe, Id aniId)

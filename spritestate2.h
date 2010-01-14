@@ -29,10 +29,10 @@ public:
     void updateAnimation(const LvkAnimation& ani);
     void updateAframe(const LvkAframe& aframe, Id aniId);
 
-    void addImage(const InputImage& img);
-    void addFrame(const LvkFrame& frame);
-    void addAnimation(const LvkAnimation& ani);
-    void addAframe(const LvkAframe& aframe, Id aniId);
+    void addImage(InputImage& img);
+    void addFrame(LvkFrame& frame);
+    void addAnimation(LvkAnimation& ani);
+    void addAframe(LvkAframe& aframe, Id aniId);
 
     void removeImage(Id id);
     void removeFrame(Id id);

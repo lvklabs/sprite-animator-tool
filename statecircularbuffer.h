@@ -31,9 +31,6 @@ public:
         st_removeFrame,
         st_removeAnimation,
         st_removeAframe,
-        st_reloadImages,
-        st_reloadFramePixmap,
-        st_reloadFramePixmaps,
     };
 
     struct Data {

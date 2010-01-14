@@ -65,18 +65,6 @@ private:
     /// current sprite state
     SpriteState2 _sprState;
 
-    /// Counter. Next image id
-    Id _imgId;
-
-    /// Counter. Next frame id
-    Id _frameId;
-
-    /// Counter. Next animation id
-    Id _aniId;
-
-    /// Counter. Next animation frame id
-    Id _aframeId;
-
     /// Labels to show information in the status bar
     QLabel* statusBarMousePos;
     QLabel* statusBarRectSize;

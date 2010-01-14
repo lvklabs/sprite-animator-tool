@@ -33,6 +33,7 @@ bool SpriteState2::undo()
             break;
         case StateCircularBuffer::st_updateAframe:
             SpriteState::updateAframe(st.data.old_aframe, st.data.ani.id);
+            break;
 
         /* undo add */
         case StateCircularBuffer::st_addImage:
@@ -95,6 +96,7 @@ bool SpriteState2::redo()
             break;
         case StateCircularBuffer::st_updateAframe:
             SpriteState::updateAframe(st.data.aframe, st.data.ani.id);
+            break;
 
         /* redo add */
         case StateCircularBuffer::st_addImage:
@@ -245,45 +247,45 @@ void SpriteState2::updateAframe(const LvkAframe& aframe, Id aniId)
 
 // add *********************************************************************
 
-void SpriteState2::addImage(const InputImage& img)
+void SpriteState2::addImage(InputImage& img)
 {
+    SpriteState::addImage(img);
+
     StateChange st;
     st.type = StateCircularBuffer::st_addImage;
     st.data.img = img;
     _stBuffer.addState(st);
-
-    SpriteState::addImage(img);
 }
 
-void SpriteState2::addFrame(const LvkFrame& frame)
+void SpriteState2::addFrame(LvkFrame& frame)
 {
+    SpriteState::addFrame(frame);
+
     StateChange st;
     st.type = StateCircularBuffer::st_addFrame;
     st.data.frame = frame;
     _stBuffer.addState(st);
-
-    SpriteState::addFrame(frame);
 }
 
-void SpriteState2::addAnimation(const LvkAnimation& ani)
+void SpriteState2::addAnimation(LvkAnimation& ani)
 {
+    SpriteState::addAnimation(ani);
+
     StateChange st;
     st.type = StateCircularBuffer::st_addAnimation;
     st.data.ani = ani;
     _stBuffer.addState(st);
-
-    SpriteState::addAnimation(ani);
 }
 
-void SpriteState2::addAframe(const LvkAframe& aframe, Id aniId)
+void SpriteState2::addAframe(LvkAframe& aframe, Id aniId)
 {
+    SpriteState::addAframe(aframe, aniId);
+
     StateChange st;
     st.type = StateCircularBuffer::st_addAframe;
     st.data.aframe = aframe;
     st.data.ani.id = aniId;
     _stBuffer.addState(st);
-
-    SpriteState::addAframe(aframe, aniId);
 }
 
 // remove ******************************************************************
