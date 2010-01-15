@@ -13,9 +13,7 @@
 class LvkAnimationWidget : public QWidget
 {
 public:
-    LvkAnimationWidget(QWidget* parent = 0,
-                       const LvkAnimation& ani = LvkAnimation(),
-                       const QHash<Id, QPixmap>& fpixmaps = QHash<Id, QPixmap>());
+    LvkAnimationWidget(QWidget* parent = 0);
 
     void setAnimation(const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps);
     void setScreenSize(int w, int h);

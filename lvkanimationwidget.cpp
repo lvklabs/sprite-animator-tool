@@ -5,11 +5,10 @@
 #include <QMouseEvent>
 
 
-LvkAnimationWidget::LvkAnimationWidget(QWidget* parent, const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps)
+LvkAnimationWidget::LvkAnimationWidget(QWidget* parent)
         : QWidget(parent), _currentFrame(-1), _currentTimer(0), _isPlaying(false), _scrW(320), _scrH(480),
           _origin(QPoint(0,0))
 {
-    setAnimation(ani, fpixmaps);
 }
 
 void LvkAnimationWidget::setAnimation(const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps)
