@@ -8,10 +8,9 @@
 
 LvkInputImageWidget::LvkInputImageWidget(QWidget *parent)
         : QWidget(parent), _frect(0,0,0,0), _mouseRect(0,0,0,0), _mouseX(-1), _mouseY(-1),
-          _frectVisible(true), _mouseLinesVisible(true), _zoom(ZOOM_MIN), _pCache(0)
+          _frectVisible(true), _mouseLinesVisible(true), _zoom(ZOOM_MIN)
 {
     _c      = pow(ZOOM_FACTOR, _zoom);
-    _pCache = new QPixmap[ZOOM_MAX + 1];
 
     _frectPen.setColor(Qt::red);
     _frectPen.setStyle(Qt::SolidLine);
@@ -25,25 +24,9 @@ void LvkInputImageWidget::setPixmap(const QPixmap &pixmap)
 {
     setFrameRect(pixmap.rect());
 
-    /* clean pixmap cache */
-    _pCache[0] = pixmap;
-    for (int i = 1; i < ZOOM_MAX + 1; ++i) {
-        _pCache[i] = QPixmap();
-    }
+    _pixmap = pixmap;
 
-    resize(getScaledPixmap().size());
-}
-
-QPixmap& LvkInputImageWidget::getScaledPixmap()
-{
-    if ( _pCache[0].isNull()) {
-        return _pCache[0];
-    } else {
-        if (_pCache[_zoom].isNull()) {
-            _pCache[_zoom] = _pCache[0].scaled(_pCache[0].size()*pow(ZOOM_FACTOR, _zoom));
-        }
-        return _pCache[_zoom];
-    }
+    resize(_pixmap.size()*_c);
 }
 
 // TODO: do not delete _mouseRect
@@ -51,7 +34,6 @@ QPixmap& LvkInputImageWidget::getScaledPixmap()
             _c = pow(ZOOM_FACTOR, _zoom);\
             _scaledFrect = rtoz(_frect);\
             _mouseRect.setRect(0, 0, 0, 0);\
-            getScaledPixmap();\
             emit mouseRectChanged(ztor(_mouseRect));
 
 void LvkInputImageWidget::zoomIn()
@@ -134,7 +116,8 @@ const QRect LvkInputImageWidget::mouseFrameRect() const
 void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
 {
     QPainter painter(this);
-    painter.drawPixmap(0, 0, getScaledPixmap());
+
+    painter.drawPixmap(0, 0, _pixmap.width()*_c, _pixmap.height()*_c, _pixmap);
 
     bool ctrlKeyPressed = QApplication::keyboardModifiers() & Qt::ControlModifier;
 
@@ -253,7 +236,4 @@ void LvkInputImageWidget::resize(int w, int h)
 
 LvkInputImageWidget::~LvkInputImageWidget()
 {
-    if (_pCache) {
-        delete[] _pCache;
-    }
 }

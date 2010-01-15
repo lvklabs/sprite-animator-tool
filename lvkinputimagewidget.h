@@ -81,12 +81,9 @@ private:
     bool     _frectVisible;  /* turn on/off visible rects */
     bool     _mouseLinesVisible; /* turn on/off mouse lines */
     int      _zoom;          /* current zoom level */
-    QPixmap *_pCache;        /* pixmaps cache */
+    QPixmap  _pixmap;        /* current pixmap */
     QPen     _frectPen;      /* pen used to draw the frame rect */
     QPen     _mouseRectPen;  /* pen used to draw the mouse rect */
-
-
-    QPixmap& getScaledPixmap();
 
     void resize(const QSize &size);
     void resize(int w, int h);
