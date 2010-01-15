@@ -64,6 +64,18 @@ enum {
 #define selectedAniId()         getAnimationId(ui->aniTableWidget->currentRow())
 #define selectedAframeId()      getAFrameId(ui->aframesTableWidget->currentRow())
 
+#ifdef MAC_OS_X
+QString convertToMacKeys(const QString& str)
+{
+    QString tmp = str;
+    tmp.replace("Ctrl + ", QString(QChar(0x2318) /* ⌘ */), Qt::CaseInsensitive);
+    tmp.replace("Alt + ",  QString(QChar(0x2325) /* ⌥ */), Qt::CaseInsensitive);
+    tmp.replace("Ctrl",    QString(QChar(0x2318) /* ⌘ */), Qt::CaseInsensitive);
+    tmp.replace("Alt",     QString(QChar(0x2325) /* ⌥ */), Qt::CaseInsensitive);
+    tmp.replace("or F2",   QString(/* FIXME which is the equivalent key? */), Qt::CaseInsensitive);
+    return tmp;
+}
+#endif // MAC_OS_X
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow),
@@ -74,11 +86,22 @@ MainWindow::MainWindow(QWidget *parent)
     ui->statusBar->addWidget(statusBarRectSize);
 
     ui->imgPreview->setPixmap(QPixmap());
-
     ui->framePreview->setFrameRectVisible(false);
     ui->framePreview->setPixmap(QPixmap());
-
     ui->aframePreview->setFrameRectVisible(false);
+
+#ifdef MAC_OS_X
+    ui->imgTableWidget->setToolTip(convertToMacKeys(ui->imgTableWidget->toolTip()));
+    ui->framesTableWidget->setToolTip(convertToMacKeys(ui->framesTableWidget->toolTip()));
+    ui->aframesTableWidget->setToolTip(convertToMacKeys(ui->aframesTableWidget->toolTip()));
+    ui->aniTableWidget->setToolTip(convertToMacKeys(ui->aniTableWidget->toolTip()));
+    ui->imgPreviewScroll->setToolTip(convertToMacKeys(ui->imgPreviewScroll->toolTip()));
+
+    ui->imgTableWidget->setFont(QFont("", 11));
+    ui->framesTableWidget->setFont(QFont("", 11));
+    ui->aniTableWidget->setFont(QFont("", 11));
+    ui->aframesTableWidget->setFont(QFont("", 11));
+#endif // MAC_OS_X
 
     initSignals();
     initTables();

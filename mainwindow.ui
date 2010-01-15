@@ -42,7 +42,7 @@
        </size>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="framesTab">
        <attribute name="title">
@@ -85,13 +85,9 @@
              <cursorShape>ArrowCursor</cursorShape>
             </property>
             <property name="toolTip">
-             <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Sans'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Left click: &lt;/span&gt;To define a rectangular area in the image&lt;/p&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Right click:&lt;/span&gt; To remove the rectangular area&lt;/p&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Crtl key:&lt;/span&gt; Hold to display mouse guidelines&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>Left click: To define a rectangular area in the image
+Right click: To remove the rectangular area
+Ctrl key: Hold to display mouse guidelines</string>
             </property>
             <property name="widgetResizable">
              <bool>false</bool>
@@ -210,11 +206,7 @@ p, li { white-space: pre-wrap; }
              <bool>true</bool>
             </property>
             <property name="toolTip">
-             <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Sans'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Add new frame from a rectangular area in the input image (&lt;span style=&quot; font-style:italic;&quot;&gt;whole image is used if the rectangular area is null&lt;/span&gt;)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>Add new frame from a rectangular area in the input image (whole image is used if the rectangular area is null)</string>
             </property>
             <property name="text">
              <string>AF</string>
@@ -338,7 +330,7 @@ p, li { white-space: pre-wrap; }
             </property>
             <property name="toolTip">
              <string>Double-click or F2 to edit the fields
-Alt + Up or Alt + Down to increase or decrease numeric fields</string>
+Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
             </property>
             <property name="editTriggers">
              <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
@@ -562,8 +554,8 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>372</width>
-               <height>585</height>
+               <width>363</width>
+               <height>589</height>
               </rect>
              </property>
             </widget>
@@ -715,8 +707,8 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>372</width>
-               <height>546</height>
+               <width>363</width>
+               <height>553</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="aniPreview" native="true">
@@ -818,7 +810,7 @@ Right click: To reset the position</string>
             <item>
              <widget class="QComboBox" name="previewScrSizeCombo">
               <property name="toolTip">
-               <string>Resolution</string>
+               <string/>
               </property>
               <property name="currentIndex">
                <number>4</number>
@@ -974,7 +966,7 @@ Right click: To reset the position</string>
             </property>
             <property name="toolTip">
              <string>Double-click or F2 to edit the fields
-Alt + Up or Alt + Down to increase or decrease numeric fields</string>
+Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
             </property>
             <property name="editTriggers">
              <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
@@ -986,7 +978,7 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
              <enum>QAbstractItemView::SingleSelection</enum>
             </property>
             <property name="selectionBehavior">
-             <enum>QAbstractItemView::SelectRows</enum>
+             <enum>QAbstractItemView::SelectItems</enum>
             </property>
             <property name="verticalScrollMode">
              <enum>QAbstractItemView::ScrollPerPixel</enum>
@@ -1016,7 +1008,7 @@ Alt + Up or Alt + Down to increase or decrease numeric fields</string>
      <x>0</x>
      <y>0</y>
      <width>1199</width>
-     <height>26</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
