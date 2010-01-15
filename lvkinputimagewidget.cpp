@@ -6,8 +6,6 @@
 
 #include "lvkinputimagewidget.h"
 
-// TODO: Clean code!
-
 LvkInputImageWidget::LvkInputImageWidget(QWidget *parent)
         : QWidget(parent), _frect(0,0,0,0), _mouseRect(0,0,0,0), _mouseX(-1), _mouseY(-1),
           _frectVisible(true), _mouseLinesVisible(true), _zoom(ZOOM_MIN), _pCache(0)

@@ -43,7 +43,7 @@ protected:
 private:
     static const int ZOOM_FACTOR = 2;
     static const int ZOOM_MIN    = 0; /* Do not change! */
-    static const int ZOOM_MAX    = 4;
+    static const int ZOOM_MAX    = 3;
 
     /// from real size to zoomed size (in pixels);
     inline int rtoz(int value)  const
