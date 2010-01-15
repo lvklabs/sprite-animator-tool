@@ -2,7 +2,7 @@
 #define SETTINGS_H
 
 #define APP_NAME                "Lvk Sprite Animation Tool"
-#define APP_VERSION             "1.0 Beta1"
+#define APP_VERSION             "1.0 Beta2"
 
 #define MAX_RECENT_FILES        10
 #define KEY_RECENT_FILE         "RecentFiles/filename"
