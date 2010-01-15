@@ -273,7 +273,7 @@ bool MainWindow::saveAsFile()
     bool           success = true;
     QString        filename;
 
-    filename = QFileDialog::getOpenFileName(
+    filename = QFileDialog::getSaveFileName(
             this, tr("Save file"), lastDir, "*.lvks;; *.*");
 
     if (filename.isNull()) {
