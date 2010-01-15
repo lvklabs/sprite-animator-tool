@@ -900,9 +900,10 @@ void MainWindow::addFrame_ui(const LvkFrame &frame)
     ui->framesTableWidget->setItem(rows, ColFrameName,  item_name);
     cellChangedSignals(true);
 
-    ui->imgTableWidget->setCurrentItem(item_id);
-
     showFrame(frame.id);
+
+    ui->framesTableWidget->setFocus();
+    ui->framesTableWidget->setCurrentCell(rows, ColFrameOx);
 }
 
 void MainWindow::showSelFrame(int row)
@@ -1250,6 +1251,9 @@ void MainWindow::addAframe_ui(const LvkAframe& aframe, Id aniId)
     showAframe(aframe.id);
 
     previewAnimation();
+
+    ui->aframesTableWidget->setFocus();
+    ui->aframesTableWidget->setCurrentCell(rows, ColAframeFrameId);
 }
 
 
