@@ -7,7 +7,7 @@
 
 LvkAnimationWidget::LvkAnimationWidget(QWidget* parent)
         : QWidget(parent), _currentFrame(-1), _currentTimer(0), _isPlaying(false), _scrW(320), _scrH(480),
-          _origin(QPoint(0,0))
+          _origin(QPoint(1,1))
 {
 }
 
@@ -44,8 +44,8 @@ void LvkAnimationWidget::clear()
     _delays.clear();
     _oxs.clear();
     _oys.clear();
-    _origin.setX(0);
-    _origin.setY(0);
+    _origin.setX(1);
+    _origin.setY(1);
 
     repaint();
 }
@@ -85,8 +85,8 @@ void LvkAnimationWidget::mousePressEvent(QMouseEvent *event)
         _origin.setX(event->x());
         _origin.setY(event->y());
     } else {
-        _origin.setX(0);
-        _origin.setY(0);
+        _origin.setX(1);
+        _origin.setY(1);
     }
 
     repaint();
