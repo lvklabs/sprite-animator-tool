@@ -554,8 +554,8 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>363</width>
-               <height>589</height>
+               <width>372</width>
+               <height>585</height>
               </rect>
              </property>
             </widget>
@@ -707,8 +707,8 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>363</width>
-               <height>553</height>
+               <width>372</width>
+               <height>546</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="aniPreview" native="true">
@@ -803,7 +803,7 @@ Right click: To reset the position</string>
             <item>
              <widget class="QLabel" name="resolutionLabel">
               <property name="text">
-               <string>Resolution:</string>
+               <string>Screen resolution:</string>
               </property>
              </widget>
             </item>
@@ -1008,7 +1008,7 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
      <x>0</x>
      <y>0</y>
      <width>1199</width>
-     <height>22</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
@@ -1021,11 +1021,11 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
      </property>
      <addaction name="actionNoRecentFiles"/>
     </widget>
+    <addaction name="actionClose"/>
     <addaction name="actionOpen"/>
     <addaction name="actionOpenRecent"/>
     <addaction name="actionSave"/>
     <addaction name="actionSaveAs"/>
-    <addaction name="actionClose"/>
     <addaction name="separator"/>
     <addaction name="actionExport"/>
     <addaction name="actionExportAs"/>
@@ -1132,10 +1132,10 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
   </action>
   <action name="actionClose">
    <property name="text">
-    <string>Close</string>
+    <string>New</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+W</string>
+    <string>Ctrl+N</string>
    </property>
   </action>
   <action name="actionNoRecentFiles">
