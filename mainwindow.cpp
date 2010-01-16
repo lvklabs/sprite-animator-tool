@@ -589,6 +589,8 @@ void MainWindow::closeFile()
     _sprState.clear();
     setCurrentFile("");
 
+    showFramesTab();
+
     cellChangedSignals(false);
     ui->imgTableWidget->clearContents();
     ui->imgTableWidget->setRowCount(0);
@@ -603,6 +605,9 @@ void MainWindow::closeFile()
     ui->imgPreview->setPixmap(QPixmap());
     ui->framePreview->setPixmap(QPixmap());
     ui->aframePreview->setPixmap(QPixmap());
+    ui->imgPreview->setZoom(0);
+    ui->framePreview->setZoom(0);
+    ui->aframePreview->setZoom(0);
     clearPreviewAnimation();
 }
 
