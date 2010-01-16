@@ -82,14 +82,18 @@ private:
     QRect    _frect;         /* frame rect */
     QRect    _scaledFrect;   /* frame rect scaled by _zoom */
     QRect    _mouseRect;     /* mouse rect */
+    QRect    _mouseRectP;    /* mouse rect used for dragging */
     int      _mouseX;        /* mouse current x position */
     int      _mouseY;        /* mouse current y position */
+    int      _mouseClickX;   /* mouse click x position */
+    int      _mouseClickY;   /* mouse click y position */
     bool     _frectVisible;  /* turn on/off visible rects */
     bool     _mouseLinesVisible; /* turn on/off mouse lines */
     int      _zoom;          /* current zoom level */
     QPixmap  _pixmap;        /* current pixmap */
     QPen     _frectPen;      /* pen used to draw the frame rect */
     QPen     _mouseRectPen;  /* pen used to draw the mouse rect */
+    bool     _draggingRect;  /* if dragging the mouse rect */
 
     void resize(const QSize &size);
     void resize(int w, int h);
