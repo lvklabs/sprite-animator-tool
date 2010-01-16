@@ -15,9 +15,14 @@ public:
 
     void setPixmap(const QPixmap &pixmap);
 
+    static const int ZOOM_FACTOR = 2.0;
+    static const int ZOOM_MIN    = -3;
+    static const int ZOOM_MAX    = 3;
+
 public slots:
     void zoomIn();
     void zoomOut();
+    void setZoom(int level);
 
     void setFrameRectVisible(bool visible);
     bool frameRectVisible() const;
@@ -41,10 +46,6 @@ protected:
     virtual void wheelEvent(QWheelEvent *event);
 
 private:
-    static const int ZOOM_FACTOR = 2;
-    static const int ZOOM_MIN    = 0; /* Do not change! */
-    static const int ZOOM_MAX    = 3;
-
     /// from real size to zoomed size (in pixels);
     inline int rtoz(int value)  const
     { return value*_c; }
@@ -62,17 +63,22 @@ private:
     /// pixelate value
     inline int pixelate(int value) const
     {
-        if (value > 0) {
-            value -=  value % _c;
+        int c = (int)_c;
+
+        if (c == 0) {
+            return value;
+        } else if (value > 0) {
+            value -=  value % c;
             return (value < 0) ? 0 : value;
         } else if (value < 0) {
-            value +=  (-1*value) % _c;
+            value +=  (-1*value) % c;
             return (value > 0) ? 0 : value + 1;
+        } else {
+            return 0;
         }
-        return 0;
     }
 
-    int      _c;             /* heavily used coeficient */
+    float    _c;             /* heavily used coeficient */
     QRect    _frect;         /* frame rect */
     QRect    _scaledFrect;   /* frame rect scaled by _zoom */
     QRect    _mouseRect;     /* mouse rect */

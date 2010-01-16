@@ -8,9 +8,9 @@
 
 LvkInputImageWidget::LvkInputImageWidget(QWidget *parent)
         : QWidget(parent), _frect(0,0,0,0), _mouseRect(0,0,0,0), _mouseX(-1), _mouseY(-1),
-          _frectVisible(true), _mouseLinesVisible(true), _zoom(ZOOM_MIN)
+          _frectVisible(true), _mouseLinesVisible(true), _zoom(0)
 {
-    _c      = pow(ZOOM_FACTOR, _zoom);
+    _c = pow(ZOOM_FACTOR, _zoom);
 
     _frectPen.setColor(Qt::red);
     _frectPen.setStyle(Qt::SolidLine);
@@ -34,6 +34,7 @@ void LvkInputImageWidget::setPixmap(const QPixmap &pixmap)
             _c = pow(ZOOM_FACTOR, _zoom);\
             _scaledFrect = rtoz(_frect);\
             _mouseRect.setRect(0, 0, 0, 0);\
+            resize(_pixmap.size()*_c);\
             emit mouseRectChanged(ztor(_mouseRect));
 
 void LvkInputImageWidget::zoomIn()
@@ -41,7 +42,6 @@ void LvkInputImageWidget::zoomIn()
     if (_zoom < ZOOM_MAX) {
         _zoom++;
         ZOOM_COMMON();
-        resize(size()*ZOOM_FACTOR);
     }
 }
 
@@ -50,7 +50,14 @@ void LvkInputImageWidget::zoomOut()
     if (_zoom > ZOOM_MIN) {
         _zoom--;
         ZOOM_COMMON();
-        resize(size()/ZOOM_FACTOR);
+    }
+}
+
+void LvkInputImageWidget::setZoom(int level)
+{
+    if (level >= ZOOM_MIN && level <= ZOOM_MAX && level != _zoom) {
+        _zoom = level;
+        ZOOM_COMMON();
     }
 }
 
