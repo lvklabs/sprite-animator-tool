@@ -2,20 +2,24 @@
 #include <QDebug>
 #include <QMouseEvent>
 #include <cmath>
-#include <QApplication>
 
 #include "lvkinputimagewidget.h"
 
 LvkInputImageWidget::LvkInputImageWidget(QWidget *parent)
         : QWidget(parent), _frect(0,0,0,0), _mouseRect(0,0,0,0), _mouseX(-1), _mouseY(-1),
-          _frectVisible(true), _mouseLinesVisible(true), _zoom(0), _draggingRect(false)
+          _frectVisible(true), _mouseLinesVisible(true), _zoom(0), _draggingRect(false),
+          _resizingRect(false), _hGuide(true)
 {
     _c = pow(ZOOM_FACTOR, _zoom);
 
-    _frectPen.setColor(Qt::red);
+    _frectPen.setColor(QColor(255 , 127, 127));
     _frectPen.setStyle(Qt::SolidLine);
     _mouseRectPen.setColor(Qt::black);
     _mouseRectPen.setStyle(Qt::DashLine);
+    _mouseGuidePen.setColor(Qt::gray);
+    _mouseGuidePen.setStyle(Qt::SolidLine);
+    _guidePen.setColor(QColor(127 , 127, 255));
+    _guidePen.setStyle(Qt::DashLine);
 
     setMouseTracking(true);
 }
@@ -59,6 +63,11 @@ void LvkInputImageWidget::setZoom(int level)
         _zoom = level;
         ZOOM_COMMON();
     }
+}
+
+int LvkInputImageWidget::zoom()
+{
+    return _zoom;
 }
 
 QRect LvkInputImageWidget::ztor(const QRect& rect) const
@@ -120,37 +129,79 @@ const QRect LvkInputImageWidget::mouseFrameRect() const
     return ztor(_mouseRect);
 }
 
+void LvkInputImageWidget::clearGuides()
+{
+    _guides.clear();
+    update();
+}
+
+bool LvkInputImageWidget::mouseCrossGuidesMode()
+{
+    return _mouseLinesVisible && !_draggingRect && ctrlKey();
+}
+
+bool LvkInputImageWidget::mouseBlueGuideMode()
+{
+    return _mouseLinesVisible && !_resizingRect && !_draggingRect && ctrlKey() && shiftKey();
+}
+
+bool LvkInputImageWidget::canDrag()
+{
+    return !_resizingRect && _mouseRect.isValid() && _mouseRect.contains(_mouseX, _mouseY) && !mouseBlueGuideMode();
+}
+
 void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
 {
     QPainter painter(this);
 
-    painter.drawPixmap(0, 0, _pixmap.width()*_c, _pixmap.height()*_c, _pixmap);
-
-    bool ctrlKeyPressed = QApplication::keyboardModifiers() & Qt::ControlModifier;
-
-    if (_draggingRect) {
-		/* nothing to do */
-    } else if (_mouseLinesVisible && ctrlKeyPressed) {
-        int mx;
-        int my;
-
-        if (QApplication::mouseButtons() == Qt::LeftButton) {
-            mx = _mouseRect.x() + _mouseRect.width() - 1;
-            my = _mouseRect.y() + _mouseRect.height() - 1;
-        } else {
-            mx = pixelate(_mouseX);
-            my = pixelate(_mouseY);
-        }
-
-        painter.setPen(Qt::gray);
-        painter.drawLine(mx, 0,  mx, height());
-        painter.drawLine(0, my, width(),my);
-
+    /* set mouse cursor */
+    if (mouseCrossGuidesMode() || mouseBlueGuideMode()) {
         setCursor(QCursor(Qt::BlankCursor));
-    } else if (_mouseRect.isValid() && _mouseRect.contains(_mouseX, _mouseY)) {
+    } else if (_draggingRect || canDrag()) {
         setCursor(QCursor(Qt::SizeAllCursor));
     } else {
         setCursor(QCursor(Qt::ArrowCursor));
+    }
+
+    /* draw Image*/
+    painter.drawPixmap(0, 0, _pixmap.width()*_c, _pixmap.height()*_c, _pixmap);
+
+    if (_mouseLinesVisible) {
+        /* draw guide lines */
+        painter.setPen(_guidePen);
+        for (int i = 0; i < _guides.size(); ++i) {
+            int x = rtoz(_guides.at(i).x());
+            int y = rtoz(_guides.at(i).y());
+            painter.drawLine(x, 0,  x, height());
+            painter.drawLine(0, y, width(),y);
+        }
+    }
+
+    /* draw mouse guides */
+    if (mouseCrossGuidesMode()) {
+        int mx = pixelate(_mouseX);
+        int my = pixelate(_mouseY);
+
+        // TODO check why this works!
+        if (_mouseRect.width() < 0) {
+            mx = pixelate(_mouseX - 1) + _c;
+        }
+        if (_mouseRect.height() < 0) {
+            my = pixelate(_mouseY - 1) + _c;
+        }
+
+        if (mouseBlueGuideMode()) {
+            painter.setPen(_guidePen);
+            if (_hGuide) {
+                painter.drawLine(0, my, width(),my);
+            } else {
+                painter.drawLine(mx, 0,  mx, height());
+            }
+        } else {
+            painter.setPen(_mouseGuidePen);
+            painter.drawLine(mx, 0,  mx, height());
+            painter.drawLine(0, my, width(),my);
+        }
     }
 
     if (_frectVisible) {
@@ -159,8 +210,8 @@ void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
         /* draw frame rect */
         rect = _scaledFrect;
         if (!rect.isEmpty()) {
-            rect.setWidth(_scaledFrect.width() - 1);
-            rect.setHeight(_scaledFrect.height() - 1);
+            rect.setWidth(_scaledFrect.width());
+            rect.setHeight(_scaledFrect.height());
             painter.setPen(_frectPen);
             painter.drawRect(rect);
         }
@@ -168,8 +219,8 @@ void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
         /* draw mouse rect */
         rect = _mouseRect.normalized();
         if (!rect.isEmpty()) {
-            rect.setWidth(rect.width() - 1);
-            rect.setHeight(rect.height() - 1);
+            rect.setWidth(rect.width());
+            rect.setHeight(rect.height());
             painter.setPen(_mouseRectPen);
             painter.drawRect(rect);
         }
@@ -183,19 +234,33 @@ void LvkInputImageWidget::mousePressEvent(QMouseEvent *event)
     _mouseClickY = event->y();
 
     if (event->buttons() & Qt::LeftButton) {
-        if (_mouseRect.isValid() && _mouseRect.contains(_mouseClickX, _mouseClickY)) {
+        if (canDrag()) {
             _draggingRect = true;
             _mouseRectP = _mouseRect;
+        } else if (mouseBlueGuideMode()) {
+            if (_hGuide) {
+                _guides.append(QPoint(-1, ztor(pixelate(_mouseClickY))));
+            } else {
+                _guides.append(QPoint(ztor(pixelate(_mouseClickX)), -1));
+            }
         } else {
             _mouseRect.setRect(pixelate(_mouseClickX), pixelate(_mouseClickY), 0, 0);
+            _resizingRect = true;
             emit mouseRectChanged(ztor(_mouseRect));
         }
-        update();
     } else if (event->buttons() & Qt::RightButton) {
-        _mouseRect.setRect(0, 0, 0, 0);
-        emit mouseRectChanged(ztor(_mouseRect));
-        update();
+        if (mouseBlueGuideMode()) {
+            _hGuide = !_hGuide;
+//        } else if (_draggingRect) {
+//            _mouseRect = _mouseRectP;
+//            _draggingRect = false;
+//            emit mouseRectChanged(ztor(_mouseRect));
+        } else {
+            _mouseRect.setRect(0, 0, 0, 0);
+            emit mouseRectChanged(ztor(_mouseRect));
+        }
     }
+    update();
 }
 
 void LvkInputImageWidget::mouseMoveEvent(QMouseEvent *event)
@@ -205,26 +270,25 @@ void LvkInputImageWidget::mouseMoveEvent(QMouseEvent *event)
 
     emit mousePositionChanged(ztor(_mouseX), ztor(_mouseY));
 
-    bool ctrlKeyPressed = QApplication::keyboardModifiers() & Qt::ControlModifier;
 
     if (_frectVisible) {
         if (_draggingRect) {
             int dx = _mouseX -_mouseClickX;
             int dy = _mouseY -_mouseClickY;
-            if (!ctrlKeyPressed) {
-                _mouseRect.moveTo(pixelate(_mouseRectP.x() + dx) - 1,
-                                  pixelate(_mouseRectP.y() + dy) - 1);
+            if (!ctrlKey()) {
+                _mouseRect.moveTo(pixelate(_mouseRectP.x() + dx),
+                                  pixelate(_mouseRectP.y() + dy));
             } else {
                 if (abs(dx) > 20 ) {
-                    _mouseRect.moveTo(pixelate(_mouseRectP.x() + dx) - 1,
-                                      pixelate(_mouseRectP.y()) - 1);
+                    _mouseRect.moveTo(pixelate(_mouseRectP.x() + dx),
+                                      pixelate(_mouseRectP.y()));
                 } else {
-                    _mouseRect.moveTo(pixelate(_mouseRectP.x()) - 1,
-                                      pixelate(_mouseRectP.y() + dy) - 1);
+                    _mouseRect.moveTo(pixelate(_mouseRectP.x()),
+                                      pixelate(_mouseRectP.y() + dy));
                 }
             }
             emit mouseRectChanged(ztor(_mouseRect));
-        } else if (event->buttons() & Qt::LeftButton) {
+        } else if (_resizingRect && event->buttons() & Qt::LeftButton) {
             int w = _mouseX - _mouseRect.x();
             int h = _mouseY - _mouseRect.y();
             _mouseRect.setWidth(pixelate(w));
@@ -232,13 +296,13 @@ void LvkInputImageWidget::mouseMoveEvent(QMouseEvent *event)
             emit mouseRectChanged(ztor(_mouseRect));
         }
     }
-
     update();
 }
 
 void LvkInputImageWidget::mouseReleaseEvent(QMouseEvent */*event*/)
 {
     _draggingRect = false;
+    _resizingRect = false;
     _mouseRect = _mouseRect.normalized();
     emit mouseRectChanged(ztor(_mouseRect));
     update();
@@ -246,8 +310,7 @@ void LvkInputImageWidget::mouseReleaseEvent(QMouseEvent */*event*/)
 
 void LvkInputImageWidget::wheelEvent(QWheelEvent *event)
 {
-    bool ctrlKeyPressed = QApplication::keyboardModifiers() & Qt::ControlModifier;;
-    if (ctrlKeyPressed) {
+    if (ctrlKey()) {
         if (event->delta() > 0) {
             zoomIn();
         } else if (event->delta() < 0) {

@@ -11,6 +11,8 @@
 #include <QInputDialog>
 #include <QGraphicsPixmapItem>
 #include <QList>
+//#include <QScrollBar>
+//#include <cmath>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -68,11 +70,14 @@ enum {
 QString convertToMacKeys(const QString& str)
 {
     QString tmp = str;
-    tmp.replace("Ctrl + ", QString(QChar(0x2318) /* ⌘ */), Qt::CaseInsensitive);
-    tmp.replace("Alt + ",  QString(QChar(0x2325) /* ⌥ */), Qt::CaseInsensitive);
-    tmp.replace("Ctrl",    QString(QChar(0x2318) /* ⌘ */), Qt::CaseInsensitive);
-    tmp.replace("Alt",     QString(QChar(0x2325) /* ⌥ */), Qt::CaseInsensitive);
-    tmp.replace("or F2",   QString(/* FIXME which is the equivalent key? */), Qt::CaseInsensitive);
+    tmp.replace("Shift + ", QString(QChar(0x21e7) /* ⇧ */), Qt::CaseInsensitive);
+    tmp.replace("Ctrl + ",  QString(QChar(0x2318) /* ⌘ */), Qt::CaseInsensitive);
+    tmp.replace("Alt + ",   QString(QChar(0x2325) /* ⌥ */), Qt::CaseInsensitive);
+    tmp.replace("Shift",    QString(QChar(0x21e7) /* ⇧ */), Qt::CaseInsensitive);
+    tmp.replace("Ctrl",     QString(QChar(0x2318) /* ⌘ */), Qt::CaseInsensitive);
+    tmp.replace("Alt",      QString(QChar(0x2325) /* ⌥ */), Qt::CaseInsensitive);
+    tmp.replace("or F2",    QString(/* FIXME which is the equivalent key? */), Qt::CaseInsensitive);
+
     return tmp;
 }
 #endif // MAC_OS_X
@@ -87,8 +92,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->imgPreview->setPixmap(QPixmap());
     ui->framePreview->setFrameRectVisible(false);
+    ui->framePreview->setMouseLinesVisible(false);
     ui->framePreview->setPixmap(QPixmap());
     ui->aframePreview->setFrameRectVisible(false);
+    ui->aframePreview->setMouseLinesVisible(false);
 
 #ifdef MAC_OS_X
     ui->imgTableWidget->setToolTip(convertToMacKeys(ui->imgTableWidget->toolTip()));
@@ -158,6 +165,7 @@ void MainWindow::initSignals()
 
     connect(ui->imgZoomInButton,       SIGNAL(clicked()),  ui->imgPreview,    SLOT(zoomIn()));
     connect(ui->imgZoomOutButton,      SIGNAL(clicked()),  ui->imgPreview,    SLOT(zoomOut()));
+    connect(ui->actionClearGuides,     SIGNAL(triggered()),ui->imgPreview,    SLOT(clearGuides()));
     connect(ui->frameZoomInButton,     SIGNAL(clicked()),  ui->framePreview,  SLOT(zoomIn()));
     connect(ui->frameZoomOutButton,    SIGNAL(clicked()),  ui->framePreview,  SLOT(zoomOut()));
     connect(ui->aframeZoomInButton,    SIGNAL(clicked()),  ui->aframePreview, SLOT(zoomIn()));
@@ -935,8 +943,47 @@ void MainWindow::showFrame(Id frameId)
                 break;
             }
         }
+// FIXME        scrollImgPreview(frameId);
     }
 }
+/* FIXME
+void MainWindow::scrollImgPreview(Id frameId)
+{
+    const LvkFrame frame = _sprState.const_frame(frameId);
+
+    int margin = 10;
+
+    int hval = ui->imgPreviewScroll->horizontalScrollBar()->value();
+    int w    = ui->imgPreviewScroll->width();
+    int wv   = w + hval;
+    int fwox = (frame.w + frame.ox) * pow(2, ui->imgPreview->zoom());
+    int fox = frame.ox * pow(2, ui->imgPreview->zoom());
+
+    qDebug() << "hval" << hval
+             << "w"   << w
+             << "wv"  << wv
+             << "fwox"<< fwox
+             << "fox" << fox;
+
+    if (fwox >= wv) {
+        ui->imgPreviewScroll->horizontalScrollBar()->setValue(fwox + margin);
+    } else if (fox <= hval) {
+        ui->imgPreviewScroll->horizontalScrollBar()->setValue(fox - margin);
+    }
+
+    int vval = ui->imgPreviewScroll->verticalScrollBar()->value();
+    int h    = ui->imgPreviewScroll->height();
+    int hv   = h + vval;
+    int fwoy = (frame.h + frame.oy) * pow(2, ui->imgPreview->zoom());
+    int foy = frame.oy * pow(2, ui->imgPreview->zoom());
+
+    if (fwoy >= hv) {
+        ui->imgPreviewScroll->verticalScrollBar()->setValue(fwoy + margin);
+    } else if (foy <= vval) {
+        ui->imgPreviewScroll->verticalScrollBar()->setValue(foy - margin);
+    }
+}
+*/
 
 void MainWindow::removeSelFrame()
 {

@@ -4,6 +4,7 @@
 #include <QLabel>
 #include <QRect>
 #include <QPen>
+#include <QApplication>
 
 class LvkInputImageWidget : public QWidget
 {
@@ -19,6 +20,10 @@ public:
     static const int ZOOM_MIN    = -3;
     static const int ZOOM_MAX    = 3;
 
+    int zoom();
+    const QRect frameRect() const;
+    const QRect mouseFrameRect() const;
+
 public slots:
     void zoomIn();
     void zoomOut();
@@ -31,8 +36,8 @@ public slots:
     bool mouseLinesRectVisible() const;
 
     void setFrameRect(const QRect &rect);
-    const QRect frameRect() const;
-    const QRect mouseFrameRect() const;
+
+    void clearGuides();
 
 signals:
     void mousePositionChanged(int x, int y);
@@ -93,7 +98,26 @@ private:
     QPixmap  _pixmap;        /* current pixmap */
     QPen     _frectPen;      /* pen used to draw the frame rect */
     QPen     _mouseRectPen;  /* pen used to draw the mouse rect */
+    QPen     _mouseGuidePen; /* pen used to draw the mouse guides */
+    QPen     _guidePen;      /* pen used to draw the "blue" guides */
     bool     _draggingRect;  /* if dragging the mouse rect */
+    bool     _resizingRect;  /* if resizing the mouse rect */
+    bool     _hGuide;        /* add horizontal guide if true, add vertical guide if false */
+
+    QList<QPoint> _guides;
+
+    bool ctrlKey()
+    { return QApplication::keyboardModifiers() & Qt::ControlModifier; }
+
+    bool shiftKey()
+    { return QApplication::keyboardModifiers() & Qt::ShiftModifier; }
+
+    bool altKey()
+    { return QApplication::keyboardModifiers() & Qt::AltModifier; }
+
+    bool mouseCrossGuidesMode();
+    bool mouseBlueGuideMode();
+    bool canDrag();
 
     void resize(const QSize &size);
     void resize(int w, int h);

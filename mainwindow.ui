@@ -87,7 +87,9 @@
             <property name="toolTip">
              <string>Left click: To define a rectangular area in the image
 Right click: To remove the rectangular area
-Ctrl key: Hold to display mouse guidelines</string>
+Ctrl key: Hold to display mouse guides
+Ctrl + Shift + Left click: To add guides
+Ctrl + Shift + Right click: To switch horizontal/vertical guides</string>
             </property>
             <property name="widgetResizable">
              <bool>false</bool>
@@ -554,8 +556,8 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>372</width>
-               <height>585</height>
+               <width>96</width>
+               <height>26</height>
               </rect>
              </property>
             </widget>
@@ -707,8 +709,8 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>372</width>
-               <height>546</height>
+               <width>96</width>
+               <height>26</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="aniPreview" native="true">
@@ -1053,6 +1055,8 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
     </property>
     <addaction name="actionUndo"/>
     <addaction name="actionRedo"/>
+    <addaction name="separator"/>
+    <addaction name="actionClearGuides"/>
    </widget>
    <widget class="QMenu" name="menuActions">
     <property name="title">
@@ -1270,6 +1274,11 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
    </property>
    <property name="shortcut">
     <string>F5</string>
+   </property>
+  </action>
+  <action name="actionClearGuides">
+   <property name="text">
+    <string>Clear guides</string>
    </property>
   </action>
  </widget>
