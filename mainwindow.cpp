@@ -610,12 +610,10 @@ void MainWindow::closeFile()
     ui->aframesTableWidget->setRowCount(0);
     cellChangedSignals(true);
 
-    ui->imgPreview->setPixmap(QPixmap());
-    ui->framePreview->setPixmap(QPixmap());
-    ui->aframePreview->setPixmap(QPixmap());
-    ui->imgPreview->setZoom(0);
-    ui->framePreview->setZoom(0);
-    ui->aframePreview->setZoom(0);
+    ui->imgPreview->clear();
+    ui->framePreview->clear();
+    ui->aframePreview->clear();
+
     clearPreviewAnimation();
 }
 

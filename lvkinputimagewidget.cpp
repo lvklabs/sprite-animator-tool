@@ -5,6 +5,26 @@
 
 #include "lvkinputimagewidget.h"
 
+QRect operator*(const QRect& rect, int c)
+{
+    QRect tmp;
+    tmp.setX(rect.x()*c);
+    tmp.setY(rect.y()*c);
+    tmp.setWidth(rect.width()*c);
+    tmp.setHeight(rect.height()*c);
+    return tmp;
+}
+
+QRect operator/(const QRect& rect, int c)
+{
+    QRect tmp;
+    tmp.setX(rect.x()/c);
+    tmp.setY(rect.y()/c);
+    tmp.setWidth(rect.width()/c);
+    tmp.setHeight(rect.height()/c);
+    return tmp;
+}
+
 LvkInputImageWidget::LvkInputImageWidget(QWidget *parent)
         : QWidget(parent), _frect(0,0,0,0), _mouseRect(0,0,0,0), _mouseX(-1), _mouseY(-1),
           _frectVisible(true), _mouseLinesVisible(true), _zoom(0), _draggingRect(false),
@@ -24,20 +44,30 @@ LvkInputImageWidget::LvkInputImageWidget(QWidget *parent)
     setMouseTracking(true);
 }
 
+void LvkInputImageWidget::clear()
+{
+    _frect = QRect(0,0,0,0);
+    _mouseRect = QRect(0,0,0,0);
+    _pixmap = QPixmap();
+    _zoom = 0;
+    _c = pow(ZOOM_FACTOR, _zoom);
+    _hGuide = true;
+
+    emit mouseRectChanged(ztor(_mouseRect));
+}
+
 void LvkInputImageWidget::setPixmap(const QPixmap &pixmap)
 {
     setFrameRect(pixmap.rect());
 
     _pixmap = pixmap;
 
-    resize(_pixmap.size()*_c);
+    resize(_pixmap.width()*_c + 1, _pixmap.height()*_c + 1);
 }
 
-// TODO: do not delete _mouseRect
 #define ZOOM_COMMON() \
             _c = pow(ZOOM_FACTOR, _zoom);\
             _scaledFrect = rtoz(_frect);\
-            _mouseRect.setRect(0, 0, 0, 0);\
             resize(_pixmap.size()*_c);\
             emit mouseRectChanged(ztor(_mouseRect));
 
@@ -45,6 +75,7 @@ void LvkInputImageWidget::zoomIn()
 {
     if (_zoom < ZOOM_MAX) {
         _zoom++;
+        _mouseRect = _mouseRect*2;
         ZOOM_COMMON();
     }
 }
@@ -53,6 +84,7 @@ void LvkInputImageWidget::zoomOut()
 {
     if (_zoom > ZOOM_MIN) {
         _zoom--;
+        _mouseRect = _mouseRect/2;
         ZOOM_COMMON();
     }
 }
@@ -205,22 +237,15 @@ void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
     }
 
     if (_frectVisible) {
-        QRect rect;
-
         /* draw frame rect */
-        rect = _scaledFrect;
-        if (!rect.isEmpty()) {
-            rect.setWidth(_scaledFrect.width());
-            rect.setHeight(_scaledFrect.height());
+        if (!_scaledFrect.isEmpty()) {
             painter.setPen(_frectPen);
-            painter.drawRect(rect);
+            painter.drawRect(_scaledFrect);
         }
 
         /* draw mouse rect */
-        rect = _mouseRect.normalized();
+        QRect rect = _mouseRect.normalized();
         if (!rect.isEmpty()) {
-            rect.setWidth(rect.width());
-            rect.setHeight(rect.height());
             painter.setPen(_mouseRectPen);
             painter.drawRect(rect);
         }

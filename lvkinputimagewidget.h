@@ -37,6 +37,7 @@ public slots:
 
     void setFrameRect(const QRect &rect);
 
+    void clear();
     void clearGuides();
 
 signals:
