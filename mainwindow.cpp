@@ -11,8 +11,8 @@
 #include <QInputDialog>
 #include <QGraphicsPixmapItem>
 #include <QList>
-//#include <QScrollBar>
-//#include <cmath>
+#include <QScrollBar>
+#include <cmath>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -941,47 +941,47 @@ void MainWindow::showFrame(Id frameId)
                 break;
             }
         }
-// FIXME        scrollImgPreview(frameId);
+        scrollImgPreview(frameId);
     }
 }
-/* FIXME
+
 void MainWindow::scrollImgPreview(Id frameId)
 {
     const LvkFrame frame = _sprState.const_frame(frameId);
 
     int margin = 10;
+    int c      = pow(2, ui->imgPreview->zoom());
+
+    // TODO
+    // * simplify
+    // * move inside the widget
 
     int hval = ui->imgPreviewScroll->horizontalScrollBar()->value();
-    int w    = ui->imgPreviewScroll->width();
-    int wv   = w + hval;
-    int fwox = (frame.w + frame.ox) * pow(2, ui->imgPreview->zoom());
-    int fox = frame.ox * pow(2, ui->imgPreview->zoom());
+    int hmax = ui->imgPreviewScroll->horizontalScrollBar()->maximum();
+    int w    = ui->imgPreview->width();     /* img width total */
+    int wv   = w - hmax + hval;             /* img width visible */
+    int fx1 = frame.ox * c;                 /* frame rect x1 */
+    int fx2 = (frame.ox + frame.w) * c;     /* frame rect x2 */
 
-    qDebug() << "hval" << hval
-             << "w"   << w
-             << "wv"  << wv
-             << "fwox"<< fwox
-             << "fox" << fox;
-
-    if (fwox >= wv) {
-        ui->imgPreviewScroll->horizontalScrollBar()->setValue(fwox + margin);
-    } else if (fox <= hval) {
-        ui->imgPreviewScroll->horizontalScrollBar()->setValue(fox - margin);
+    if (fx1 <= hval) {
+        ui->imgPreviewScroll->horizontalScrollBar()->setValue(fx1 - margin);
+    } else if (fx2 >= wv) {
+        ui->imgPreviewScroll->horizontalScrollBar()->setValue(hval + (fx2 - wv) + margin);
     }
 
     int vval = ui->imgPreviewScroll->verticalScrollBar()->value();
-    int h    = ui->imgPreviewScroll->height();
-    int hv   = h + vval;
-    int fwoy = (frame.h + frame.oy) * pow(2, ui->imgPreview->zoom());
-    int foy = frame.oy * pow(2, ui->imgPreview->zoom());
+    int vmax = ui->imgPreviewScroll->verticalScrollBar()->maximum();
+    int h    = ui->imgPreview->height();    /* img height total */
+    int hv   = h - vmax + vval;             /* img height visible */
+    int fy1 = frame.oy * c;                 /* frame rect y1 */
+    int fy2 = (frame.oy + frame.h) * c;     /* frame rect y1 */
 
-    if (fwoy >= hv) {
-        ui->imgPreviewScroll->verticalScrollBar()->setValue(fwoy + margin);
-    } else if (foy <= vval) {
-        ui->imgPreviewScroll->verticalScrollBar()->setValue(foy - margin);
+    if (fy1 <= vval) {
+        ui->imgPreviewScroll->verticalScrollBar()->setValue(fy1 - margin);
+    } else if (fy2 >= hv) {
+        ui->imgPreviewScroll->verticalScrollBar()->setValue(vval + (fy2 - hv) + margin);
     }
 }
-*/
 
 void MainWindow::removeSelFrame()
 {

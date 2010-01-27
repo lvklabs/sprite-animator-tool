@@ -173,7 +173,7 @@ private slots:
     bool addFrameDialog();
     void showSelFrame(int row);
     void showFrame(Id frameId);
-// FIXME    void scrollImgPreview(Id frameId);
+    void scrollImgPreview(Id frameId);
     void removeSelFrame();
     void removeFrame(int row);
 
