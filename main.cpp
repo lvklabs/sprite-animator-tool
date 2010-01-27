@@ -126,5 +126,5 @@ void showHelp(const  std::string& binName)
 
 void showVersion()
 {
-    std::cout << APP_NAME << " " << APP_VERSION << std::endl;
+    std::cout << APP_ABOUT << std::endl;
 }

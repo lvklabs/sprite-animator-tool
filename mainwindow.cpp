@@ -1644,7 +1644,7 @@ void MainWindow::redo()
 
 void MainWindow::about()
 {
-    infoDialog(QString(APP_NAME)  + " " + QString(APP_VERSION));
+    infoDialog(QString(APP_ABOUT));
 }
 
 void MainWindow::exit()
