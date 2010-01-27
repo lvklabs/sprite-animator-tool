@@ -357,7 +357,3 @@ void LvkInputImageWidget::resize(int w, int h)
 {
     resize(QSize(w, h));
 }
-
-LvkInputImageWidget::~LvkInputImageWidget()
-{
-}

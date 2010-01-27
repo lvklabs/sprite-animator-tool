@@ -12,7 +12,6 @@ class LvkInputImageWidget : public QWidget
 
 public:
     LvkInputImageWidget(QWidget *parent = 0);
-    ~LvkInputImageWidget();
 
     void setPixmap(const QPixmap &pixmap);
 
