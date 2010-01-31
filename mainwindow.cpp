@@ -1628,7 +1628,11 @@ void MainWindow::redo()
 
 void MainWindow::about()
 {
-    infoDialog(QString(APP_ABOUT));
+    QMessageBox msg;
+
+    msg.setText(QString(APP_ABOUT));
+    msg.setIconPixmap(QPixmap(":/icons/app-icon-128x128"));;
+    msg.exec();
 }
 
 void MainWindow::exit()

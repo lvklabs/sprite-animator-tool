@@ -2,8 +2,15 @@
 #define SETTINGS_H
 
 #define APP_NAME                "Lvk Sprite Animation Tool"
-#define APP_VERSION             "1.0 RC1"
-#define APP_ABOUT               APP_NAME " " APP_VERSION "\n(c) 2010 LavandaInk"
+#define APP_VERSION             "1.0"
+#define APP_ABOUT               APP_NAME " " APP_VERSION "\n"\
+                                "(c) 2010 LavandaInk\n\n"\
+                                "This software is only for LavandaInk internal use.\n\n"\
+                                LVK_SITE "\n"\
+                                LVK_EMAIL
+
+#define LVK_SITE                "http://www.lavandaink.com.ar"
+#define LVK_EMAIL               "contact@lavandaink.com.ar"
 
 #define MAX_RECENT_FILES        10
 #define KEY_RECENT_FILE         "RecentFiles/filename"
