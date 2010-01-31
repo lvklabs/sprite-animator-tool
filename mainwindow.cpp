@@ -116,6 +116,9 @@ MainWindow::MainWindow(QWidget *parent)
     ui->framesTableWidget->setFont(QFont("", 11));
     ui->aniTableWidget->setFont(QFont("", 11));
     ui->aframesTableWidget->setFont(QFont("", 11));
+
+    setWindowIcon(QIcon());
+    QApplication::setWindowIcon(QIcon(":/icons/app-icon-128x128"));
 #endif // MAC_OS_X
 
     initSignals();
