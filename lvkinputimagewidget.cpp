@@ -1,6 +1,8 @@
 #include <QPainter>
 #include <QDebug>
 #include <QMouseEvent>
+#include <QScrollBar>
+#include <QDebug>
 #include <cmath>
 
 #include "lvkinputimagewidget.h"
@@ -28,7 +30,7 @@ QRect operator/(const QRect& rect, int c)
 LvkInputImageWidget::LvkInputImageWidget(QWidget *parent)
         : QWidget(parent), _frect(0,0,0,0), _mouseRect(0,0,0,0), _mouseX(-1), _mouseY(-1),
           _frectVisible(true), _mouseLinesVisible(true), _zoom(0), _draggingRect(false),
-          _resizingRect(false), _hGuide(true)
+          _resizingRect(false), _hGuide(true), _cacheId(NullId), _scroll(0)
 {
     _c = pow(ZOOM_FACTOR, _zoom);
 
@@ -41,6 +43,12 @@ LvkInputImageWidget::LvkInputImageWidget(QWidget *parent)
     _guidePen.setColor(QColor(127 , 127, 255));
     _guidePen.setStyle(Qt::DashLine);
 
+    for (int i = 0; i < PCACHE_ROW_SIZE; ++i) {
+        for (int j = 0; j < PCACHE_COL_SIZE; ++j) {
+            _pCache[i][j] = 0;
+        }
+    }
+
     setMouseTracking(true);
 }
 
@@ -52,13 +60,35 @@ void LvkInputImageWidget::clear()
     _zoom = 0;
     _c = pow(ZOOM_FACTOR, _zoom);
     _hGuide = true;
+    clearPixmapCache();
 
     emit mouseRectChanged(ztor(_mouseRect));
 }
 
-void LvkInputImageWidget::setPixmap(const QPixmap &pixmap)
+void LvkInputImageWidget::clearPixmapCache()
+{
+    _cacheId = NullId;
+    for (int i = 0; i < PCACHE_ROW_SIZE; ++i) {
+        for (int j = 0; j < PCACHE_COL_SIZE; ++j) {
+            if (_pCache[i][j]) {
+                delete _pCache[i][j];
+                _pCache[i][j] = 0;
+            }
+        }
+    }
+}
+
+void LvkInputImageWidget::setPixmap(const QPixmap &pixmap, Id useCacheId)
 {
     setFrameRect(pixmap.rect());
+
+    if (useCacheId != NullId) {
+        if (useCacheId < 0 || useCacheId >= PCACHE_ROW_SIZE) {
+            qDebug() << "WARNING: LvkInputImageWidget::setPixmap() useCacheId out of bunds, using 0" ;
+            useCacheId = 0;
+        }
+        _cacheId = useCacheId;
+    }
 
     _pixmap = pixmap;
 
@@ -167,6 +197,11 @@ void LvkInputImageWidget::clearGuides()
     update();
 }
 
+void LvkInputImageWidget::setScrollArea(QScrollArea *scroll)
+{
+    _scroll = scroll;
+}
+
 bool LvkInputImageWidget::mouseCrossGuidesMode()
 {
     return _mouseLinesVisible && !_draggingRect && ctrlKey();
@@ -195,8 +230,32 @@ void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
         setCursor(QCursor(Qt::ArrowCursor));
     }
 
-    /* draw Image*/
-    painter.drawPixmap(0, 0, _pixmap.width()*_c, _pixmap.height()*_c, _pixmap);
+    if (_scroll) {
+        /* optimized draw Image*/
+        int hval = _scroll->horizontalScrollBar()->value();
+        int vval = _scroll->verticalScrollBar()->value();
+        int w = _scroll->width();
+        int h = _scroll->height();
+
+        painter.setClipping(true);
+        painter.setClipRect(hval, vval, w, h);
+
+        int z = _zoom >= 0 ? _zoom : ZOOM_MAX - _zoom;
+
+        if (_cacheId != NullId) {
+            if (!_pCache[_cacheId][z]) {
+                _pCache[_cacheId][z] = new QPixmap();
+                *_pCache[_cacheId][z] = _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c);
+            }
+            painter.drawPixmap(hval, vval, w, h, *_pCache[_cacheId][z], hval, vval, w, h);
+        } else {
+            painter.drawPixmap(hval, vval, w, h, _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c), hval, vval, w, h);
+        }
+    } else {
+        /* draw Image*/
+        painter.drawPixmap(0, 0, _pixmap.width()*_c, _pixmap.height()*_c, _pixmap);
+    }
+
 
     if (_mouseLinesVisible) {
         /* draw guide lines */
@@ -356,4 +415,9 @@ void LvkInputImageWidget::resize(const QSize &size)
 void LvkInputImageWidget::resize(int w, int h)
 {
     resize(QSize(w, h));
+}
+
+LvkInputImageWidget::~LvkInputImageWidget()
+{
+    clearPixmapCache();
 }

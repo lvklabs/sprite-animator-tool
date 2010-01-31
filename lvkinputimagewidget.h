@@ -5,6 +5,8 @@
 #include <QRect>
 #include <QPen>
 #include <QApplication>
+#include <QScrollArea>
+#include "types.h"
 
 class LvkInputImageWidget : public QWidget
 {
@@ -12,16 +14,35 @@ class LvkInputImageWidget : public QWidget
 
 public:
     LvkInputImageWidget(QWidget *parent = 0);
-
-    void setPixmap(const QPixmap &pixmap);
+    ~LvkInputImageWidget();
 
     static const int ZOOM_FACTOR = 2.0;
     static const int ZOOM_MIN    = -3;
     static const int ZOOM_MAX    = 3;
 
+    /// returns the current zoom level.
     int zoom();
+
+    static const int PCACHE_ROW_SIZE = 1000;
+    static const int PCACHE_COL_SIZE = ZOOM_MAX - ZOOM_MIN + 1;
+
+    /// Set the current pixamp. If useCacheId is not null, then the
+    /// widget uses an internal cache to increase the speed when drawing
+    /// zoomed (scaled) images.
+    /// @param useCacheId must be greater than or equal to zero and less
+    /// than PCACHE_ROW_SIZE and unique for every different pixmap.
+    void setPixmap(const QPixmap &pixmap, Id useCacheId  = NullId);
+
+    /// Clear the pixmap cache used to speed the drawing of zoomed images
+    void clearPixmapCache();
+
     const QRect frameRect() const;
     const QRect mouseFrameRect() const;
+
+    /// Sets scroll parent widget
+    // TODO this sucks, should be handled transparentely by the
+    // LvkInputImageWidget class
+    void setScrollArea(QScrollArea* scroll);
 
 public slots:
     void zoomIn();
@@ -103,8 +124,12 @@ private:
     bool     _draggingRect;  /* if dragging the mouse rect */
     bool     _resizingRect;  /* if resizing the mouse rect */
     bool     _hGuide;        /* add horizontal guide if true, add vertical guide if false */
+    Id       _cacheId;       /* */
 
-    QList<QPoint> _guides;
+    QList<QPoint> _guides;   /* list of "blue" guides */
+    QScrollArea*  _scroll;   /* if the widget has a parent scroll */
+
+    QPixmap*      _pCache[PCACHE_ROW_SIZE][PCACHE_COL_SIZE]; /* pixmap cache */
 
     bool ctrlKey()
     { return QApplication::keyboardModifiers() & Qt::ControlModifier; }
@@ -121,6 +146,7 @@ private:
 
     void resize(const QSize &size);
     void resize(int w, int h);
+
 };
 
 #endif // QINPUTIMAGEWIDGET_H

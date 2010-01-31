@@ -97,6 +97,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->aframePreview->setFrameRectVisible(false);
     ui->aframePreview->setMouseLinesVisible(false);
 
+    ui->imgPreview->setScrollArea(ui->imgPreviewScroll);
+    ui->framePreview->setScrollArea(ui->framePreviewScroll);
+    ui->aframePreview->setScrollArea(ui->aframePreviewScroll);
+
 #ifdef MAC_OS_X
     ui->imgTableWidget->setToolTip(convertToMacKeys(ui->imgTableWidget->toolTip()));
     ui->framesTableWidget->setToolTip(convertToMacKeys(ui->framesTableWidget->toolTip()));
@@ -762,12 +766,14 @@ void MainWindow::showSelImage(int row)
 void MainWindow::showImage(Id imgId)
 {
     const QPixmap& selPixmap = _sprState.ipixmap(imgId);
-    ui->imgPreview->setPixmap(selPixmap);
+    ui->imgPreview->setPixmap(selPixmap, imgId);
 }
 
 void MainWindow::showSelImageWithFrameRect(int row, const QRect& rect)
 {
-    showSelImage(row);
+    if (ui->imgTableWidget->currentRow() != row) {
+        showSelImage(row);
+    }
     ui->imgPreview->setFrameRect(rect);
 }
 
