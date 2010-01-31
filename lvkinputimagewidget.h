@@ -7,6 +7,7 @@
 #include <QApplication>
 #include <QScrollArea>
 #include "types.h"
+#include "lvkframe.h"
 
 class LvkInputImageWidget : public QWidget
 {
@@ -43,6 +44,10 @@ public:
     // TODO this sucks, should be handled transparentely by the
     // LvkInputImageWidget class
     void setScrollArea(QScrollArea* scroll);
+
+    /// Scroll widget to show a frame.
+    /// setScrollArea() must be called before invoking this method.
+    void scrollToFrame(const LvkFrame& frame);
 
 public slots:
     void zoomIn();

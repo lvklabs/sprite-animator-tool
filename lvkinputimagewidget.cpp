@@ -407,6 +407,43 @@ void LvkInputImageWidget::wheelEvent(QWheelEvent *event)
     event->ignore();
 }
 
+void LvkInputImageWidget::scrollToFrame(const LvkFrame& frame)
+{
+    if (!_scroll) {
+        return;
+    }
+
+    int margin = 10;
+
+    // TODO simplify
+
+    int hval = _scroll->horizontalScrollBar()->value();
+    int hmax = _scroll->horizontalScrollBar()->maximum();
+    int w    = width();                     /* img width total */
+    int wv   = w - hmax + hval;             /* img width visible */
+    int fx1 = frame.ox * _c;                /* frame rect x1 */
+    int fx2 = (frame.ox + frame.w) * _c;    /* frame rect x2 */
+
+    if (fx1 <= hval) {
+        _scroll->horizontalScrollBar()->setValue(fx1 - margin);
+    } else if (fx2 >= wv) {
+        _scroll->horizontalScrollBar()->setValue(hval + (fx2 - wv) + margin);
+    }
+
+    int vval = _scroll->verticalScrollBar()->value();
+    int vmax = _scroll->verticalScrollBar()->maximum();
+    int h    = height();                    /* img height total */
+    int hv   = h - vmax + vval;             /* img height visible */
+    int fy1 = frame.oy * _c;                /* frame rect y1 */
+    int fy2 = (frame.oy + frame.h) * _c;    /* frame rect y1 */
+
+    if (fy1 <= vval) {
+        _scroll->verticalScrollBar()->setValue(fy1 - margin);
+    } else if (fy2 >= hv) {
+        _scroll->verticalScrollBar()->setValue(vval + (fy2 - hv) + margin);
+    }
+}
+
 void LvkInputImageWidget::resize(const QSize &size)
 {
     QWidget::resize(size);

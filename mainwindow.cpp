@@ -959,45 +959,7 @@ void MainWindow::showFrame(Id frameId)
                 break;
             }
         }
-        scrollImgPreview(frameId);
-    }
-}
-
-void MainWindow::scrollImgPreview(Id frameId)
-{
-    const LvkFrame frame = _sprState.const_frame(frameId);
-
-    int margin = 10;
-    int c      = pow(2, ui->imgPreview->zoom());
-
-    // TODO
-    // * simplify
-    // * move inside the widget
-
-    int hval = ui->imgPreviewScroll->horizontalScrollBar()->value();
-    int hmax = ui->imgPreviewScroll->horizontalScrollBar()->maximum();
-    int w    = ui->imgPreview->width();     /* img width total */
-    int wv   = w - hmax + hval;             /* img width visible */
-    int fx1 = frame.ox * c;                 /* frame rect x1 */
-    int fx2 = (frame.ox + frame.w) * c;     /* frame rect x2 */
-
-    if (fx1 <= hval) {
-        ui->imgPreviewScroll->horizontalScrollBar()->setValue(fx1 - margin);
-    } else if (fx2 >= wv) {
-        ui->imgPreviewScroll->horizontalScrollBar()->setValue(hval + (fx2 - wv) + margin);
-    }
-
-    int vval = ui->imgPreviewScroll->verticalScrollBar()->value();
-    int vmax = ui->imgPreviewScroll->verticalScrollBar()->maximum();
-    int h    = ui->imgPreview->height();    /* img height total */
-    int hv   = h - vmax + vval;             /* img height visible */
-    int fy1 = frame.oy * c;                 /* frame rect y1 */
-    int fy2 = (frame.oy + frame.h) * c;     /* frame rect y1 */
-
-    if (fy1 <= vval) {
-        ui->imgPreviewScroll->verticalScrollBar()->setValue(fy1 - margin);
-    } else if (fy2 >= hv) {
-        ui->imgPreviewScroll->verticalScrollBar()->setValue(vval + (fy2 - hv) + margin);
+        ui->imgPreview->scrollToFrame(frame);
     }
 }
 
