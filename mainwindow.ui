@@ -42,7 +42,7 @@
        </size>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="framesTab">
        <attribute name="title">
@@ -111,6 +111,9 @@ Ctrl + Shift + Right click: To switch horizontal/vertical guides</string>
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::ClickFocus</enum>
              </property>
              <property name="pixmap" stdset="0">
               <pixmap>../../Pictures/Firefox_wallpaper_gray.png</pixmap>
@@ -412,6 +415,9 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
+             <property name="focusPolicy">
+              <enum>Qt::ClickFocus</enum>
+             </property>
              <property name="pixmap" stdset="0">
               <pixmap>../../Pictures/Firefox_wallpaper_gray.png</pixmap>
              </property>
@@ -556,9 +562,12 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>96</width>
-               <height>26</height>
+               <width>372</width>
+               <height>585</height>
               </rect>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::ClickFocus</enum>
              </property>
             </widget>
            </widget>
@@ -709,8 +718,8 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>96</width>
-               <height>26</height>
+               <width>372</width>
+               <height>546</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="aniPreview" native="true">
