@@ -230,32 +230,32 @@ void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
         setCursor(QCursor(Qt::ArrowCursor));
     }
 
-    if (_scroll) {
-        /* optimized draw Image*/
-        int hval = _scroll->horizontalScrollBar()->value();
-        int vval = _scroll->verticalScrollBar()->value();
-        int w = _scroll->width();
-        int h = _scroll->height();
+    if (!_pixmap.isNull()) {
+        if (_scroll) {
+            /* optimized draw Image*/
+            int hval = _scroll->horizontalScrollBar()->value();
+            int vval = _scroll->verticalScrollBar()->value();
+            int w = _scroll->width();
+            int h = _scroll->height();
 
-        painter.setClipping(true);
-        painter.setClipRect(hval, vval, w, h);
+            painter.setClipping(true);
+            painter.setClipRect(hval, vval, w, h);
 
-        int z = _zoom >= 0 ? _zoom : ZOOM_MAX - _zoom;
+            int z = _zoom >= 0 ? _zoom : ZOOM_MAX - _zoom;
 
-        if (_cacheId != NullId) {
-            if (!_pCache[_cacheId][z]) {
-                _pCache[_cacheId][z] = new QPixmap();
-                if (!_pixmap.isNull()) {
+            if (_cacheId != NullId) {
+                if (!_pCache[_cacheId][z]) {
+                    _pCache[_cacheId][z] = new QPixmap();
                     *_pCache[_cacheId][z] = _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c);
                 }
+                painter.drawPixmap(hval, vval, w, h, *_pCache[_cacheId][z], hval, vval, w, h);
+            } else {
+                painter.drawPixmap(hval, vval, w, h, _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c), hval, vval, w, h);
             }
-            painter.drawPixmap(hval, vval, w, h, *_pCache[_cacheId][z], hval, vval, w, h);
         } else {
-            painter.drawPixmap(hval, vval, w, h, _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c), hval, vval, w, h);
+            /* draw Image*/
+            painter.drawPixmap(0, 0, _pixmap.width()*_c, _pixmap.height()*_c, _pixmap);
         }
-    } else {
-        /* draw Image*/
-        painter.drawPixmap(0, 0, _pixmap.width()*_c, _pixmap.height()*_c, _pixmap);
     }
 
 
