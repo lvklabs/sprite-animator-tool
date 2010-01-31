@@ -22,37 +22,43 @@
 #include "lvkaframe.h"
 #include "settings.h"
 
-/// imgTableWidget columns
+// imgTableWidget columns
 enum {
-    ColImageId          = 0,
-    ColImageFilename    = 1,
+    ColImageId,
+    ColImageVisibleId,
+    ColImageFilename,
+    ColImageTotal,
 };
 
-/// framesTableWidget colums
+// framesTableWidget colums
 enum {
-    ColFrameId          = 0,
-    ColFrameOx          = 1,
-    ColFrameOy          = 2,
-    ColFrameW           = 3,
-    ColFrameH           = 4,
-    ColFrameName        = 5,
-    ColFrameImgId       = 6,
+    ColFrameId,
+    ColFrameVisibleId,
+    ColFrameOx,
+    ColFrameOy,
+    ColFrameW,
+    ColFrameH,
+    ColFrameName,
+    ColFrameImgId,
+    ColFrameTotal,
 };
 
-/// aniTableWidget columns
+// aniTableWidget columns
 enum {
-    ColAniId            = 0,
-    ColAniName          = 1,
+    ColAniId,
+    ColAniName,
+    ColAniTotal,
 };
 
-/// aframesTableWidget columns
+// aframesTableWidget columns
 enum {
-    ColAframeId         = 0,
-    ColAframeFrameId    = 1,
-    ColAframeOx         = 2,
-    ColAframeOy         = 3,
-    ColAframeDelay      = 4,
-    ColAframeAniId      = 5,
+    ColAframeId,
+    ColAframeFrameId,
+    ColAframeOx,
+    ColAframeOy,
+    ColAframeDelay,
+    ColAframeAniId,
+    ColAframeTotal,
 };
 
 #define getImageId(row)         ui->imgTableWidget->item(row, ColImageId)->text().toInt()
@@ -205,9 +211,10 @@ void MainWindow::initTables()
     /* input images table */
 
     ui->imgTableWidget->setRowCount(0);
-    ui->imgTableWidget->setColumnCount(2);
+    ui->imgTableWidget->setColumnCount(ColImageTotal);
     ui->imgTableWidget->setColumnWidth(ColImageId, 30);
-    headersList << tr("Id") << tr("Filename");
+    ui->imgTableWidget->setColumnWidth(ColImageVisibleId, 30);
+    headersList << tr("Id") << tr("Id") << tr("Filename");
     ui->imgTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
 #ifndef DEBUG_SHOW_ID_COLS
@@ -217,24 +224,26 @@ void MainWindow::initTables()
     /* frames table */
 
     ui->framesTableWidget->setRowCount(0);
-    ui->framesTableWidget->setColumnCount(7);
+    ui->framesTableWidget->setColumnCount(ColFrameTotal);
     ui->framesTableWidget->setColumnWidth(ColFrameId, 30);
+    ui->framesTableWidget->setColumnWidth(ColFrameVisibleId, 30);
     ui->framesTableWidget->setColumnWidth(ColFrameOx, 30);
     ui->framesTableWidget->setColumnWidth(ColFrameOy, 30);
     ui->framesTableWidget->setColumnWidth(ColFrameW, 30);
     ui->framesTableWidget->setColumnWidth(ColFrameH, 30);
-    headersList << tr("Id") << tr("ox") << tr("oy") << tr("w") << tr("h") << tr("Name") << tr("Image Id");
+    ui->framesTableWidget->ignoreColumn(ColFrameVisibleId);
+    ui->framesTableWidget->ignoreColumn(ColFrameImgId);
+    headersList << tr("Id") << tr("Id") << tr("ox") << tr("oy") << tr("w") << tr("h") << tr("Name") << tr("Img Id");
     ui->framesTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
 #ifndef DEBUG_SHOW_ID_COLS
     ui->framesTableWidget->setColumnHidden(ColFrameId, true);
-    ui->framesTableWidget->setColumnHidden(ColFrameImgId, true);
 #endif
 
     /* animations table */
 
     ui->aniTableWidget->setRowCount(0);
-    ui->aniTableWidget->setColumnCount(2);
+    ui->aniTableWidget->setColumnCount(ColAniTotal);
     ui->aniTableWidget->setColumnWidth(ColAniId, 30);
     headersList << "Id" << "Name";
     ui->aniTableWidget->setHorizontalHeaderLabels(headersList);
@@ -246,13 +255,14 @@ void MainWindow::initTables()
     /* animation frames table */
 
     ui->aframesTableWidget->setRowCount(0);
-    ui->aframesTableWidget->setColumnCount(6);
+    ui->aframesTableWidget->setColumnCount(ColAframeTotal);
     ui->aframesTableWidget->setColumnWidth(ColAframeId, 30);
     ui->aframesTableWidget->setColumnWidth(ColAframeFrameId, 60);
     ui->aframesTableWidget->setColumnWidth(ColAframeOx, 30);
     ui->aframesTableWidget->setColumnWidth(ColAframeOy, 30);
     ui->aframesTableWidget->setColumnWidth(ColAframeDelay, 50);
     ui->aframesTableWidget->setColumnWidth(ColAframeAniId, 30);
+    ui->aframesTableWidget->ignoreColumn(ColAframeFrameId);
     headersList << tr("Id") << tr("Frame Id") << tr("ox") << tr("oy") << tr("Delay") << tr("Animation Id");
     ui->aframesTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
@@ -745,12 +755,14 @@ void MainWindow::addImage_ui(const InputImage& image)
     int rows = ui->imgTableWidget->rowCount();
 
     QTableWidgetItem* item_id       = new QTableWidgetItem(QString::number(image.id));
+    QTableWidgetItem* item_vid      = new QTableWidgetItem(QString::number(image.id));
     QTableWidgetItem* item_filename = new QTableWidgetItem(filename);
 
     cellChangedSignals(false);
     ui->imgTableWidget->setRowCount(rows+1);
-    ui->imgTableWidget->setItem(rows, ColImageId, item_id);
-    ui->imgTableWidget->setItem(rows, ColImageFilename, item_filename);
+    ui->imgTableWidget->setItem(rows, ColImageId,        item_id);
+    ui->imgTableWidget->setItem(rows, ColImageVisibleId, item_vid);
+    ui->imgTableWidget->setItem(rows, ColImageFilename,  item_filename);
     ui->imgTableWidget->setCurrentItem(item_id);
     cellChangedSignals(true);
 
@@ -771,9 +783,7 @@ void MainWindow::showImage(Id imgId)
 
 void MainWindow::showSelImageWithFrameRect(int row, const QRect& rect)
 {
-    if (ui->imgTableWidget->currentRow() != row) {
-        showSelImage(row);
-    }
+    showSelImage(row);
     ui->imgPreview->setFrameRect(rect);
 }
 
@@ -897,6 +907,7 @@ void MainWindow::addFrame(const LvkFrame &frame)
 void MainWindow::addFrame_ui(const LvkFrame &frame)
 {
     QTableWidgetItem* item_id   = new QTableWidgetItem(QString::number(frame.id));
+    QTableWidgetItem* item_vid  = new QTableWidgetItem(QString::number(frame.id));
     QTableWidgetItem* item_ox   = new QTableWidgetItem(QString::number(frame.ox));
     QTableWidgetItem* item_oy   = new QTableWidgetItem(QString::number(frame.oy));
     QTableWidgetItem* item_w    = new QTableWidgetItem(QString::number(frame.w));
@@ -908,13 +919,14 @@ void MainWindow::addFrame_ui(const LvkFrame &frame)
 
     cellChangedSignals(false);
     ui->framesTableWidget->setRowCount(rows+1);
-    ui->framesTableWidget->setItem(rows, ColFrameId,    item_id);
-    ui->framesTableWidget->setItem(rows, ColFrameOx,    item_ox);
-    ui->framesTableWidget->setItem(rows, ColFrameOy,    item_oy);
-    ui->framesTableWidget->setItem(rows, ColFrameW,     item_w);
-    ui->framesTableWidget->setItem(rows, ColFrameH,     item_h);
-    ui->framesTableWidget->setItem(rows, ColFrameImgId, item_iid);
-    ui->framesTableWidget->setItem(rows, ColFrameName,  item_name);
+    ui->framesTableWidget->setItem(rows, ColFrameId,        item_id);
+    ui->framesTableWidget->setItem(rows, ColFrameVisibleId, item_vid);
+    ui->framesTableWidget->setItem(rows, ColFrameOx,        item_ox);
+    ui->framesTableWidget->setItem(rows, ColFrameOy,        item_oy);
+    ui->framesTableWidget->setItem(rows, ColFrameW,         item_w);
+    ui->framesTableWidget->setItem(rows, ColFrameH,         item_h);
+    ui->framesTableWidget->setItem(rows, ColFrameImgId,     item_iid);
+    ui->framesTableWidget->setItem(rows, ColFrameName,      item_name);
     cellChangedSignals(true);
 
     showFrame(frame.id);
@@ -1093,7 +1105,7 @@ void MainWindow::addAnimation_ui(const LvkAnimation& ani)
 
     cellChangedSignals(false);
     ui->aniTableWidget->setRowCount(rows+1);
-    ui->aniTableWidget->setItem(rows, ColAniId, item_id);
+    ui->aniTableWidget->setItem(rows, ColAniId,   item_id);
     ui->aniTableWidget->setItem(rows, ColAniName, item_name);
     ui->aniTableWidget->setCurrentItem(item_id);
     cellChangedSignals(true);
@@ -1398,8 +1410,9 @@ void MainWindow::updateImgTable(int row, int col)
 
     switch (col) {
     case ColImageId:
+    case ColImageVisibleId:
         infoDialog(tr("Column \"Id\" is not editable"));
-        setItem(table, row, col, imgId);
+        setItem(table, row, col, img.id);
         break;
     case ColImageFilename:
         if (newValue.isEmpty()) {
@@ -1447,20 +1460,24 @@ void MainWindow::updateFramesTable(int row, int col)
 
     switch (col) {
     case ColFrameId:
+    case ColFrameVisibleId:
         ok = false;
         infoDialog(tr("Column \"Id\" is not editable"));
-        setItem(table, row, col, frameId);
+        setItem(table, row, col, frame.id);
         break;
     case ColFrameImgId:
-        ok = false;
-        infoDialog(tr("Column \"Image Id\" is not editable."));
-        setItem(table, row, col, frame.imgId);
+        if (ok && _sprState.images().contains(i)) {
+            frame.imgId = i;
+        } else {
+            infoDialog(tr("Invalid image Id"));
+            setItem(table, row, col, frame.imgId);
+        }
         break;
     case ColFrameOx:
         if (ok) {
             frame.ox = i;
         } else {
-            infoDialog(tr("Invalid input."));
+            infoDialog(tr("Invalid frame offset."));
             setItem(table, row, col, frame.ox);
         }
         break;
@@ -1468,7 +1485,7 @@ void MainWindow::updateFramesTable(int row, int col)
         if (ok) {
             frame.oy = i;
         } else {
-            infoDialog(tr("Invalid input."));
+            infoDialog(tr("Invalid frame offset."));
             setItem(table, row, col, frame.oy);
         }
         break;
@@ -1476,7 +1493,7 @@ void MainWindow::updateFramesTable(int row, int col)
         if (ok) {
             frame.w = i;
         } else {
-            infoDialog(tr("Invalid input."));
+            infoDialog(tr("Invalid frame width."));
             setItem(table, row, col, frame.w);
         }
         break;
@@ -1484,7 +1501,7 @@ void MainWindow::updateFramesTable(int row, int col)
         if (ok) {
             frame.h = i;
         } else {
-            infoDialog(tr("Invalid input."));
+            infoDialog(tr("Invalid frame height."));
             setItem(table, row, col, frame.h);
         }
         break;
@@ -1506,6 +1523,7 @@ void MainWindow::updateFramesTable(int row, int col)
 
     if (ok) {
         switch (col) {
+        case ColFrameImgId:
         case ColFrameOx:
         case ColFrameOy:
         case ColFrameW:
@@ -1535,7 +1553,7 @@ void MainWindow::updateAframesTable(int row, int col)
     case ColAframeId:
         ok = false;
         infoDialog(tr("Column \"Id\" is not editable"));
-        setItem(table, row, col, aframeId);
+        //setItem(table, row, col, aframe.id);
         break;
     case ColAframeAniId:
         ok = false;
@@ -1543,10 +1561,10 @@ void MainWindow::updateAframesTable(int row, int col)
         setItem(table, row, col, aniId);
         break;
     case ColAframeFrameId:
-        if (ok) {
+        if (ok && _sprState.frames().contains(i)) {
             aframe.frameId = i;
         } else {
-            infoDialog(tr("Invalid input."));
+            infoDialog(tr("Invalid frame id."));
             setItem(table, row, col, aframe.frameId);
         }
         break;
@@ -1554,7 +1572,7 @@ void MainWindow::updateAframesTable(int row, int col)
         if (ok) {
             aframe.ox = i;
         } else {
-            infoDialog(tr("Invalid input."));
+            infoDialog(tr("Invalid frame offset."));
             setItem(table, row, col, aframe.ox);
         }
         break;
@@ -1562,7 +1580,7 @@ void MainWindow::updateAframesTable(int row, int col)
         if (ok) {
             aframe.oy = i;
         } else {
-            infoDialog(tr("Invalid input."));
+            infoDialog(tr("Invalid frame offset."));
             setItem(table, row, col, aframe.oy);
         }
         break;
@@ -1570,7 +1588,7 @@ void MainWindow::updateAframesTable(int row, int col)
         if (ok) {
             aframe.delay = i;
         } else {
-            infoDialog(tr("Invalid input."));
+            infoDialog(tr("Invalid frame delay."));
             setItem(table, row, col, aframe.delay);
         }
         break;
@@ -1594,7 +1612,7 @@ void MainWindow::updateAniTable(int row, int col)
     switch (col) {
     case ColAniId:
         infoDialog(tr("Column \"Id\" is not editable"));
-        setItem(table, row, col, aniId);
+        //setItem(table, row, col, ani.id);
         break;
     case ColAniName:
         if (newValue.isEmpty()) {
