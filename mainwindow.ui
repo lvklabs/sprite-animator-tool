@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>LavandaInk Sprite Animation Tool</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="res.qrc">
+    <normaloff>:/icons/app-icon-128x128</normaloff>:/icons/app-icon-128x128</iconset>
+  </property>
   <widget class="QWidget" name="gridLayoutWidget">
    <property name="sizePolicy">
     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
