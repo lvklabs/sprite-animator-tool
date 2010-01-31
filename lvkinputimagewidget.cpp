@@ -245,7 +245,9 @@ void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
         if (_cacheId != NullId) {
             if (!_pCache[_cacheId][z]) {
                 _pCache[_cacheId][z] = new QPixmap();
-                *_pCache[_cacheId][z] = _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c);
+                if (!_pixmap.isNull()) {
+                    *_pCache[_cacheId][z] = _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c);
+                }
             }
             painter.drawPixmap(hval, vval, w, h, *_pCache[_cacheId][z], hval, vval, w, h);
         } else {
