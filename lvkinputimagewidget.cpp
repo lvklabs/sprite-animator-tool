@@ -271,7 +271,7 @@ void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
     }
 
     /* draw mouse guides */
-    if (mouseCrossGuidesMode()) {
+    if (mouseCrossGuidesMode() && underMouse()) {
         int mx = pixelate(_mouseX);
         int my = pixelate(_mouseY);
 
@@ -405,6 +405,13 @@ void LvkInputImageWidget::wheelEvent(QWheelEvent *event)
         event->accept();
     }
     event->ignore();
+}
+
+void LvkInputImageWidget::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_1) {
+        setZoom(0);
+    }
 }
 
 void LvkInputImageWidget::scrollToFrame(const LvkFrame& frame)
