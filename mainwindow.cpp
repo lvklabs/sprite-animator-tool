@@ -11,8 +11,6 @@
 #include <QInputDialog>
 #include <QGraphicsPixmapItem>
 #include <QList>
-#include <QScrollBar>
-#include <cmath>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
