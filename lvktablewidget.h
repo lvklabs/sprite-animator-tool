@@ -3,6 +3,7 @@
 
 #include <QTableWidget>
 #include <QKeyEvent>
+#include <QSet>
 
 class LvkTableWidget : public QTableWidget
 {
@@ -11,9 +12,16 @@ class LvkTableWidget : public QTableWidget
 public:
     LvkTableWidget(QWidget *parent = 0);
 
+    void ignoreRow(int row);
+    void ignoreColumn(int col);
+
 protected:
     virtual void keyPressEvent(QKeyEvent *event);
     virtual void keyReleaseEvent(QKeyEvent *event);
+
+private:
+    QSet<int> ignoredRows;
+    QSet<int> ignoredCols;
 };
 
 #endif // LVKTABLEWIDGET_H
