@@ -9,7 +9,9 @@
                                 LVK_SITE "\n"\
                                 LVK_EMAIL
 
-#define LVK_SITE                "http://www.lavandaink.com.ar"
+#define LVK_NAME                "LavandaInk"
+#define LVK_DOMAIN              "lavandaink.com.ar"
+#define LVK_SITE                "http://www." LVK_DOMAIN
 #define LVK_EMAIL               "contact@lavandaink.com.ar"
 
 #define MAX_RECENT_FILES        10
