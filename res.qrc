@@ -22,4 +22,7 @@
         <file alias="app-icon-48x48">res/app-icon-48x48.png</file>
         <file alias="app-icon-128x128">res/app-icon-128x128.png</file>
     </qresource>
+    <qresource prefix="/bg">
+        <file alias="default-bg">res/default-bg.png</file>
+    </qresource>
 </RCC>

@@ -95,6 +95,12 @@ void LvkInputImageWidget::setPixmap(const QPixmap &pixmap, Id useCacheId)
     resize(_pixmap.width()*_c + 1, _pixmap.height()*_c + 1);
 }
 
+void LvkInputImageWidget::setBackground(const QPixmap& bg)
+{
+    _bg = bg;
+    _bgBrush = QBrush(bg);
+}
+
 #define ZOOM_COMMON() \
             _c = pow(ZOOM_FACTOR, _zoom);\
             _scaledFrect = rtoz(_frect);\
@@ -217,6 +223,22 @@ bool LvkInputImageWidget::canDrag()
     return !_resizingRect && _mouseRect.isValid() && _mouseRect.contains(_mouseX, _mouseY) && !mouseBlueGuideMode();
 }
 
+void LvkInputImageWidget::fillBackground(QPainter& painter, int x, int y, int w, int h)
+{
+    if (!_bg.isNull()) {
+        if (w >= width()) {
+            w = width() - 1;
+        }
+        if (h >= height()) {
+            h = height() - 1;
+        }
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(_bgBrush);
+        painter.drawRect(x, y, w, h);
+        painter.setBrush(Qt::NoBrush);
+    }
+}
+
 void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
 {
     QPainter painter(this);
@@ -241,19 +263,22 @@ void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
             painter.setClipping(true);
             painter.setClipRect(hval, vval, w, h);
 
+            fillBackground(painter, hval, vval, w, h);
+
             int z = _zoom >= 0 ? _zoom : ZOOM_MAX - _zoom;
 
             if (_cacheId != NullId) {
                 if (!_pCache[_cacheId][z]) {
                     _pCache[_cacheId][z] = new QPixmap();
                     *_pCache[_cacheId][z] = _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c);
-                }
+                }                
                 painter.drawPixmap(hval, vval, w, h, *_pCache[_cacheId][z], hval, vval, w, h);
             } else {
                 painter.drawPixmap(hval, vval, w, h, _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c), hval, vval, w, h);
             }
         } else {
             /* draw Image*/
+            fillBackground(painter, 0, 0, width(), height());
             painter.drawPixmap(0, 0, _pixmap.width()*_c, _pixmap.height()*_c, _pixmap);
         }
     }
