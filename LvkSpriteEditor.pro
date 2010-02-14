@@ -2,6 +2,7 @@
 # Project created by QtCreator 2009-08-31T19:58:15
 # -------------------------------------------------
 
+#CONFIG += release
 TARGET = LvkSpriteEditor
 TEMPLATE = app
 SOURCES += main.cpp \
@@ -41,6 +42,5 @@ RESOURCES += res.qrc
 #DEFINES += DEBUG_UNDO
 DEFINES += QT_NO_DEBUG_OUTPUT
 
-macx {
-  DEFINES += MAC_OS_X
-}
+macx:DEFINES += MAC_OS_X
+

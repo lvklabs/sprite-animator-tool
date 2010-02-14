@@ -16,9 +16,12 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
 
-    QCoreApplication::setOrganizationName("LavandaInk");
-    QCoreApplication::setOrganizationDomain("lavandaink.com.ar");
-    QCoreApplication::setApplicationName("Lvk Sprite Animation Tool");
+    QApplication::setWindowIcon(QIcon(":/icons/app-icon-128x128"));
+
+    QCoreApplication::setOrganizationName(LVK_NAME);
+    QCoreApplication::setOrganizationDomain(LVK_DOMAIN);
+    QCoreApplication::setApplicationName(APP_NAME);
+    QCoreApplication::setApplicationVersion(APP_VERSION);
 
     MainWindow w;
 

@@ -274,7 +274,9 @@ void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
                 }                
                 painter.drawPixmap(hval, vval, w, h, *_pCache[_cacheId][z], hval, vval, w, h);
             } else {
-                painter.drawPixmap(hval, vval, w, h, _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c), hval, vval, w, h);
+                painter.drawPixmap(hval, vval, w, h,
+                                   _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c),
+                                   hval, vval, w, h);
             }
         } else {
             /* draw Image*/
