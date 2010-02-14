@@ -146,9 +146,15 @@ private:
     bool altKey()
     { return QApplication::keyboardModifiers() & Qt::AltModifier; }
 
-    bool mouseCrossGuidesMode();
-    bool mouseBlueGuideMode();
-    bool canDrag();
+    inline bool mouseCrossGuidesMode();
+    inline bool mouseBlueGuideMode();
+
+    static const int RESIZE_BOX_W = 20;
+    static const int RESIZE_BOX_H = 20;
+
+    inline bool isOverMouseRect();
+    inline bool canDrag();
+    inline bool canResize();
 
     void resize(const QSize &size);
     void resize(int w, int h);

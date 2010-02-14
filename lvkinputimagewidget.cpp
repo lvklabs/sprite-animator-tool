@@ -212,9 +212,54 @@ bool LvkInputImageWidget::mouseBlueGuideMode()
     return _mouseLinesVisible && !_resizingRect && !_draggingRect && ctrlKey() && shiftKey();
 }
 
+bool LvkInputImageWidget::isOverMouseRect()
+{
+    _mouseRect.contains(_mouseX, _mouseY);
+}
+
 bool LvkInputImageWidget::canDrag()
 {
-    return !_resizingRect && _mouseRect.isValid() && _mouseRect.contains(_mouseX, _mouseY) && !mouseBlueGuideMode();
+    return !_resizingRect && _mouseRect.isValid() && isOverMouseRect() && !mouseBlueGuideMode();
+}
+
+bool LvkInputImageWidget::canResizeBottom()
+{
+    return false;
+}
+
+bool LvkInputImageWidget::canResizeBottomLeft()
+{
+    return false;
+}
+
+bool LvkInputImageWidget::canResizeBottomRight()
+{
+    return false;
+}
+
+bool LvkInputImageWidget::canResizeTop()
+{
+    return false;
+}
+
+bool LvkInputImageWidget::canResizeTopLeft()
+{
+    return false;
+}
+
+bool LvkInputImageWidget::canResizeTopRight()
+{
+    return false;
+}
+
+bool LvkInputImageWidget::canResizeLeft()
+{
+    return false;
+}
+
+bool LvkInputImageWidget::canResizeRight()
+{
+    return false;
 }
 
 void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
@@ -309,6 +354,34 @@ void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
         /* draw mouse rect */
         QRect rect = _mouseRect.normalized();
         if (!rect.isEmpty()) {
+            if (isOverMouseRect()) {
+                int x  = rect.x();
+                int y  = rect.y();
+                int w  = rect.width();
+                int h  = rect.height();
+                int l  = RESIZE_BOX_W;
+                int ll = 2*RESIZE_BOX_W;
+
+                QPen pen;
+                pen.setColor(QColor(200, 200, 200));
+                pen.setStyle(Qt::SolidLine);
+                painter.setPen(pen);
+                if (w >= l*3 && h >= l*3) {
+                    painter.drawRect(x, y, l, l);
+                    painter.drawRect(x + l, y, w - ll, l);
+                    painter.drawRect(x + w - l, y, l, l);
+                    painter.drawRect(x + w - l, y + l, l, h - ll);
+                    painter.drawRect(x + w - l, y + h - l, l, l);
+                    painter.drawRect(x + l, y + h - l, w - ll, l);
+                    painter.drawRect(x, y + h - l, l, l);
+                    painter.drawRect(x, y + l, l, h - ll);
+                } else {
+                    painter.drawRect(x - l, y - l, l, l);
+                    painter.drawRect(x + w, y - l, l, l);
+                    painter.drawRect(x + w, y + h, l, l);
+                    painter.drawRect(x - l, y + h, l, l);
+                }
+            }
             painter.setPen(_mouseRectPen);
             painter.drawRect(rect);
         }
