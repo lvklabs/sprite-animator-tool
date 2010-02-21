@@ -162,13 +162,13 @@ private:
     inline bool mouseCrossGuidesMode();
     inline bool mouseBlueGuideMode();
 
-    static const int RESIZE_BOX_W = 20;
-    static const int RESIZE_BOX_H = 20;
+    static const int RESIZE_CONTROL_SIZE = 20;
 
-    inline bool isOverMouseRect();
+    inline bool isMouseOverMouseRect();
     inline bool canDrag();
 
     bool canResize(ResizeType type);
+    bool isMouseOverResizeControls();
 
     void setMouseCursor();
 

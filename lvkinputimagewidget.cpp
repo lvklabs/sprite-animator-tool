@@ -212,35 +212,35 @@ inline bool LvkInputImageWidget::mouseBlueGuideMode()
     return _mouseLinesVisible && !_resizingRect && !_draggingRect && ctrlKey() && shiftKey();
 }
 
-inline bool LvkInputImageWidget::isOverMouseRect()
+inline bool LvkInputImageWidget::isMouseOverMouseRect()
 {
     return _mouseRect.contains(_mouseX, _mouseY);
 }
 
 inline bool LvkInputImageWidget::canDrag()
 {
-    return !_resizingRect && _mouseRect.isValid() && isOverMouseRect() && !mouseBlueGuideMode();
+    return !_resizingRect && _mouseRect.isValid() && isMouseOverMouseRect() && !mouseBlueGuideMode();
 }
 
 #define INIT_RECT_SIZES(rect)   int x  = rect.x();\
                                 int y  = rect.y();\
                                 int w  = rect.width();\
                                 int h  = rect.height();\
-                                int l  = RESIZE_BOX_W;\
+                                int l  = RESIZE_CONTROL_SIZE;\
                                 int ll = 2*l;
 
 /* if the mouse rect is big enough, draw rects inside the frame, otherwise draw outside*/
-#define RectInside       (w >= l*3 && h >= l*3)
-#define RectTop          (RectInside ? QRect(x + l, y, w - ll, l)         : QRect())
-#define RectTopRight     (RectInside ? QRect(x + w - l, y, l, l)          : QRect())
-#define RectRight        (RectInside ? QRect(x + w - l, y + l, l, h - ll) : QRect())
-#define RectBottomRight  (RectInside ? QRect(x + w - l, y + h - l, l, l)  : QRect())
-#define RectBottom       (RectInside ? QRect(x + l, y + h - l, w - ll, l) : QRect())
-#define RectBottomLeft   (RectInside ? QRect(x, y + h - l, l, l)          : QRect())
-#define RectLeft         (RectInside ? QRect(x, y + l, l, h - ll)         : QRect())
-#define RectTopLeft      (RectInside ? QRect(x, y, l, l)                  : QRect())
+#define DrawResizeControlsInside       (w >= l*3 && h >= l*3)
+#define RectTop          (DrawResizeControlsInside ? QRect(x + l, y, w - ll, l)         : QRect(x, y - l, w, l))
+#define RectTopRight     (DrawResizeControlsInside ? QRect(x + w - l, y, l, l)          : QRect(x + w, y - l, l, l))
+#define RectRight        (DrawResizeControlsInside ? QRect(x + w - l, y + l, l, h - ll) : QRect(x + w, y, l, h))
+#define RectBottomRight  (DrawResizeControlsInside ? QRect(x + w - l, y + h - l, l, l)  : QRect(x + w, y + h, l, l))
+#define RectBottom       (DrawResizeControlsInside ? QRect(x + l, y + h - l, w - ll, l) : QRect(x, y + h, w, l))
+#define RectBottomLeft   (DrawResizeControlsInside ? QRect(x, y + h - l, l, l)          : QRect(x - l, y + h, l, l))
+#define RectLeft         (DrawResizeControlsInside ? QRect(x, y + l, l, h - ll)         : QRect(x - l, y, l, h))
+#define RectTopLeft      (DrawResizeControlsInside ? QRect(x, y, l, l)                  : QRect(x - l, y - l, l, l))
 
-// I Know... I abuse of macros but believe is a nice solution :)
+// I Know... I abuse of macros but believe is a quite nice solution :)
 //                        andres
 
 bool LvkInputImageWidget::canResize(ResizeType type)
@@ -274,6 +274,24 @@ bool LvkInputImageWidget::canResize(ResizeType type)
         return RectTopLeft.contains(_mouseX, _mouseY);
     default:
         return false;
+    }
+}
+
+bool LvkInputImageWidget::isMouseOverResizeControls()
+{
+    QRect rect = _mouseRect.normalized();
+
+    if (rect.isEmpty()) {
+        return false;
+    }
+
+    INIT_RECT_SIZES(rect);
+
+    if (DrawResizeControlsInside) {
+        return isMouseOverMouseRect();
+    } else {
+        QRect tmp(rect.x() - l, rect.y() - l, rect.width() + ll, rect.height() + ll);
+        return tmp.contains(_mouseX, _mouseY);
     }
 }
 
@@ -393,30 +411,29 @@ void LvkInputImageWidget::paintMouseRect(QPainter& painter)
         return;
     }
 
-    if (isOverMouseRect() && !_draggingRect && !_resizingRect && !mouseBlueGuideMode()) {
+    bool drawResizeControls =  isMouseOverResizeControls() &&
+                           !_draggingRect &&
+                           !_resizingRect &&
+                           !mouseBlueGuideMode();
+
+    if (drawResizeControls) {
+        INIT_RECT_SIZES(rect);
+
         QPen pen;
         pen.setColor(QColor(200, 200, 200));
         pen.setStyle(Qt::SolidLine);
         painter.setPen(pen);
 
-        INIT_RECT_SIZES(rect);
-
-        //if (w >= l*3 && h >= l*3) {
-            painter.drawRect(RectTop);
-            painter.drawRect(RectTopRight);
-            painter.drawRect(RectRight);
-            painter.drawRect(RectBottomRight);
-            painter.drawRect(RectBottom);
-            painter.drawRect(RectBottomLeft);
-            painter.drawRect(RectLeft);
-            painter.drawRect(RectTopRight);
-//        } else {
-//            painter.drawRect(x - l, y - l, l, l);
-//            painter.drawRect(x + w, y - l, l, l);
-//            painter.drawRect(x + w, y + h, l, l);
-//            painter.drawRect(x - l, y + h, l, l);
-        //}
+        painter.drawRect(RectTop);
+        painter.drawRect(RectTopRight);
+        painter.drawRect(RectRight);
+        painter.drawRect(RectBottomRight);
+        painter.drawRect(RectBottom);
+        painter.drawRect(RectBottomLeft);
+        painter.drawRect(RectLeft);
+        painter.drawRect(RectTopLeft);
     }
+
     painter.setPen(_mouseRectPen);
     painter.drawRect(rect);
 }
