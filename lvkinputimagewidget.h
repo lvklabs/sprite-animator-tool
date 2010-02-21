@@ -68,6 +68,7 @@ public slots:
 signals:
     void mousePositionChanged(int x, int y);
     void mouseRectChanged(const QRect& rect);
+    void frameRectChanged(const QRect& rect);
 
 protected:
     virtual void paintEvent(QPaintEvent *event);
@@ -128,6 +129,7 @@ private:
     QRect      _scaledFrect;   /* frame rect scaled by   _zoom */
     QRect      _mouseRect;     /* mouse rect */
     QRect      _mouseRectP;    /* mouse rect used for dragging */
+    QRect*     _activeRect;    /* active (resizing or dragging) rect */
     int        _mouseX;        /* mouse current x position */
     int        _mouseY;        /* mouse current y position */
     int        _mouseClickX;   /* mouse click x position */
@@ -140,6 +142,7 @@ private:
     QPen       _mouseRectPen;  /* pen used to draw the mouse rect */
     QPen       _mouseGuidePen; /* pen used to draw the mouse guides */
     QPen       _guidePen;      /* pen used to draw the "blue" guides */
+    QPen       _resizeControlsPen; /* pen used to draw the resize controls */
     bool       _draggingRect;  /* if dragging the mouse rect */
     ResizeType _resizingRect;  /* if resizing the new mouse rect */
     bool       _hGuide;        /* add horizontal guide if true, add vertical guide if false */
@@ -150,25 +153,28 @@ private:
 
     QPixmap*      _pCache[PCACHE_ROW_SIZE][PCACHE_COL_SIZE]; /* pixmap cache */
 
-    bool ctrlKey()
+    bool ctrlKey() const
     { return QApplication::keyboardModifiers() & Qt::ControlModifier; }
 
-    bool shiftKey()
+    bool shiftKey() const
     { return QApplication::keyboardModifiers() & Qt::ShiftModifier; }
 
-    bool altKey()
+    bool altKey() const
     { return QApplication::keyboardModifiers() & Qt::AltModifier; }
 
-    inline bool mouseCrossGuidesMode();
-    inline bool mouseBlueGuideMode();
+    inline bool mouseCrossGuidesMode() const;
+    inline bool mouseBlueGuideMode() const;
 
     static const int RESIZE_CONTROL_SIZE = 20;
 
-    inline bool isMouseOverMouseRect();
-    inline bool canDrag();
+    inline bool isMouseOver(const QRect& rect)  const;
+    bool isMouseOverResizeControls(const QRect& rect) const;
 
-    bool canResize(ResizeType type);
-    bool isMouseOverResizeControls();
+    const QRect* mouseOverRect(bool withResizeControls = true) const;
+
+    bool canDrag() const;
+    bool canResize(ResizeType type) const;
+
 
     void setMouseCursor();
 
@@ -177,6 +183,7 @@ private:
     void paintMouseGuides(QPainter& painter);
     void paintFrameRect(QPainter& painter);
     void paintMouseRect(QPainter& painter);
+    void paintResizeControls(QPainter& painter, const QRect& rect);
 
     void mousePressLeftButtonEvent(QMouseEvent *event);
     void mousePressRightButtonEvent(QMouseEvent *event);
@@ -184,7 +191,6 @@ private:
 
     void resize(const QSize &size);
     void resize(int w, int h);
-
 };
 
 #endif // QINPUTIMAGEWIDGET_H
