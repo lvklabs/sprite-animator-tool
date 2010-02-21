@@ -482,6 +482,7 @@ void LvkInputImageWidget::mousePressLeftButtonEvent(QMouseEvent */*event*/)
         /* creating new rect */
         _mouseRect.setRect(pixelate(_mouseClickX), pixelate(_mouseClickY), 0, 0);
         _resizingRect = ResizeBottomRight;
+        _mouseRectP = QRect();
         emit mouseRectChanged(ztor(_mouseRect));
     }
 
@@ -518,26 +519,28 @@ void LvkInputImageWidget::mouseMoveEvent(QMouseEvent *event)
 
 void LvkInputImageWidget::mouseMoveUpdateRects()
 {
+    int dx = _mouseX -_mouseClickX;
+    int dy = _mouseY -_mouseClickY;
+
     if (_resizingRect) {
+        bool newMouseRect = _mouseRectP.isNull();
         if (_resizingRect & ResizeTop) {
-            int y = _mouseRectP.y() + (_mouseY - _mouseClickY) ;
+            int y = _mouseRectP.y() + dy ;
             _mouseRect.setY(pixelate(y));
         }
         if (_resizingRect & ResizeRight) {
-            int w = _mouseX - _mouseRect.x();
+            int w = (newMouseRect) ? _mouseX - _mouseRect.x() : _mouseRectP.width() + dx;
             _mouseRect.setWidth(pixelate(w));
         }
         if (_resizingRect & ResizeBottom) {
-            int h = _mouseY - _mouseRect.y();
+            int h = (newMouseRect) ? _mouseY - _mouseRect.y() : _mouseRectP.height() + dy;
             _mouseRect.setHeight(pixelate(h));
         }
         if (_resizingRect & ResizeLeft) {
-            int x = _mouseRectP.x() + (_mouseX - _mouseClickX) ;
+            int x = _mouseRectP.x() + dx ;
             _mouseRect.setX(pixelate(x));
         }
     } else if (_draggingRect) {
-        int dx = _mouseX -_mouseClickX;
-        int dy = _mouseY -_mouseClickY;
         if (!ctrlKey()) {
             _mouseRect.moveTo(pixelate(_mouseRectP.x() + dx),
                               pixelate(_mouseRectP.y() + dy));
@@ -587,13 +590,17 @@ void LvkInputImageWidget::setMouseCursor()
 {
     if (mouseCrossGuidesMode() || mouseBlueGuideMode()) {
         setCursor(QCursor(Qt::BlankCursor));
-    } else if (canResize(ResizeTop) || canResize(ResizeBottom)) {
+    } else if (canResize(ResizeTop) || canResize(ResizeBottom) ||
+               _resizingRect == ResizeTop || _resizingRect == ResizeBottom) {
         setCursor(QCursor(Qt::SizeVerCursor));
-    } else if (canResize(ResizeRight) || canResize(ResizeLeft)) {
+    } else if (canResize(ResizeRight) || canResize(ResizeLeft) ||
+                _resizingRect == ResizeRight || _resizingRect == ResizeLeft) {
         setCursor(QCursor(Qt::SizeHorCursor));
-    } else if (canResize(ResizeTopRight) || canResize(ResizeBottomLeft)) {
+    } else if (canResize(ResizeTopRight) || canResize(ResizeBottomLeft) ||
+                _resizingRect == ResizeTopRight || _resizingRect == ResizeBottomLeft) {
         setCursor(QCursor(Qt::SizeBDiagCursor));
-    } else if (canResize(ResizeBottomRight) || canResize(ResizeTopLeft)) {
+    } else if (canResize(ResizeBottomRight) || canResize(ResizeTopLeft) ||
+                _resizingRect == ResizeBottomRight || _resizingRect == ResizeTopLeft) {
         setCursor(QCursor(Qt::SizeFDiagCursor));
     } else if (_draggingRect || canDrag()) {
         setCursor(QCursor(Qt::SizeAllCursor));
