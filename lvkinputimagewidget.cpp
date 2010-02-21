@@ -30,7 +30,7 @@ QRect operator/(const QRect& rect, int c)
 LvkInputImageWidget::LvkInputImageWidget(QWidget *parent)
         : QWidget(parent), _frect(0,0,0,0), _mouseRect(0,0,0,0), _mouseX(-1), _mouseY(-1),
           _frectVisible(true), _mouseLinesVisible(true), _zoom(0), _draggingRect(false),
-          _resizingRect(false), _hGuide(true), _cacheId(NullId), _scroll(0)
+          _resizingRect(ResizeNull), _hGuide(true), _cacheId(NullId), _scroll(0)
 {
     _c = pow(ZOOM_FACTOR, _zoom);
 
@@ -202,122 +202,146 @@ void LvkInputImageWidget::setScrollArea(QScrollArea *scroll)
     _scroll = scroll;
 }
 
-bool LvkInputImageWidget::mouseCrossGuidesMode()
+inline bool LvkInputImageWidget::mouseCrossGuidesMode()
 {
     return _mouseLinesVisible && !_draggingRect && ctrlKey();
 }
 
-bool LvkInputImageWidget::mouseBlueGuideMode()
+inline bool LvkInputImageWidget::mouseBlueGuideMode()
 {
     return _mouseLinesVisible && !_resizingRect && !_draggingRect && ctrlKey() && shiftKey();
 }
 
-bool LvkInputImageWidget::isOverMouseRect()
+inline bool LvkInputImageWidget::isOverMouseRect()
 {
-    _mouseRect.contains(_mouseX, _mouseY);
+    return _mouseRect.contains(_mouseX, _mouseY);
 }
 
-bool LvkInputImageWidget::canDrag()
+inline bool LvkInputImageWidget::canDrag()
 {
     return !_resizingRect && _mouseRect.isValid() && isOverMouseRect() && !mouseBlueGuideMode();
 }
 
-bool LvkInputImageWidget::canResizeBottom()
-{
-    return false;
-}
+#define INIT_RECT_SIZES(rect)   int x  = rect.x();\
+                                int y  = rect.y();\
+                                int w  = rect.width();\
+                                int h  = rect.height();\
+                                int l  = RESIZE_BOX_W;\
+                                int ll = 2*l;
 
-bool LvkInputImageWidget::canResizeBottomLeft()
-{
-    return false;
-}
+/* if the mouse rect is big enough, draw rects inside the frame, otherwise draw outside*/
+#define RectInside       (w >= l*3 && h >= l*3)
+#define RectTop          (RectInside ? QRect(x + l, y, w - ll, l)         : QRect())
+#define RectTopRight     (RectInside ? QRect(x + w - l, y, l, l)          : QRect())
+#define RectRight        (RectInside ? QRect(x + w - l, y + l, l, h - ll) : QRect())
+#define RectBottomRight  (RectInside ? QRect(x + w - l, y + h - l, l, l)  : QRect())
+#define RectBottom       (RectInside ? QRect(x + l, y + h - l, w - ll, l) : QRect())
+#define RectBottomLeft   (RectInside ? QRect(x, y + h - l, l, l)          : QRect())
+#define RectLeft         (RectInside ? QRect(x, y + l, l, h - ll)         : QRect())
+#define RectTopLeft      (RectInside ? QRect(x, y, l, l)                  : QRect())
 
-bool LvkInputImageWidget::canResizeBottomRight()
-{
-    return false;
-}
+// I Know... I abuse of macros but believe is a nice solution :)
+//                        andres
 
-bool LvkInputImageWidget::canResizeTop()
+bool LvkInputImageWidget::canResize(ResizeType type)
 {
-    return false;
-}
+    QRect rect = _mouseRect.normalized();
 
-bool LvkInputImageWidget::canResizeTopLeft()
-{
-    return false;
-}
+    if (rect.isEmpty()) {
+        return false;
+    }
 
-bool LvkInputImageWidget::canResizeTopRight()
-{
-    return false;
-}
+    INIT_RECT_SIZES(rect);
 
-bool LvkInputImageWidget::canResizeLeft()
-{
-    return false;
-}
-
-bool LvkInputImageWidget::canResizeRight()
-{
-    return false;
+    switch (type) {
+    case ResizeNull:
+        return false;
+    case ResizeTop:
+        return RectTop.contains(_mouseX, _mouseY);
+    case ResizeTopRight:
+        return RectTopRight.contains(_mouseX, _mouseY);
+    case ResizeRight:
+        return RectRight.contains(_mouseX, _mouseY);
+    case ResizeBottomRight:
+        return RectBottomRight.contains(_mouseX, _mouseY);
+    case ResizeBottom:
+        return RectBottom.contains(_mouseX, _mouseY);
+    case ResizeBottomLeft:
+        return RectBottomLeft.contains(_mouseX, _mouseY);
+    case ResizeLeft:
+        return RectLeft.contains(_mouseX, _mouseY);
+    case ResizeTopLeft:
+        return RectTopLeft.contains(_mouseX, _mouseY);
+    default:
+        return false;
+    }
 }
 
 void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
 {
     QPainter painter(this);
 
-    /* set mouse cursor */
-    if (mouseCrossGuidesMode() || mouseBlueGuideMode()) {
-        setCursor(QCursor(Qt::BlankCursor));
-    } else if (_draggingRect || canDrag()) {
-        setCursor(QCursor(Qt::SizeAllCursor));
-    } else {
-        setCursor(QCursor(Qt::ArrowCursor));
+    setMouseCursor();
+
+    paintImage(painter);
+    paintGuides(painter);
+    paintMouseGuides(painter);
+    paintFrameRect(painter);
+    paintMouseRect(painter);
+}
+
+void LvkInputImageWidget::paintImage(QPainter& painter)
+{
+    if (_pixmap.isNull()) {
+        return;
     }
 
-    if (!_pixmap.isNull()) {
-        if (_scroll) {
-            /* optimized draw Image*/
-            int hval = _scroll->horizontalScrollBar()->value();
-            int vval = _scroll->verticalScrollBar()->value();
-            int w = _scroll->width();
-            int h = _scroll->height();
+    if (_scroll) {
+        /* optimized draw Image*/
 
-            painter.setClipping(true);
-            painter.setClipRect(hval, vval, w, h);
+        int hval = _scroll->horizontalScrollBar()->value();
+        int vval = _scroll->verticalScrollBar()->value();
+        int w = _scroll->width();
+        int h = _scroll->height();
 
-            int z = _zoom >= 0 ? _zoom : ZOOM_MAX - _zoom;
+        painter.setClipping(true);
+        painter.setClipRect(hval, vval, w, h);
 
-            if (_cacheId != NullId) {
-                if (!_pCache[_cacheId][z]) {
-                    _pCache[_cacheId][z] = new QPixmap();
-                    *_pCache[_cacheId][z] = _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c);
-                }
-                painter.drawPixmap(hval, vval, w, h, *_pCache[_cacheId][z], hval, vval, w, h);
-            } else {
-                painter.drawPixmap(hval, vval, w, h,
-                                   _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c),
-                                   hval, vval, w, h);
+        int z = _zoom >= 0 ? _zoom : ZOOM_MAX - _zoom;
+
+        if (_cacheId != NullId) {
+            if (!_pCache[_cacheId][z]) {
+                _pCache[_cacheId][z] = new QPixmap();
+                *_pCache[_cacheId][z] = _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c);
             }
+            painter.drawPixmap(hval, vval, w, h, *_pCache[_cacheId][z], hval, vval, w, h);
         } else {
-            /* draw Image*/
-            painter.drawPixmap(0, 0, _pixmap.width()*_c, _pixmap.height()*_c, _pixmap);
+            painter.drawPixmap(hval, vval, w, h,
+                               _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c),
+                               hval, vval, w, h);
         }
+    } else {
+        painter.drawPixmap(0, 0, _pixmap.width()*_c, _pixmap.height()*_c, _pixmap);
+    }
+}
+
+void LvkInputImageWidget::paintGuides(QPainter& painter)
+{
+    if (!_mouseLinesVisible) {
+        return;
     }
 
-
-    if (_mouseLinesVisible) {
-        /* draw guide lines */
-        painter.setPen(_guidePen);
-        for (int i = 0; i < _guides.size(); ++i) {
-            int x = rtoz(_guides.at(i).x());
-            int y = rtoz(_guides.at(i).y());
-            painter.drawLine(x, 0,  x, height());
-            painter.drawLine(0, y, width(),y);
-        }
+    painter.setPen(_guidePen);
+    for (int i = 0; i < _guides.size(); ++i) {
+        int x = rtoz(_guides.at(i).x());
+        int y = rtoz(_guides.at(i).y());
+        painter.drawLine(x, 0,  x, height());
+        painter.drawLine(0, y, width(),y);
     }
+}
 
-    /* draw mouse guides */
+void LvkInputImageWidget::paintMouseGuides(QPainter& painter)
+{
     if (mouseCrossGuidesMode() && underMouse()) {
         int mx = pixelate(_mouseX);
         int my = pixelate(_mouseY);
@@ -343,51 +367,59 @@ void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
             painter.drawLine(0, my, width(),my);
         }
     }
+}
 
-    if (_frectVisible) {
-        /* draw frame rect */
-        if (!_scaledFrect.isEmpty()) {
-            painter.setPen(_frectPen);
-            painter.drawRect(_scaledFrect);
-        }
+void LvkInputImageWidget::paintFrameRect(QPainter& painter)
+{
+    if (!_frectVisible) {
+        return;
+    }
 
-        /* draw mouse rect */
-        QRect rect = _mouseRect.normalized();
-        if (!rect.isEmpty()) {
-            if (isOverMouseRect()) {
-                int x  = rect.x();
-                int y  = rect.y();
-                int w  = rect.width();
-                int h  = rect.height();
-                int l  = RESIZE_BOX_W;
-                int ll = 2*RESIZE_BOX_W;
-
-                QPen pen;
-                pen.setColor(QColor(200, 200, 200));
-                pen.setStyle(Qt::SolidLine);
-                painter.setPen(pen);
-                if (w >= l*3 && h >= l*3) {
-                    painter.drawRect(x, y, l, l);
-                    painter.drawRect(x + l, y, w - ll, l);
-                    painter.drawRect(x + w - l, y, l, l);
-                    painter.drawRect(x + w - l, y + l, l, h - ll);
-                    painter.drawRect(x + w - l, y + h - l, l, l);
-                    painter.drawRect(x + l, y + h - l, w - ll, l);
-                    painter.drawRect(x, y + h - l, l, l);
-                    painter.drawRect(x, y + l, l, h - ll);
-                } else {
-                    painter.drawRect(x - l, y - l, l, l);
-                    painter.drawRect(x + w, y - l, l, l);
-                    painter.drawRect(x + w, y + h, l, l);
-                    painter.drawRect(x - l, y + h, l, l);
-                }
-            }
-            painter.setPen(_mouseRectPen);
-            painter.drawRect(rect);
-        }
+    if (!_scaledFrect.isEmpty()) {
+        painter.setPen(_frectPen);
+        painter.drawRect(_scaledFrect);
     }
 }
 
+void LvkInputImageWidget::paintMouseRect(QPainter& painter)
+{
+    if (!_frectVisible) {
+        return;
+    }
+
+    QRect rect = _mouseRect.normalized();
+
+    if (rect.isEmpty()) {
+        return;
+    }
+
+    if (isOverMouseRect() && !_draggingRect && !_resizingRect && !mouseBlueGuideMode()) {
+        QPen pen;
+        pen.setColor(QColor(200, 200, 200));
+        pen.setStyle(Qt::SolidLine);
+        painter.setPen(pen);
+
+        INIT_RECT_SIZES(rect);
+
+        //if (w >= l*3 && h >= l*3) {
+            painter.drawRect(RectTop);
+            painter.drawRect(RectTopRight);
+            painter.drawRect(RectRight);
+            painter.drawRect(RectBottomRight);
+            painter.drawRect(RectBottom);
+            painter.drawRect(RectBottomLeft);
+            painter.drawRect(RectLeft);
+            painter.drawRect(RectTopRight);
+//        } else {
+//            painter.drawRect(x - l, y - l, l, l);
+//            painter.drawRect(x + w, y - l, l, l);
+//            painter.drawRect(x + w, y + h, l, l);
+//            painter.drawRect(x - l, y + h, l, l);
+        //}
+    }
+    painter.setPen(_mouseRectPen);
+    painter.drawRect(rect);
+}
 
 void LvkInputImageWidget::mousePressEvent(QMouseEvent *event)
 {
@@ -395,33 +427,64 @@ void LvkInputImageWidget::mousePressEvent(QMouseEvent *event)
     _mouseClickY = event->y();
 
     if (event->buttons() & Qt::LeftButton) {
-        if (canDrag()) {
-            _draggingRect = true;
-            _mouseRectP = _mouseRect;
-        } else if (mouseBlueGuideMode()) {
-            if (_hGuide) {
-                _guides.append(QPoint(-1, ztor(pixelate(_mouseClickY))));
-            } else {
-                _guides.append(QPoint(ztor(pixelate(_mouseClickX)), -1));
-            }
-        } else {
-            _mouseRect.setRect(pixelate(_mouseClickX), pixelate(_mouseClickY), 0, 0);
-            _resizingRect = true;
-            emit mouseRectChanged(ztor(_mouseRect));
-        }
+        mousePressLeftButtonEvent(event);
     } else if (event->buttons() & Qt::RightButton) {
-        if (mouseBlueGuideMode()) {
-            _hGuide = !_hGuide;
+        mousePressRightButtonEvent(event);
+    }
+
+    update();
+}
+
+void LvkInputImageWidget::mousePressLeftButtonEvent(QMouseEvent */*event*/)
+{
+    if (canResize(ResizeTop)) {
+        _resizingRect = ResizeTop;
+    } else if (canResize(ResizeTopRight)) {
+        _resizingRect = ResizeTopRight;
+    } else if (canResize(ResizeRight)) {
+        _resizingRect = ResizeRight;
+    } else if (canResize(ResizeBottomRight)) {
+        _resizingRect = ResizeBottomRight;
+    } else if (canResize(ResizeBottom)) {
+        _resizingRect = ResizeBottom;
+    } else if (canResize(ResizeBottomLeft)) {
+        _resizingRect = ResizeBottomLeft;
+    } else if (canResize(ResizeLeft)) {
+        _resizingRect = ResizeLeft;
+    } else if (canResize(ResizeTopLeft)) {
+        _resizingRect = ResizeTopLeft;
+    } else if (canDrag()) {
+        _draggingRect = true;
+    } else if (mouseBlueGuideMode()) {
+        if (_hGuide) {
+            _guides.append(QPoint(-1, ztor(pixelate(_mouseClickY))));
+        } else {
+            _guides.append(QPoint(ztor(pixelate(_mouseClickX)), -1));
+        }
+    } else {
+        /* creating new rect */
+        _mouseRect.setRect(pixelate(_mouseClickX), pixelate(_mouseClickY), 0, 0);
+        _resizingRect = ResizeBottomRight;
+        emit mouseRectChanged(ztor(_mouseRect));
+    }
+
+    if (_resizingRect || _draggingRect) {
+        _mouseRectP = _mouseRect;
+    }
+}
+
+void LvkInputImageWidget::mousePressRightButtonEvent(QMouseEvent */*event*/)
+{
+    if (mouseBlueGuideMode()) {
+        _hGuide = !_hGuide;
 //        } else if (_draggingRect) {
 //            _mouseRect = _mouseRectP;
 //            _draggingRect = false;
 //            emit mouseRectChanged(ztor(_mouseRect));
-        } else {
-            _mouseRect.setRect(0, 0, 0, 0);
-            emit mouseRectChanged(ztor(_mouseRect));
-        }
+    } else {
+        _mouseRect.setRect(0, 0, 0, 0);
+        emit mouseRectChanged(ztor(_mouseRect));
     }
-    update();
 }
 
 void LvkInputImageWidget::mouseMoveEvent(QMouseEvent *event)
@@ -430,40 +493,54 @@ void LvkInputImageWidget::mouseMoveEvent(QMouseEvent *event)
     _mouseY = event->y();
 
     emit mousePositionChanged(ztor(_mouseX), ztor(_mouseY));
-
-
-    if (_frectVisible) {
-        if (_draggingRect) {
-            int dx = _mouseX -_mouseClickX;
-            int dy = _mouseY -_mouseClickY;
-            if (!ctrlKey()) {
-                _mouseRect.moveTo(pixelate(_mouseRectP.x() + dx),
-                                  pixelate(_mouseRectP.y() + dy));
-            } else {
-                if (abs(dx) > 20 ) {
-                    _mouseRect.moveTo(pixelate(_mouseRectP.x() + dx),
-                                      pixelate(_mouseRectP.y()));
-                } else {
-                    _mouseRect.moveTo(pixelate(_mouseRectP.x()),
-                                      pixelate(_mouseRectP.y() + dy));
-                }
-            }
-            emit mouseRectChanged(ztor(_mouseRect));
-        } else if (_resizingRect && event->buttons() & Qt::LeftButton) {
-            int w = _mouseX - _mouseRect.x();
-            int h = _mouseY - _mouseRect.y();
-            _mouseRect.setWidth(pixelate(w));
-            _mouseRect.setHeight(pixelate(h));
-            emit mouseRectChanged(ztor(_mouseRect));
-        }
+    if (_frectVisible && event->buttons() & Qt::LeftButton) {
+        mouseMoveUpdateRects();
     }
     update();
+}
+
+void LvkInputImageWidget::mouseMoveUpdateRects()
+{
+    if (_resizingRect) {
+        if (_resizingRect & ResizeTop) {
+            int y = _mouseRectP.y() + (_mouseY - _mouseClickY) ;
+            _mouseRect.setY(pixelate(y));
+        }
+        if (_resizingRect & ResizeRight) {
+            int w = _mouseX - _mouseRect.x();
+            _mouseRect.setWidth(pixelate(w));
+        }
+        if (_resizingRect & ResizeBottom) {
+            int h = _mouseY - _mouseRect.y();
+            _mouseRect.setHeight(pixelate(h));
+        }
+        if (_resizingRect & ResizeLeft) {
+            int x = _mouseRectP.x() + (_mouseX - _mouseClickX) ;
+            _mouseRect.setX(pixelate(x));
+        }
+    } else if (_draggingRect) {
+        int dx = _mouseX -_mouseClickX;
+        int dy = _mouseY -_mouseClickY;
+        if (!ctrlKey()) {
+            _mouseRect.moveTo(pixelate(_mouseRectP.x() + dx),
+                              pixelate(_mouseRectP.y() + dy));
+        } else {
+            if (abs(dx) > 20) {
+                _mouseRect.moveTo(pixelate(_mouseRectP.x() + dx),
+                                  pixelate(_mouseRectP.y()));
+            } else {
+                _mouseRect.moveTo(pixelate(_mouseRectP.x()),
+                                  pixelate(_mouseRectP.y() + dy));
+            }
+        }
+    }
+    emit mouseRectChanged(ztor(_mouseRect));
 }
 
 void LvkInputImageWidget::mouseReleaseEvent(QMouseEvent */*event*/)
 {
     _draggingRect = false;
-    _resizingRect = false;
+    _resizingRect = ResizeNull;
     _mouseRect = _mouseRect.normalized();
     emit mouseRectChanged(ztor(_mouseRect));
     update();
@@ -489,15 +566,35 @@ void LvkInputImageWidget::keyPressEvent(QKeyEvent *event)
     }
 }
 
+void LvkInputImageWidget::setMouseCursor()
+{
+    if (mouseCrossGuidesMode() || mouseBlueGuideMode()) {
+        setCursor(QCursor(Qt::BlankCursor));
+    } else if (canResize(ResizeTop) || canResize(ResizeBottom)) {
+        setCursor(QCursor(Qt::SizeVerCursor));
+    } else if (canResize(ResizeRight) || canResize(ResizeLeft)) {
+        setCursor(QCursor(Qt::SizeHorCursor));
+    } else if (canResize(ResizeTopRight) || canResize(ResizeBottomLeft)) {
+        setCursor(QCursor(Qt::SizeBDiagCursor));
+    } else if (canResize(ResizeBottomRight) || canResize(ResizeTopLeft)) {
+        setCursor(QCursor(Qt::SizeFDiagCursor));
+    } else if (_draggingRect || canDrag()) {
+        setCursor(QCursor(Qt::SizeAllCursor));
+    } else {
+        setCursor(QCursor(Qt::ArrowCursor));
+    }
+}
+
 void LvkInputImageWidget::scrollToFrame(const LvkFrame& frame)
 {
     if (!_scroll) {
         return;
     }
+    // TODO simplify
 
     int margin = 10;
 
-    // TODO simplify
+    /* Horizontal scroll */
 
     int hval = _scroll->horizontalScrollBar()->value();
     int hmax = _scroll->horizontalScrollBar()->maximum();
@@ -511,6 +608,8 @@ void LvkInputImageWidget::scrollToFrame(const LvkFrame& frame)
     } else if (fx2 >= wv) {
         _scroll->horizontalScrollBar()->setValue(hval + (fx2 - wv) + margin);
     }
+
+    /* Vertical scroll */
 
     int vval = _scroll->verticalScrollBar()->value();
     int vmax = _scroll->verticalScrollBar()->maximum();

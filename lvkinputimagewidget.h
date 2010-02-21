@@ -78,6 +78,19 @@ protected:
     virtual void keyPressEvent(QKeyEvent *event);
 
 private:
+
+    enum ResizeType {
+        ResizeNull        = 0x00,
+        ResizeTop         = 0x01,
+        ResizeRight       = 0x02,
+        ResizeBottom      = 0x04,
+        ResizeLeft        = 0x08,
+        ResizeTopRight    = ResizeTop | ResizeRight,
+        ResizeTopLeft     = ResizeTop | ResizeLeft,
+        ResizeBottomRight = ResizeBottom | ResizeRight,
+        ResizeBottomLeft  = ResizeBottom | ResizeLeft,
+    };
+
     /// from real size to zoomed size (in pixels);
     inline int rtoz(int value)  const
     { return value*_c; }
@@ -110,27 +123,27 @@ private:
         }
     }
 
-    float    _c;             /* heavily used coeficient */
-    QRect    _frect;         /* frame rect */
-    QRect    _scaledFrect;   /* frame rect scaled by _zoom */
-    QRect    _mouseRect;     /* mouse rect */
-    QRect    _mouseRectP;    /* mouse rect used for dragging */
-    int      _mouseX;        /* mouse current x position */
-    int      _mouseY;        /* mouse current y position */
-    int      _mouseClickX;   /* mouse click x position */
-    int      _mouseClickY;   /* mouse click y position */
-    bool     _frectVisible;  /* turn on/off visible rects */
-    bool     _mouseLinesVisible; /* turn on/off mouse lines */
-    int      _zoom;          /* current zoom level */
-    QPixmap  _pixmap;        /* current pixmap */
-    QPen     _frectPen;      /* pen used to draw the frame rect */
-    QPen     _mouseRectPen;  /* pen used to draw the mouse rect */
-    QPen     _mouseGuidePen; /* pen used to draw the mouse guides */
-    QPen     _guidePen;      /* pen used to draw the "blue" guides */
-    bool     _draggingRect;  /* if dragging the mouse rect */
-    bool     _resizingRect;  /* if resizing the mouse rect */
-    bool     _hGuide;        /* add horizontal guide if true, add vertical guide if false */
-    Id       _cacheId;       /* */
+    float      _c;             /* heavily used coeficient */
+    QRect      _frect;         /* frame rect */
+    QRect      _scaledFrect;   /* frame rect scaled by   _zoom */
+    QRect      _mouseRect;     /* mouse rect */
+    QRect      _mouseRectP;    /* mouse rect used for dragging */
+    int        _mouseX;        /* mouse current x position */
+    int        _mouseY;        /* mouse current y position */
+    int        _mouseClickX;   /* mouse click x position */
+    int        _mouseClickY;   /* mouse click y position */
+    bool       _frectVisible;  /* turn on/off visible rects */
+    bool       _mouseLinesVisible; /* turn on/off mouse lines */
+    int        _zoom;          /* current zoom level */
+    QPixmap    _pixmap;        /* current pixmap */
+    QPen       _frectPen;      /* pen used to draw the frame rect */
+    QPen       _mouseRectPen;  /* pen used to draw the mouse rect */
+    QPen       _mouseGuidePen; /* pen used to draw the mouse guides */
+    QPen       _guidePen;      /* pen used to draw the "blue" guides */
+    bool       _draggingRect;  /* if dragging the mouse rect */
+    ResizeType _resizingRect;  /* if resizing the new mouse rect */
+    bool       _hGuide;        /* add horizontal guide if true, add vertical guide if false */
+    Id         _cacheId;       /* */
 
     QList<QPoint> _guides;   /* list of "blue" guides */
     QScrollArea*  _scroll;   /* if the widget has a parent scroll */
@@ -154,7 +167,20 @@ private:
 
     inline bool isOverMouseRect();
     inline bool canDrag();
-    inline bool canResize();
+
+    bool canResize(ResizeType type);
+
+    void setMouseCursor();
+
+    void paintImage(QPainter& painter);
+    void paintGuides(QPainter& painter);
+    void paintMouseGuides(QPainter& painter);
+    void paintFrameRect(QPainter& painter);
+    void paintMouseRect(QPainter& painter);
+
+    void mousePressLeftButtonEvent(QMouseEvent *event);
+    void mousePressRightButtonEvent(QMouseEvent *event);
+    void mouseMoveUpdateRects();
 
     void resize(const QSize &size);
     void resize(int w, int h);
