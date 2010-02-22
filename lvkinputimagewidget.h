@@ -67,8 +67,10 @@ public slots:
 
 signals:
     void mousePositionChanged(int x, int y);
-    void mouseRectChanged(const QRect& rect);
-    void frameRectChanged(const QRect& rect);
+    void mouseRectChanging(const QRect& rect);
+    void frameRectChanging(const QRect& rect);
+    void mouseRectChangeFinished(const QRect& rect);
+    void frameRectChangeFinished(const QRect& rect);
 
 protected:
     virtual void paintEvent(QPaintEvent *event);
@@ -169,12 +171,10 @@ private:
 
     inline bool isMouseOver(const QRect& rect)  const;
     bool isMouseOverResizeControls(const QRect& rect) const;
-
     const QRect* mouseOverRect(bool withResizeControls = true) const;
 
     bool canDrag() const;
     bool canResize(ResizeType type) const;
-
 
     void setMouseCursor();
 
@@ -191,6 +191,9 @@ private:
 
     void resize(const QSize &size);
     void resize(int w, int h);
+
+    void emitRectChanging();
+    void emitRectChangeFinished();
 };
 
 #endif // QINPUTIMAGEWIDGET_H

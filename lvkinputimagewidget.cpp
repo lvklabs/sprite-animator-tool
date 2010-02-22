@@ -57,14 +57,16 @@ LvkInputImageWidget::LvkInputImageWidget(QWidget *parent)
 void LvkInputImageWidget::clear()
 {
     _frect = QRect(0,0,0,0);
-    _mouseRect = QRect(0,0,0,0);
     _pixmap = QPixmap();
     _zoom = 0;
     _c = pow(ZOOM_FACTOR, _zoom);
     _hGuide = true;
     clearPixmapCache();
 
-    emit mouseRectChanged(ztor(_mouseRect));
+    if (!_mouseRect.isNull()) {
+        _mouseRect = QRect(0,0,0,0);
+        emit mouseRectChangeFinished(ztor(_mouseRect));
+    }
 }
 
 void LvkInputImageWidget::clearPixmapCache()
@@ -101,7 +103,7 @@ void LvkInputImageWidget::setPixmap(const QPixmap &pixmap, Id useCacheId)
             _c = pow(ZOOM_FACTOR, _zoom);\
             _scaledFrect = rtoz(_frect);\
             resize(_pixmap.size()*_c);\
-            emit mouseRectChanged(ztor(_mouseRect));
+            emit mouseRectChangeFinished(ztor(_mouseRect));
 
 void LvkInputImageWidget::zoomIn()
 {
@@ -228,6 +230,12 @@ inline bool LvkInputImageWidget::isMouseOver(const QRect& rect) const
                                 int h  = rect.height();\
                                 int l  = RESIZE_CONTROL_SIZE;\
                                 int ll = 2*l;
+
+#define INIT_RECT_SIZES2(rect)  int w  = rect.width();\
+                                int h  = rect.height();\
+                                int l  = RESIZE_CONTROL_SIZE;\
+                                int ll = 2*l;
+
 
 /* if the mouse rect is big enough, draw rects inside the frame, otherwise draw outside*/
 #define DrawResizeControlsInside       (w >= l*3 && h >= l*3)
@@ -423,12 +431,14 @@ void LvkInputImageWidget::paintFrameRect(QPainter& painter)
         return;
     }
 
-    if (!_scaledFrect.isEmpty()) {
+    QRect rect = _scaledFrect.normalized();
+
+    if (!rect.isEmpty()) {
         if (mouseOverRect() != &_mouseRect) {
-            paintResizeControls(painter, _scaledFrect);
+            paintResizeControls(painter, rect);
         }
         painter.setPen(_frectPen);
-        painter.drawRect(_scaledFrect);
+        painter.drawRect(rect);
     }
 }
 
@@ -440,13 +450,12 @@ void LvkInputImageWidget::paintMouseRect(QPainter& painter)
 
     QRect rect = _mouseRect.normalized();
 
-    if (rect.isEmpty()) {
-        return;
+    if (!rect.isEmpty()) {
+        paintResizeControls(painter, rect);
+        painter.setPen(_mouseRectPen);
+        painter.drawRect(rect);
     }
 
-    paintResizeControls(painter, rect);
-    painter.setPen(_mouseRectPen);
-    painter.drawRect(rect);
 }
 
 void LvkInputImageWidget::paintResizeControls(QPainter &painter, const QRect &rect)
@@ -515,9 +524,9 @@ void LvkInputImageWidget::mousePressLeftButtonEvent(QMouseEvent */*event*/)
         }
     } else {
         /* creating new rect */
-        _mouseRect.setRect(pixelate(_mouseClickX), pixelate(_mouseClickY), 1, 1);
+        _mouseRect.setRect(pixelate(_mouseClickX), pixelate(_mouseClickY), 0, 0);
         _resizingRect = ResizeBottomRight;
-        emit mouseRectChanged(ztor(_mouseRect));
+        emit mouseRectChangeFinished(ztor(_mouseRect));
     }
 
     if (_activeRect) {
@@ -534,10 +543,10 @@ void LvkInputImageWidget::mousePressRightButtonEvent(QMouseEvent */*event*/)
 //        } else if (_draggingRect) {
 //            _mouseRect = _mouseRectP;
 //            _draggingRect = false;
-//            emit mouseRectChanged(ztor(_mouseRect));
+//            emit mouseRectChangeFinished(ztor(_mouseRect));
     } else {
         _mouseRect.setRect(0, 0, 0, 0);
-        emit mouseRectChanged(ztor(_mouseRect));
+        emit mouseRectChangeFinished(ztor(_mouseRect));
     }
 }
 
@@ -601,17 +610,20 @@ void LvkInputImageWidget::mouseMoveUpdateRects()
             }
         }
     }
-    emit mouseRectChanged(ztor(_mouseRect));
+
+    emitRectChanging();
 }
 
 void LvkInputImageWidget::mouseReleaseEvent(QMouseEvent */*event*/)
 {
+    _mouseRect = _mouseRect.normalized();
+    _scaledFrect = _scaledFrect.normalized();
     _draggingRect = false;
     _resizingRect = ResizeNull;
-    _activeRect = 0;
-    _mouseRect = _mouseRect.normalized();
 
-    emit mouseRectChanged(ztor(_mouseRect));
+    emitRectChangeFinished();
+
+    _activeRect = 0; /* Important: do this *after* calling emitRectChangeFinished */
 
     update();
 }
@@ -715,3 +727,22 @@ LvkInputImageWidget::~LvkInputImageWidget()
 {
     clearPixmapCache();
 }
+
+void LvkInputImageWidget::emitRectChanging()
+{
+    if (_activeRect == &_mouseRect) {
+        emit mouseRectChanging(ztor(_mouseRect));
+    } else if (_activeRect == &_scaledFrect) {
+        emit frameRectChanging(ztor(_scaledFrect));
+    }
+}
+
+void LvkInputImageWidget::emitRectChangeFinished()
+{
+    if (_activeRect == &_mouseRect) {
+        emit mouseRectChangeFinished(ztor(_mouseRect));
+    } else if (_activeRect == &_scaledFrect) {
+        emit frameRectChangeFinished(ztor(_scaledFrect));
+    }
+}
+
