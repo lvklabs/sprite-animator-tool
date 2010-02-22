@@ -1011,6 +1011,7 @@ void MainWindow::updateCurrentFrame(const QRect &rect)
     _sprState.updateFrame(frame);
 
     updateCurrentFrame_ui(rect);
+    showFrame(frame.id);
 }
 
 void MainWindow::updateCurrentFrame_ui(const QRect &rect)
