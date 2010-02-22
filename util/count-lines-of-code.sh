@@ -1,5 +1,6 @@
 #!/bin/bash
 echo "Counting lines of C++ source code in" `pwd` 
-rm -f moc_*.cpp ui_mainwindow.hi qrc_res.cpp
-echo "Total lines               :" `cat *.cpp *.h | wc -l`
-echo "Total lines without spaces:" `cat *.cpp *.h | grep -v -e "^\s*$" | wc -l`
+make clean >/dev/null
+echo "Total lines                                 :" `cat *.cpp *.h | wc -l`
+echo "Total lines without blank lines             :" `cat *.cpp *.h | grep -v -e "^\s*$" | wc -l`
+echo "Total lines without blank lines and comments:" `cat *.cpp *.h | sed -e 's#//.*$##g;s#/\*.*\*/##g' | grep -v -e "^\s*$" | wc -l`
