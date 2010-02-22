@@ -1420,7 +1420,11 @@ void MainWindow::updateFramesTable(int row, int col)
     LvkFrame      frame    = _sprState.const_frame(frameId);
 
     bool ok = true;
-    int i = newValue.toInt(&ok);
+    int i = 0;
+
+    if (col != ColFrameName) {
+        i = newValue.toInt(&ok);
+    }
 
     switch (col) {
     case ColFrameId:
@@ -1487,13 +1491,14 @@ void MainWindow::updateFramesTable(int row, int col)
 
     if (ok) {
         switch (col) {
-        case ColFrameImgId:
         case ColFrameOx:
         case ColFrameOy:
         case ColFrameW:
         case ColFrameH:
-            _sprState.updateFrame(frame);
             ui->imgPreview->setFrameRect(frame.rect());
+        case ColFrameImgId:
+        case ColFrameName:
+            _sprState.updateFrame(frame);
             showFrame(frame.id);
             break;
         default:
