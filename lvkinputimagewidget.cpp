@@ -84,8 +84,6 @@ void LvkInputImageWidget::clearPixmapCache()
 
 void LvkInputImageWidget::setPixmap(const QPixmap &pixmap, Id useCacheId)
 {
-    setFrameRect(pixmap.rect());
-
     if (useCacheId != NullId) {
         if (useCacheId < 0 || useCacheId >= PCACHE_ROW_SIZE) {
             qDebug() << "WARNING: LvkInputImageWidget::setPixmap() useCacheId out of bunds, using 0" ;
@@ -102,7 +100,7 @@ void LvkInputImageWidget::setPixmap(const QPixmap &pixmap, Id useCacheId)
 #define ZOOM_COMMON() \
             _c = pow(ZOOM_FACTOR, _zoom);\
             _scaledFrect = rtoz(_frect);\
-            resize(_pixmap.size()*_c);\
+            resize(_pixmap.width()*_c + 1, _pixmap.height()*_c + 1);\
             emit mouseRectChangeFinished(ztor(_mouseRect));
 
 void LvkInputImageWidget::zoomIn()
@@ -460,6 +458,10 @@ void LvkInputImageWidget::paintMouseRect(QPainter& painter)
 
 void LvkInputImageWidget::paintResizeControls(QPainter &painter, const QRect &rect)
 {
+    if (!underMouse()) {
+        return;
+    }
+
     bool drawResizeControls = isMouseOverResizeControls(rect) &&
                            !_draggingRect &&
                            !_resizingRect &&
