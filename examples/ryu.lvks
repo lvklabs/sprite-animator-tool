@@ -4,7 +4,7 @@ LvkSprite version 0.1
 # Images
 # format: imageId,filename
 images(
-	0,RyuCE.png
+	0,RyuCE-t.png
 )
 
 # Frames

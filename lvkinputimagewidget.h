@@ -9,6 +9,8 @@
 #include "types.h"
 #include "lvkframe.h"
 
+class QPainter;
+
 class LvkInputImageWidget : public QWidget
 {
     Q_OBJECT
@@ -48,6 +50,9 @@ public:
     /// Scroll widget to show a frame.
     /// setScrollArea() must be called before invoking this method.
     void scrollToFrame(const LvkFrame& frame);
+
+    /// Sets the widget background
+    void setBackground(const QPixmap& bg);
 
 public slots:
     void zoomIn();
@@ -140,6 +145,8 @@ private:
     bool       _mouseLinesVisible; /* turn on/off mouse lines */
     int        _zoom;          /* current zoom level */
     QPixmap    _pixmap;        /* current pixmap */
+    QPixmap     _bg;            /* widget background */
+    QBrush     _bgBrush;       /* background brush */
     QPen       _frectPen;      /* pen used to draw the frame rect */
     QPen       _mouseRectPen;  /* pen used to draw the mouse rect */
     QPen       _mouseGuidePen; /* pen used to draw the mouse guides */
@@ -188,6 +195,8 @@ private:
     void mousePressLeftButtonEvent(QMouseEvent *event);
     void mousePressRightButtonEvent(QMouseEvent *event);
     void mouseMoveUpdateRects();
+
+    void fillBackground(QPainter& painter, int x, int y, int w, int h);
 
     void resize(const QSize &size);
     void resize(int w, int h);
