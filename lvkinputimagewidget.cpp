@@ -34,7 +34,7 @@ LvkInputImageWidget::LvkInputImageWidget(QWidget *parent)
 {
     _c = pow(ZOOM_FACTOR, _zoom);
 
-    _frectPen.setColor(QColor(255 , 127, 127));
+    _frectPen.setColor(QColor(255, 100, 100));
     _frectPen.setStyle(Qt::SolidLine);
     _mouseRectPen.setColor(Qt::black);
     _mouseRectPen.setStyle(Qt::DashLine);
@@ -42,7 +42,7 @@ LvkInputImageWidget::LvkInputImageWidget(QWidget *parent)
     _mouseGuidePen.setStyle(Qt::SolidLine);
     _guidePen.setColor(QColor(127 , 127, 255));
     _guidePen.setStyle(Qt::DashLine);
-    _resizeControlsPen.setColor(QColor(200, 200, 200));
+    _resizeControlsPen.setColor(QColor(180, 180, 180));
     _resizeControlsPen.setStyle(Qt::SolidLine);
 
     for (int i = 0; i < PCACHE_ROW_SIZE; ++i) {
