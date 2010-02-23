@@ -34,6 +34,9 @@ struct LvkFrame
     /// returns a QRect with the values ox, oy, w and h
     QRect rect() const;
 
+    /// sets ox, oy, w, and h from a QRect
+    void setRect(const QRect& rect);
+
     /// operator ==
     bool operator==(const LvkFrame& f) const
     {

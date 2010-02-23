@@ -52,5 +52,11 @@ QRect LvkFrame::rect() const
     return QRect(ox, oy, w, h);
 }
 
-
+void LvkFrame::setRect(const QRect &rect)
+{
+    ox = rect.x();
+    oy = rect.y();
+    w = rect.width();
+    h = rect.height();
+}
 

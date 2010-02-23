@@ -67,6 +67,7 @@ enum {
 #define getAnimationId(row)     ui->aniTableWidget->item(row, ColAniId)->text().toInt()
 
 #define selectedImgId()         getImageId(ui->imgTableWidget->currentRow())
+#define selectedFrameId()       getFrameId(ui->framesTableWidget->currentRow())
 #define selectedAniId()         getAnimationId(ui->aniTableWidget->currentRow())
 #define selectedAframeId()      getAFrameId(ui->aframesTableWidget->currentRow())
 
@@ -171,7 +172,10 @@ void MainWindow::initSignals()
     connect(ui->imgPreview,            SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
     connect(ui->framePreview,          SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
     connect(ui->aframePreview,         SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
-    connect(ui->imgPreview,            SIGNAL(mouseRectChanged(const QRect&)), this, SLOT(showMouseRect(const QRect&)));
+    connect(ui->imgPreview,            SIGNAL(mouseRectChanging(const QRect&)),       this, SLOT(showMouseRect(const QRect&)));
+    connect(ui->imgPreview,            SIGNAL(frameRectChanging(const QRect&)),       this, SLOT(updateCurrentFrame_ui(const QRect&)));
+    connect(ui->imgPreview,            SIGNAL(mouseRectChangeFinished(const QRect&)), this, SLOT(showMouseRect(const QRect&)));
+    connect(ui->imgPreview,            SIGNAL(frameRectChangeFinished(const QRect&)), this, SLOT(updateCurrentFrame(const QRect&)));
 
     connect(ui->imgZoomInButton,       SIGNAL(clicked()),  ui->imgPreview,    SLOT(zoomIn()));
     connect(ui->imgZoomOutButton,      SIGNAL(clicked()),  ui->imgPreview,    SLOT(zoomOut()));
@@ -405,8 +409,9 @@ bool MainWindow::openFile_(const QString& filename_, SpriteStateError* err)
         ui->imgPreview->setPixmap(QPixmap());
     }
     if (ui->framesTableWidget->rowCount() > 0) {
-        ui->framesTableWidget->selectRow(0);
-        showSelFrame(0);
+        // selectRow not working (?)
+        //ui->framesTableWidget->selectRow(0);
+        //showSelFrame(0);
     } else {
         ui->framePreview->setPixmap(QPixmap());
     }
@@ -993,6 +998,36 @@ void MainWindow::removeFrame(int row)
     ui->framePreview->setPixmap(QPixmap());
 
     _sprState.removeFrame(frameId);
+}
+
+void MainWindow::updateCurrentFrame(const QRect &rect)
+{
+    if (ui->framesTableWidget->currentRow() == -1) {
+        return;
+    }
+
+    LvkFrame frame = _sprState.const_frame(selectedFrameId());
+    frame.setRect(rect);
+    _sprState.updateFrame(frame);
+
+    updateCurrentFrame_ui(rect);
+    showFrame(frame.id);
+}
+
+void MainWindow::updateCurrentFrame_ui(const QRect &rect)
+{
+    int currentRow = ui->framesTableWidget->currentRow();
+
+    if (currentRow == -1) {
+        return;
+    }
+
+    cellChangedSignals(false);
+    ui->framesTableWidget->item(currentRow, ColFrameOx)->setText(QString::number(rect.x()));
+    ui->framesTableWidget->item(currentRow, ColFrameOy)->setText(QString::number(rect.y()));
+    ui->framesTableWidget->item(currentRow, ColFrameW)->setText(QString::number(rect.width()));
+    ui->framesTableWidget->item(currentRow, ColFrameH)->setText(QString::number(rect.height()));
+    cellChangedSignals(true);
 }
 
 void MainWindow::addAnimationDialog()
