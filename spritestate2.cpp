@@ -23,6 +23,7 @@ bool SpriteState2::undo()
 
         /* undo update */
         case StateCircularBuffer::st_updateImage:
+            st.data.old_img.reloadImage();
             SpriteState::updateImage(st.data.old_img);
             break;
         case StateCircularBuffer::st_updateFrame:
@@ -51,6 +52,7 @@ bool SpriteState2::undo()
 
         /* undo remove */
         case StateCircularBuffer::st_removeImage:
+            st.data.img.reloadImage();
             SpriteState::addImage(st.data.img);
             break;
         case StateCircularBuffer::st_removeFrame:
@@ -86,6 +88,7 @@ bool SpriteState2::redo()
 
         /* redo update */
         case StateCircularBuffer::st_updateImage:
+            st.data.img.reloadImage();
             SpriteState::updateImage(st.data.img);
             break;
         case StateCircularBuffer::st_updateFrame:
@@ -100,6 +103,7 @@ bool SpriteState2::redo()
 
         /* redo add */
         case StateCircularBuffer::st_addImage:
+            st.data.img.reloadImage();
             SpriteState::addImage(st.data.img);
             break;
         case StateCircularBuffer::st_addFrame:
@@ -193,7 +197,9 @@ void SpriteState2::updateImage(const InputImage& img)
     StateChange st;
     st.type = StateCircularBuffer::st_updateImage;
     st.data.old_img = _images[img.id];
+    st.data.old_img.freeImageData();
     st.data.img = img;
+    st.data.img.freeImageData();
     _stBuffer.addState(st);
 
     SpriteState::updateImage(img);
@@ -254,6 +260,7 @@ void SpriteState2::addImage(InputImage& img)
     StateChange st;
     st.type = StateCircularBuffer::st_addImage;
     st.data.img = img;
+    st.data.img.freeImageData();
     _stBuffer.addState(st);
 }
 
@@ -295,6 +302,7 @@ void SpriteState2::removeImage(Id id)
     StateChange st;
     st.type = StateCircularBuffer::st_removeImage;
     st.data.img = _images[id];
+    st.data.img.freeImageData();
     _stBuffer.addState(st);
 
     SpriteState::removeImage(id);

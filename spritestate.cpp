@@ -397,27 +397,35 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
 
 void SpriteState::reloadFramePixmap(const LvkFrame& frame)
 {
-    QPixmap tmp(ipixmap(frame.imgId));
-    QPixmap fpixmap(tmp.copy(frame.ox, frame.oy, frame.w, frame.h));
-    _fpixmaps.insert(frame.id, fpixmap);
+    if (frame.id != NullId) {
+        QPixmap tmp(ipixmap(frame.imgId));
+        QPixmap fpixmap(tmp.copy(frame.ox, frame.oy, frame.w, frame.h));
+        _fpixmaps.insert(frame.id, fpixmap);
+    }
 }
 
+
+void SpriteState::reloadImagePixmap(Id imgId)
+{
+    if (imgId != NullId) {
+        _images[imgId].reloadImage();
+    }
+}
 
 void SpriteState::reloadImagePixmaps()
 {
     for (QMutableHashIterator<Id, InputImage> it(_images); it.hasNext();) {
         it.next();
-        InputImage& image =  it.value();
-        image.reloadImage();
+        reloadImagePixmap(it.value().id);
     }
 }
 
-void SpriteState::reloadFramePixmaps(const InputImage& img)
+void SpriteState::reloadFramePixmaps(Id imgId)
 {
     for (QHashIterator<Id, LvkFrame> it(_frames); it.hasNext();) {
         it.next();
         const LvkFrame& frame =  it.value();
-        if (img.id != NullId && frame.imgId == img.id) {
+        if (imgId == NullId || frame.imgId == imgId) {
             reloadFramePixmap(frame);
         }
     }

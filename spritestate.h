@@ -76,7 +76,8 @@ public:
     void updateImage(const InputImage& img)
     {
         _images[img.id] = img;
-        reloadFramePixmaps(img);
+        reloadImagePixmap(img.id);
+        reloadFramePixmaps(img.id);
     }
 
     /// update frame
@@ -134,7 +135,7 @@ public:
     void removeAframe(Id aframeId, Id aniId)
     { _animations[aniId].aframes.remove(aframeId); }
 
-    // Load, save, export ******************************************************-
+    // Load, save, export ******************************************************
 
     /// Errors
     typedef enum {
@@ -165,6 +166,17 @@ public:
     /// returns the error string of @param err
     static const QString& errorMessage(SpriteStateError err);
 
+    // Force refresh pixmaps **************************************************
+
+    /// force reload image pixmap
+    void reloadImagePixmap(Id id);
+
+    /// force reload all image pixmaps
+    void reloadImagePixmaps();
+
+    /// force reload frame pixmaps. If imgId is not null, then
+    /// only reloads those frames using the image @param img
+    void reloadFramePixmaps(Id imgId);
 
 protected:
 
@@ -196,18 +208,9 @@ protected:
     /// Frame pixmaps
     QHash<Id, QPixmap>      _fpixmaps;
 
-
     // TODO (?) move this method inside LvkFrame
     /// force reload frame pixmap
     void reloadFramePixmap(const LvkFrame& frame);
-
-    /// force reload image pixmaps
-    void reloadImagePixmaps();
-
-    /// force reload frame pixmaps. If @param img is not null, then
-    /// only reloads those frames using the image @param img
-    void reloadFramePixmaps(const InputImage& img = InputImage());
-
 };
 
 typedef SpriteState::SpriteStateError SpriteStateError;
