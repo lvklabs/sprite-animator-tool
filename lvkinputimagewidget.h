@@ -36,8 +36,11 @@ public:
     /// than PCACHE_ROW_SIZE and unique for every different pixmap.
     void setPixmap(const QPixmap &pixmap, Id useCacheId  = NullId);
 
-    /// Clear the pixmap cache used to speed the drawing of zoomed images
+    /// Clears the whole pixmap cache used to speed the drawing of zoomed images
     void clearPixmapCache();
+
+    /// Clears a pixmap cache used to speed the drawing of zoomed images
+    void clearPixmapCache(Id cacheId);
 
     const QRect frameRect() const;
     const QRect mouseFrameRect() const;

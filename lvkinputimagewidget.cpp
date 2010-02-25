@@ -71,13 +71,18 @@ void LvkInputImageWidget::clear()
 
 void LvkInputImageWidget::clearPixmapCache()
 {
-    _cacheId = NullId;
     for (int i = 0; i < PCACHE_ROW_SIZE; ++i) {
-        for (int j = 0; j < PCACHE_COL_SIZE; ++j) {
-            if (_pCache[i][j]) {
-                delete _pCache[i][j];
-                _pCache[i][j] = 0;
-            }
+        clearPixmapCache(i);
+    }
+    _cacheId = NullId;
+}
+
+void LvkInputImageWidget::clearPixmapCache(Id cacheId)
+{
+    for (int j = 0; j < PCACHE_COL_SIZE; ++j) {
+        if (_pCache[cacheId][j]) {
+            delete _pCache[cacheId][j];
+            _pCache[cacheId][j] = 0;
         }
     }
 }
