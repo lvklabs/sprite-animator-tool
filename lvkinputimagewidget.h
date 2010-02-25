@@ -115,7 +115,6 @@ protected:
     //////////////////////////////////////////////////////////
     // FIXME these should live inside LvkFrameDefWidget
     QRect      _frect;         /* frame rect */
-    QRect      _scaledFrect;   /* frame rect scaled by _zoom */
     QRect      _mouseRect;     /* mouse rect */
     //////////////////////////////////////////////////////////
 

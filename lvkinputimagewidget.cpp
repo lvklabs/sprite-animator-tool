@@ -30,7 +30,7 @@ QRect operator/(const QRect& rect, int c)
 LvkInputImageWidget::LvkInputImageWidget(QWidget *parent)
         : QWidget(parent),
         _frect(0,0,0,0), _mouseRect(0,0,0,0), // FIXME
-        _mouseX(-1), _mouseY(-1), _scroll(0), _cacheId(NullId)
+        _mouseX(-1), _mouseY(-1), _zoom(0), _scroll(0), _cacheId(NullId)
 {
     _c = pow(ZOOM_FACTOR, _zoom);
 
@@ -90,17 +90,14 @@ void LvkInputImageWidget::setBackground(const QPixmap& bg)
     _bgBrush = QBrush(bg);
 }
 
-#define ZOOM_COMMON() \
-            _c = pow(ZOOM_FACTOR, _zoom);\
-            _scaledFrect = rtoz(_frect);\
-            resize(_pixmap.width()*_c + 1, _pixmap.height()*_c + 1);
-
 void LvkInputImageWidget::zoomIn()
 {
     if (_zoom < ZOOM_MAX) {
         _zoom++;
+        _c = pow(ZOOM_FACTOR, _zoom);\
         _mouseRect = _mouseRect*2;
-        ZOOM_COMMON();
+        _frect = _frect*2;
+        resize(_pixmap.width()*_c + 1, _pixmap.height()*_c + 1);
     }
 }
 
@@ -108,16 +105,29 @@ void LvkInputImageWidget::zoomOut()
 {
     if (_zoom > ZOOM_MIN) {
         _zoom--;
+        _c = pow(ZOOM_FACTOR, _zoom);\
         _mouseRect = _mouseRect/2;
-        ZOOM_COMMON();
+        _frect = _frect/2;
+        resize(_pixmap.width()*_c + 1, _pixmap.height()*_c + 1);
     }
 }
 
 void LvkInputImageWidget::setZoom(int level)
 {
     if (level >= ZOOM_MIN && level <= ZOOM_MAX && level != _zoom) {
-        _zoom = level;
-        ZOOM_COMMON();
+        if (_zoom < level) {
+            do {
+                _mouseRect = _mouseRect*2;
+                _frect = _frect*2;
+            } while (++_zoom < level);
+        } else if (_zoom > level) {
+            do {
+                _mouseRect = _mouseRect/2;
+                _frect = _frect/2;
+            } while (--_zoom > level);
+        }
+        _c = pow(ZOOM_FACTOR, _zoom);\
+        resize(_pixmap.width()*_c + 1, _pixmap.height()*_c + 1);
     }
 }
 
