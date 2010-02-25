@@ -18,7 +18,8 @@ SOURCES += main.cpp \
     lvktablewidget.cpp \
     spritestate2.cpp \
     dialogs.cpp \
-    statecircularbuffer.cpp
+    statecircularbuffer.cpp\
+    lvkframedefwidget.cpp
 HEADERS += mainwindow.h \
     spritestate.h \
     lvkframe.h \
@@ -33,7 +34,8 @@ HEADERS += mainwindow.h \
     lvktablewidget.h \
     spritestate2.h \
     dialogs.h \
-    statecircularbuffer.h
+    statecircularbuffer.h\
+    lvkframedefwidget.h
 FORMS += mainwindow.ui
 RESOURCES += res.qrc
 

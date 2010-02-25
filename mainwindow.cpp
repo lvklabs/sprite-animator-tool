@@ -98,13 +98,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->imgPreview->setPixmap(QPixmap());
     ui->imgPreview->setBackground(QPixmap(":/bg/default-bg"));
-    ui->framePreview->setFrameRectVisible(false);
-    ui->framePreview->setMouseLinesVisible(false);
     ui->framePreview->setPixmap(QPixmap());
     ui->framePreview->setBackground(QPixmap(":/bg/default-bg"));
     ui->aframePreview->setPixmap(QPixmap());
-    ui->aframePreview->setFrameRectVisible(false);
-    ui->aframePreview->setMouseLinesVisible(false);
 
     ui->imgPreview->setScrollArea(ui->imgPreviewScroll);
     ui->framePreview->setScrollArea(ui->framePreviewScroll);

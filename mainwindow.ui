@@ -120,7 +120,7 @@ p, li { white-space: pre-wrap; }
             <property name="alignment">
              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
             </property>
-            <widget class="LvkInputImageWidget" name="imgPreview">
+            <widget class="LvkFrameDefWidget" name="imgPreview">
              <property name="geometry">
               <rect>
                <x>0</x>
@@ -137,9 +137,6 @@ p, li { white-space: pre-wrap; }
              </property>
              <property name="focusPolicy">
               <enum>Qt::ClickFocus</enum>
-             </property>
-             <property name="pixmap" stdset="0">
-              <pixmap>../../Pictures/Firefox_wallpaper_gray.png</pixmap>
              </property>
             </widget>
            </widget>
@@ -550,9 +547,6 @@ p, li { white-space: pre-wrap; }
              </property>
              <property name="focusPolicy">
               <enum>Qt::ClickFocus</enum>
-             </property>
-             <property name="pixmap" stdset="0">
-              <pixmap/>
              </property>
             </widget>
            </widget>
@@ -1542,6 +1536,11 @@ p, li { white-space: pre-wrap; }
    <class>LvkInputImageWidget</class>
    <extends>QWidget</extends>
    <header location="global">lvkinputimagewidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>LvkFrameDefWidget</class>
+   <extends>LvkInputImageWidget</extends>
+   <header location="global">lvkframedefwidget.h</header>
   </customwidget>
   <customwidget>
    <class>LvkTableWidget</class>
