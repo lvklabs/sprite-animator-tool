@@ -158,6 +158,7 @@ private slots:
     void showFramesTab();
     void showAnimationsTab();
 
+    void whatsThisMode();
     void about();
 
     void addRecentFileMenu(const QString& filename);
@@ -169,6 +170,8 @@ private slots:
     void showSelImageWithFrameRect(int row, const QRect& rect);
     void removeSelImage();
     void removeImage(int row);
+    void reloadSelImage();
+    void reloadImage(Id imgId);
 
     bool addFrameDialog();
     void showSelFrame(int row);
@@ -186,6 +189,8 @@ private slots:
     void showAframes(int row);
     void removeSelAnimation();
     void removeAnimation(int row);
+
+    void refreshPreviews();
 
     void previewAnimation();
     void clearPreviewAnimation();

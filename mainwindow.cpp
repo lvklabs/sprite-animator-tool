@@ -11,6 +11,7 @@
 #include <QInputDialog>
 #include <QGraphicsPixmapItem>
 #include <QList>
+#include <QWhatsThis>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -101,6 +102,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->framePreview->setMouseLinesVisible(false);
     ui->framePreview->setPixmap(QPixmap());
     ui->framePreview->setBackground(QPixmap(":/bg/default-bg"));
+    ui->aframePreview->setPixmap(QPixmap());
     ui->aframePreview->setFrameRectVisible(false);
     ui->aframePreview->setMouseLinesVisible(false);
 
@@ -109,11 +111,11 @@ MainWindow::MainWindow(QWidget *parent)
     ui->aframePreview->setScrollArea(ui->aframePreviewScroll);
 
 #ifdef MAC_OS_X
-    ui->imgTableWidget->setToolTip(convertToMacKeys(ui->imgTableWidget->toolTip()));
-    ui->framesTableWidget->setToolTip(convertToMacKeys(ui->framesTableWidget->toolTip()));
-    ui->aframesTableWidget->setToolTip(convertToMacKeys(ui->aframesTableWidget->toolTip()));
-    ui->aniTableWidget->setToolTip(convertToMacKeys(ui->aniTableWidget->toolTip()));
-    ui->imgPreviewScroll->setToolTip(convertToMacKeys(ui->imgPreviewScroll->toolTip()));
+    ui->imgTableWidget->setWhatsThis(convertToMacKeys(ui->imgTableWidget->whatsThis()));
+    ui->framesTableWidget->setWhatsThis(convertToMacKeys(ui->framesTableWidget->whatsThis()));
+    ui->aframesTableWidget->setWhatsThis(convertToMacKeys(ui->aframesTableWidget->whatsThis()));
+    ui->aniTableWidget->setWhatsThis(convertToMacKeys(ui->aniTableWidget->whatsThis()));
+    ui->imgPreviewScroll->setWhatsThis(convertToMacKeys(ui->imgPreviewScroll->whatsThis()));
 
     ui->imgTableWidget->setFont(QFont("", 11));
     ui->framesTableWidget->setFont(QFont("", 11));
@@ -145,6 +147,7 @@ void MainWindow::initSignals()
     connect(ui->actionRedo,            SIGNAL(triggered()),          this, SLOT(redo()));
     connect(ui->actionExit,            SIGNAL(triggered()),          this, SLOT(exit()));
     connect(ui->actionAbout,           SIGNAL(triggered()),          this, SLOT(about()));
+    connect(ui->actionWhatsThis,       SIGNAL(triggered()),          this, SLOT(whatsThisMode()));
     connect(ui->actionFramesTab,       SIGNAL(triggered()),          this, SLOT(showFramesTab()));
     connect(ui->actionAnimationsTab,   SIGNAL(triggered()),          this, SLOT(showAnimationsTab()));
     connect(ui->actionAddImage,        SIGNAL(triggered()),          this, SLOT(addImageDialog()));
@@ -158,6 +161,7 @@ void MainWindow::initSignals()
 
     connect(ui->addImageButton,        SIGNAL(clicked()),            this, SLOT(addImageDialog()));
     connect(ui->removeImageButton,     SIGNAL(clicked()),            this, SLOT(removeSelImage()));
+    connect(ui->refreshImgButton,      SIGNAL(clicked()),            this, SLOT(reloadSelImage()));
     connect(ui->addFrameButton,        SIGNAL(clicked()),            this, SLOT(addFrameDialog()));
     connect(ui->removeFrameButton,     SIGNAL(clicked()),            this, SLOT(removeSelFrame()));
     connect(ui->addAniButton,          SIGNAL(clicked()),            this, SLOT(addAnimationDialog()));
@@ -836,6 +840,25 @@ void MainWindow::removeImage(int row)
     }
 }
 
+void MainWindow::reloadSelImage()
+{
+    if (ui->imgTableWidget->currentRow() == -1)
+    {
+        return;
+    }
+
+    reloadImage(selectedImgId());
+}
+
+void MainWindow::reloadImage(Id imgId)
+{
+    _sprState.reloadImagePixmap(imgId);
+    _sprState.reloadFramePixmaps(imgId);
+
+    ui->imgPreview->clearPixmapCache(imgId);
+    refreshPreviews();
+}
+
 bool MainWindow::addFrameDialog()
 {
     showFramesTab();
@@ -1145,6 +1168,14 @@ void MainWindow::showAframes(int row)
 
 }
 
+void MainWindow::refreshPreviews()
+{
+    showSelImage(ui->imgTableWidget->currentRow());
+    showSelFrame(ui->framesTableWidget->currentRow());
+    showSelAframe(ui->aframesTableWidget->currentRow());
+    previewAnimation();
+}
+
 void MainWindow::previewAnimation()
 {
     if (ui->aniTableWidget->currentRow() == -1) {
@@ -1434,14 +1465,8 @@ void MainWindow::updateImgTable(int row, int col)
 
             setItem(table, row, col, img.filename);
 
-            showSelImage(row);
-            if (ui->framesTableWidget->currentRow() != -1) {
-                showSelFrame(ui->framesTableWidget->currentRow());
-            }
-            if (ui->aframesTableWidget->currentRow() != -1) {
-                showSelAframe(ui->aframesTableWidget->currentRow());
-            }
-            previewAnimation();
+            ui->imgPreview->clearPixmapCache(img.id);
+            refreshPreviews();
         }
         break;
     }
@@ -1668,6 +1693,11 @@ void MainWindow::redo()
         _sprState.redo();
         refresh_ui();
     }
+}
+
+void MainWindow::whatsThisMode()
+{
+    QWhatsThis::enterWhatsThisMode();
 }
 
 void MainWindow::about()

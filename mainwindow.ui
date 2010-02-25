@@ -77,7 +77,7 @@
             </property>
            </spacer>
           </item>
-          <item row="1" column="1" colspan="10">
+          <item row="1" column="1" colspan="12">
            <widget class="QScrollArea" name="imgPreviewScroll">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -89,11 +89,30 @@
              <cursorShape>ArrowCursor</cursorShape>
             </property>
             <property name="toolTip">
-             <string>Left click: To define a rectangular area in the image
-Right click: To remove the rectangular area
-Ctrl key: Hold to display mouse guides
-Ctrl + Shift + Left click: To add guides
-Ctrl + Shift + Right click: To switch horizontal/vertical guides</string>
+             <string/>
+            </property>
+            <property name="whatsThis">
+             <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Sans'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;table border=&quot;0&quot; style=&quot;-qt-table-type: root; margin-top:4px; margin-bottom:4px; margin-left:4px; margin-right:4px;&quot;&gt;
+&lt;tr&gt;
+&lt;td style=&quot;border: none;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Frame definition widget&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Here you can define the rectangular area of a frame. Click the button &amp;quot;Add frame&amp;quot; to confirm.&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; * Left click: To define a rectangular area in the image&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; * Right click: To remove the rectangular area&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; * Ctrl key: Hold to display mouse guides&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; * Ctrl key (when dragging a frame): to move a frame across the x-axis or y-axis&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; * Ctrl + Shift + Left click: To add line guides&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; * Ctrl + Shift + Right click: To switch horizontal/vertical guides&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; * Ctrl + Mouse Wheel: To increase/decrease zoom level&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; * '1' key: To set zoom at %100&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Note:&lt;/span&gt; some combination may not work on Mac OS X &lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="widgetResizable">
              <bool>false</bool>
@@ -128,7 +147,10 @@ Ctrl + Shift + Right click: To switch horizontal/vertical guides</string>
           <item row="0" column="2">
            <widget class="QToolButton" name="addImageButton">
             <property name="toolTip">
-             <string>Add new input image</string>
+             <string>Add input image</string>
+            </property>
+            <property name="whatsThis">
+             <string>Add input image</string>
             </property>
             <property name="text">
              <string>AI</string>
@@ -145,6 +167,9 @@ Ctrl + Shift + Right click: To switch horizontal/vertical guides</string>
              <bool>true</bool>
             </property>
             <property name="toolTip">
+             <string>Remove input image</string>
+            </property>
+            <property name="whatsThis">
              <string>Remove selected input image</string>
             </property>
             <property name="text">
@@ -167,6 +192,9 @@ Ctrl + Shift + Right click: To switch horizontal/vertical guides</string>
             <property name="toolTip">
              <string>Image zoom out</string>
             </property>
+            <property name="whatsThis">
+             <string>Image zoom out</string>
+            </property>
             <property name="text">
              <string>-</string>
             </property>
@@ -187,6 +215,9 @@ Ctrl + Shift + Right click: To switch horizontal/vertical guides</string>
             <property name="toolTip">
              <string>Image zoom in</string>
             </property>
+            <property name="whatsThis">
+             <string>Image zoom in</string>
+            </property>
             <property name="text">
              <string>+</string>
             </property>
@@ -196,7 +227,7 @@ Ctrl + Shift + Right click: To switch horizontal/vertical guides</string>
             </property>
            </widget>
           </item>
-          <item row="0" column="10">
+          <item row="0" column="12">
            <spacer name="horizontalSpacer_8">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -215,7 +246,13 @@ Ctrl + Shift + Right click: To switch horizontal/vertical guides</string>
              <bool>true</bool>
             </property>
             <property name="toolTip">
-             <string>Add new frame from a rectangular area in the input image (whole image is used if the rectangular area is null)</string>
+             <string>Add frame</string>
+            </property>
+            <property name="statusTip">
+             <string/>
+            </property>
+            <property name="whatsThis">
+             <string>Add new frame from a rectangular area in the input image. The whole image is used if no rectangular area is defined.</string>
             </property>
             <property name="text">
              <string>AF</string>
@@ -232,6 +269,12 @@ Ctrl + Shift + Right click: To switch horizontal/vertical guides</string>
              <bool>true</bool>
             </property>
             <property name="toolTip">
+             <string>Remove frame</string>
+            </property>
+            <property name="statusTip">
+             <string/>
+            </property>
+            <property name="whatsThis">
              <string>Remove selected frame</string>
             </property>
             <property name="text">
@@ -245,6 +288,39 @@ Ctrl + Shift + Right click: To switch horizontal/vertical guides</string>
           </item>
           <item row="0" column="7">
            <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Minimum</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>10</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="0" column="11">
+           <widget class="QToolButton" name="refreshImgButton">
+            <property name="toolTip">
+             <string>Refresh image</string>
+            </property>
+            <property name="whatsThis">
+             <string>Force refresh image</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="icon">
+             <iconset resource="res.qrc">
+              <normaloff>:/buttons/button-refresh</normaloff>:/buttons/button-refresh</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="10">
+           <spacer name="horizontalSpacer_9">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -280,7 +356,21 @@ Ctrl + Shift + Right click: To switch horizontal/vertical guides</string>
              </font>
             </property>
             <property name="toolTip">
-             <string>Double-click or F2 to edit the fields</string>
+             <string/>
+            </property>
+            <property name="whatsThis">
+             <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Sans'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;table border=&quot;0&quot; style=&quot;-qt-table-type: root; margin-top:4px; margin-bottom:4px; margin-left:4px; margin-right:4px;&quot;&gt;
+&lt;tr&gt;
+&lt;td style=&quot;border: none;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Input images table&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-weight:600;&quot;&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Contains paths to input images. Paths can be relative or absolute.&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Double-click or F2 to edit the fields&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="editTriggers">
              <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
@@ -312,6 +402,15 @@ Ctrl + Shift + Right click: To switch horizontal/vertical guides</string>
             <attribute name="verticalHeaderVisible">
              <bool>false</bool>
             </attribute>
+            <attribute name="verticalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="horizontalHeaderStretchLastSection">
+             <bool>true</bool>
+            </attribute>
+            <attribute name="horizontalHeaderCascadingSectionResizes">
+             <bool>true</bool>
+            </attribute>
            </widget>
           </item>
           <item row="0" column="0">
@@ -338,8 +437,22 @@ Ctrl + Shift + Right click: To switch horizontal/vertical guides</string>
              </font>
             </property>
             <property name="toolTip">
-             <string>Double-click or F2 to edit the fields
-Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
+             <string/>
+            </property>
+            <property name="whatsThis">
+             <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Sans'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;table border=&quot;0&quot; style=&quot;-qt-table-type: root; margin-top:4px; margin-bottom:4px; margin-left:4px; margin-right:4px;&quot;&gt;
+&lt;tr&gt;
+&lt;td style=&quot;border: none;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Frames table&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-weight:600;&quot;&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Contain the definition of the frames (frame id, offset x, offset y, width, height, name and image id)&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; * Double-click or F2 to edit the fields&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; * Ctrl + Up or Ctrl + Down to increase or decrease numeric fields (ox, oy, w and h)&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="editTriggers">
              <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
@@ -367,6 +480,15 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
             </attribute>
             <attribute name="verticalHeaderVisible">
              <bool>false</bool>
+            </attribute>
+            <attribute name="verticalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="horizontalHeaderStretchLastSection">
+             <bool>true</bool>
+            </attribute>
+            <attribute name="horizontalHeaderCascadingSectionResizes">
+             <bool>true</bool>
             </attribute>
            </widget>
           </item>
@@ -398,6 +520,13 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
             <property name="cursor" stdset="0">
              <cursorShape>ArrowCursor</cursorShape>
             </property>
+            <property name="whatsThis">
+             <string>Frame preview
+
+ * Ctrl + Mouse Wheel: To increase/decrease zoom level
+ * '1' key: To set zoom at %100
+</string>
+            </property>
             <property name="widgetResizable">
              <bool>false</bool>
             </property>
@@ -423,7 +552,7 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
               <enum>Qt::ClickFocus</enum>
              </property>
              <property name="pixmap" stdset="0">
-              <pixmap>../../Pictures/Firefox_wallpaper_gray.png</pixmap>
+              <pixmap/>
              </property>
             </widget>
            </widget>
@@ -437,6 +566,9 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
              </size>
             </property>
             <property name="toolTip">
+             <string>Frame zoom in</string>
+            </property>
+            <property name="whatsThis">
              <string>Frame zoom in</string>
             </property>
             <property name="text">
@@ -459,6 +591,9 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
             <property name="toolTip">
              <string>Frame zoom out</string>
             </property>
+            <property name="whatsThis">
+             <string>Frame zoom in</string>
+            </property>
             <property name="text">
              <string>-</string>
             </property>
@@ -470,6 +605,9 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
           </item>
           <item row="0" column="5">
            <widget class="QToolButton" name="hideFramePreviewButton">
+            <property name="whatsThis">
+             <string>Show/hide frame preview</string>
+            </property>
             <property name="text">
              <string>&gt;</string>
             </property>
@@ -522,7 +660,10 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
              </size>
             </property>
             <property name="toolTip">
-             <string>Zoom in</string>
+             <string>Frame zoom in</string>
+            </property>
+            <property name="whatsThis">
+             <string>Frame zoom in</string>
             </property>
             <property name="text">
              <string>+</string>
@@ -542,7 +683,10 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
              </size>
             </property>
             <property name="toolTip">
-             <string>Zoom out</string>
+             <string>Frame zoom out</string>
+            </property>
+            <property name="whatsThis">
+             <string>Frame zoom out</string>
             </property>
             <property name="text">
              <string>-</string>
@@ -555,6 +699,9 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
           </item>
           <item row="2" column="0" colspan="4">
            <widget class="QScrollArea" name="aframePreviewScroll">
+            <property name="whatsThis">
+             <string>Animation frame preview</string>
+            </property>
             <property name="widgetResizable">
              <bool>true</bool>
             </property>
@@ -567,8 +714,14 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
                <x>0</x>
                <y>0</y>
                <width>372</width>
-               <height>585</height>
+               <height>584</height>
               </rect>
+             </property>
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
              </property>
              <property name="focusPolicy">
               <enum>Qt::ClickFocus</enum>
@@ -599,7 +752,10 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
              <bool>true</bool>
             </property>
             <property name="toolTip">
-             <string extracomment="Remove selected animation">Remove current animation</string>
+             <string>Remove animation</string>
+            </property>
+            <property name="whatsThis">
+             <string>Removes selected animation</string>
             </property>
             <property name="text">
              <string>RA</string>
@@ -613,7 +769,10 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
           <item row="0" column="0">
            <widget class="QToolButton" name="addAniButton">
             <property name="toolTip">
-             <string extracomment="Add new animation">Add new animation</string>
+             <string>Add animation</string>
+            </property>
+            <property name="whatsThis">
+             <string>Adds animation</string>
             </property>
             <property name="text">
              <string>AA</string>
@@ -630,7 +789,7 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
              <bool>true</bool>
             </property>
             <property name="toolTip">
-             <string extracomment="Add frame to the current animation">Add new frame to the current animation</string>
+             <string extracomment="Adds a new frame to the current animation">Add frame</string>
             </property>
             <property name="text">
              <string>AA</string>
@@ -661,6 +820,9 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
           <item row="0" column="9">
            <widget class="QToolButton" name="refreshAniButton">
             <property name="toolTip">
+             <string>Refresh animation</string>
+            </property>
+            <property name="whatsThis">
              <string>Force refresh animation</string>
             </property>
             <property name="text">
@@ -681,7 +843,10 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
              </size>
             </property>
             <property name="toolTip">
-             <string>Decrease preview speed</string>
+             <string>Decrease speed</string>
+            </property>
+            <property name="whatsThis">
+             <string>Decrease animation speed. This button will decrease the delay of each frame in the selected animation.</string>
             </property>
             <property name="text">
              <string>&lt;&lt;</string>
@@ -701,7 +866,10 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
              </size>
             </property>
             <property name="toolTip">
-             <string>Increase preview speed</string>
+             <string>Increase speed</string>
+            </property>
+            <property name="whatsThis">
+             <string>Increase animation speed. This button will Increase the delay of each frame in the selected animation.</string>
             </property>
             <property name="text">
              <string>&gt;&gt;</string>
@@ -723,7 +891,7 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
                <x>0</x>
                <y>0</y>
                <width>372</width>
-               <height>546</height>
+               <height>545</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="aniPreview" native="true">
@@ -742,8 +910,20 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
                </sizepolicy>
               </property>
               <property name="toolTip">
-               <string>Left click: To change the position of the animation.
-Right click: To reset the position</string>
+               <string/>
+              </property>
+              <property name="whatsThis">
+               <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Sans'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;table border=&quot;0&quot; style=&quot;-qt-table-type: root; margin-top:4px; margin-bottom:4px; margin-left:4px; margin-right:4px;&quot;&gt;
+&lt;tr&gt;
+&lt;td style=&quot;border: none;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Animation preview&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-weight:600;&quot;&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; * Left click: To change the position of the animation.&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; * Right click: To reset the position&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
              </widget>
             </widget>
@@ -825,6 +1005,9 @@ Right click: To reset the position</string>
             <item>
              <widget class="QComboBox" name="previewScrSizeCombo">
               <property name="toolTip">
+               <string/>
+              </property>
+              <property name="whatsThis">
                <string/>
               </property>
               <property name="currentIndex">
@@ -916,7 +1099,21 @@ Right click: To reset the position</string>
              </font>
             </property>
             <property name="toolTip">
-             <string>Double-click or F2 to edit the fields</string>
+             <string/>
+            </property>
+            <property name="whatsThis">
+             <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Sans'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;table border=&quot;0&quot; style=&quot;-qt-table-type: root; margin-top:4px; margin-bottom:4px; margin-left:4px; margin-right:4px;&quot;&gt;
+&lt;tr&gt;
+&lt;td style=&quot;border: none;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Animation table&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-weight:600;&quot;&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Just use the &amp;quot;add animation&amp;quot; button to add a new animation&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Double-click or F2 to edit the fields.&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="editTriggers">
              <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
@@ -946,6 +1143,18 @@ Right click: To reset the position</string>
              <bool>true</bool>
             </attribute>
             <attribute name="verticalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="verticalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="horizontalHeaderStretchLastSection">
+             <bool>true</bool>
+            </attribute>
+            <attribute name="horizontalHeaderCascadingSectionResizes">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="horizontalHeaderVisible">
              <bool>false</bool>
             </attribute>
            </widget>
@@ -980,8 +1189,22 @@ Right click: To reset the position</string>
              </font>
             </property>
             <property name="toolTip">
-             <string>Double-click or F2 to edit the fields
-Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
+             <string/>
+            </property>
+            <property name="whatsThis">
+             <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Sans'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;table border=&quot;0&quot; style=&quot;-qt-table-type: root; margin-top:4px; margin-bottom:4px; margin-left:4px; margin-right:4px;&quot;&gt;
+&lt;tr&gt;
+&lt;td style=&quot;border: none;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Animation frames table&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;This table contains the frames of the current selected animation. &lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; * Double-click or F2 to edit the fields&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; * Ctrl + Up or Ctrl + Down to increase or decrease numeric fields (ox, oy, delay)&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="editTriggers">
              <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
@@ -1007,6 +1230,12 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
             <attribute name="verticalHeaderVisible">
              <bool>false</bool>
             </attribute>
+            <attribute name="verticalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="horizontalHeaderStretchLastSection">
+             <bool>true</bool>
+            </attribute>
            </widget>
           </item>
          </layout>
@@ -1023,7 +1252,7 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
      <x>0</x>
      <y>0</y>
      <width>1199</width>
-     <height>26</height>
+     <height>27</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
@@ -1051,6 +1280,7 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
     <property name="title">
      <string>&amp;Help</string>
     </property>
+    <addaction name="actionWhatsThis"/>
     <addaction name="actionAbout"/>
    </widget>
    <widget class="QMenu" name="menuView">
@@ -1292,6 +1522,17 @@ Ctrl + Up or Ctrl + Down to increase or decrease numeric fields</string>
   <action name="actionClearGuides">
    <property name="text">
     <string>Clear guides</string>
+   </property>
+  </action>
+  <action name="actionWhatsThis">
+   <property name="text">
+    <string>What's this</string>
+   </property>
+   <property name="toolTip">
+    <string>Enable &quot;what's this&quot; mode</string>
+   </property>
+   <property name="shortcut">
+    <string>F1</string>
    </property>
   </action>
  </widget>
