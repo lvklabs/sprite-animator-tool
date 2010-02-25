@@ -25,6 +25,9 @@ struct InputImage
     /// force pixmap reload
     void reloadImage();
 
+    /// free resources used by the image
+    void freeImageData();
+
     /// operator ==
     bool operator==(const InputImage& img) const
     { return id == img.id && filename == img.filename; }

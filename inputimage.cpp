@@ -45,3 +45,10 @@ void InputImage::reloadImage()
 {
     pixmap = QPixmap(filename);
 }
+
+void InputImage::freeImageData()
+{
+    // TODO check if this actually does something
+    pixmap = QPixmap();
+}
+
