@@ -29,7 +29,6 @@ QRect operator/(const QRect& rect, int c)
 
 LvkInputImageWidget::LvkInputImageWidget(QWidget *parent)
         : QWidget(parent),
-        _frect(0,0,0,0), _mouseRect(0,0,0,0), // FIXME
         _mouseX(-1), _mouseY(-1), _zoom(0), _scroll(0), _cacheId(NullId)
 {
     _c = pow(ZOOM_FACTOR, _zoom);
@@ -90,44 +89,59 @@ void LvkInputImageWidget::setBackground(const QPixmap& bg)
     _bgBrush = QBrush(bg);
 }
 
+
+void LvkInputImageWidget::registerRect(QRect * rect)
+{
+    _regRects.append(rect);
+}
+
+void LvkInputImageWidget::unregisterRect(QRect * rect)
+{
+    _regRects.removeOne(rect);
+}
+
+void LvkInputImageWidget::updateRegRects(int level)
+{
+    int zoom = _zoom;
+
+    if (zoom < level) {
+        do {
+            for (int i = 0; i < _regRects.size(); ++i) {
+                *_regRects.at(i) = *_regRects.at(i)*2;
+            }
+        } while (++zoom < level);
+    } else if (zoom > level) {
+        do {
+            for (int i = 0; i < _regRects.size(); ++i) {
+                *_regRects.at(i) = *_regRects.at(i)/2;
+            }
+        } while (--zoom > level);
+    }
+}
+
+#define SET_ZOOM(level)  updateRegRects(level);\
+                         _zoom = (level);\
+                         _c = pow(ZOOM_FACTOR, _zoom);\
+                         resize(_pixmap.width()*_c + 1, _pixmap.height()*_c + 1);
+
 void LvkInputImageWidget::zoomIn()
 {
     if (_zoom < ZOOM_MAX) {
-        _zoom++;
-        _c = pow(ZOOM_FACTOR, _zoom);\
-        _mouseRect = _mouseRect*2;
-        _frect = _frect*2;
-        resize(_pixmap.width()*_c + 1, _pixmap.height()*_c + 1);
+        SET_ZOOM(_zoom + 1);
     }
 }
 
 void LvkInputImageWidget::zoomOut()
 {
     if (_zoom > ZOOM_MIN) {
-        _zoom--;
-        _c = pow(ZOOM_FACTOR, _zoom);\
-        _mouseRect = _mouseRect/2;
-        _frect = _frect/2;
-        resize(_pixmap.width()*_c + 1, _pixmap.height()*_c + 1);
+        SET_ZOOM(_zoom - 1);
     }
 }
 
 void LvkInputImageWidget::setZoom(int level)
 {
     if (level >= ZOOM_MIN && level <= ZOOM_MAX && level != _zoom) {
-        if (_zoom < level) {
-            do {
-                _mouseRect = _mouseRect*2;
-                _frect = _frect*2;
-            } while (++_zoom < level);
-        } else if (_zoom > level) {
-            do {
-                _mouseRect = _mouseRect/2;
-                _frect = _frect/2;
-            } while (--_zoom > level);
-        }
-        _c = pow(ZOOM_FACTOR, _zoom);\
-        resize(_pixmap.width()*_c + 1, _pixmap.height()*_c + 1);
+       SET_ZOOM(level);
     }
 }
 

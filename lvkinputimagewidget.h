@@ -53,6 +53,12 @@ public:
     /// Sets the widget background
     void setBackground(const QPixmap& bg);
 
+    /// Register rect to automatically scale when changing the zoom
+    void registerRect(QRect* rect);
+
+    /// Unregister rect
+    void unregisterRect(QRect* rect);
+
 public slots:
     void zoomIn();
     void zoomOut();
@@ -112,27 +118,25 @@ protected:
     bool altKey() const
     { return QApplication::keyboardModifiers() & Qt::AltModifier; }
 
-    //////////////////////////////////////////////////////////
-    // FIXME these should live inside LvkFrameDefWidget
-    QRect      _frect;         /* frame rect */
-    QRect      _mouseRect;     /* mouse rect */
-    //////////////////////////////////////////////////////////
-
-    float        _c;             /* heavily used coeficient */
-    int          _mouseX;        /* mouse current x position */
-    int          _mouseY;        /* mouse current y position */
-    int          _zoom;          /* current zoom level */
-    QScrollArea* _scroll;        /* if the widget has a parent scroll */
+    float         _c;             /* heavily used coeficient */
+    int           _mouseX;        /* mouse current x position */
+    int           _mouseY;        /* mouse current y position */
+    int           _zoom;          /* current zoom level */
+    QScrollArea*  _scroll;        /* if the widget has a parent scroll */
 
 private:
 
-    QPixmap      _pixmap;        /* current pixmap */
-    QPixmap      _bg;            /* background pixmap */
-    QBrush       _bgBrush;       /* background brush */
-    Id           _cacheId;       /* current cache */
-    QPixmap*     _pCache[PCACHE_ROW_SIZE][PCACHE_COL_SIZE]; /* pixmap cache */
+    QPixmap       _pixmap;        /* current pixmap */
+    QPixmap       _bg;            /* background pixmap */
+    QBrush        _bgBrush;       /* background brush */
+    Id            _cacheId;       /* current cache */
+    QPixmap*      _pCache[PCACHE_ROW_SIZE][PCACHE_COL_SIZE]; /* pixmap cache */
+    QList<QRect*> _regRects;      /* list of registered rects */
+
 
     void fillBackground(QPainter& painter, int x, int y, int w, int h);
+
+    void updateRegRects(int level);
 
     void resize(const QSize &size);
     void resize(int w, int h);

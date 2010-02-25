@@ -68,16 +68,14 @@ private:
         ResizeBottomLeft  = ResizeBottom | ResizeLeft,
     };
 
-// FIXME
-//    QRect      _frect;         /* frame rect */
-//    QRect      _mouseRect;     /* mouse rect */
-
-    QRect      _mouseRectP;    /* mouse rect used for dragging */
+    QRect      _frect;         /* frame rect (i.e. the frame that we are currently displaying) */
+    QRect      _mrect;         /* mouse rect (i.e. rect defined with mouse) */
+    QRect      _mrectP;        /* mouse rect used for dragging */
     QRect*     _activeRect;    /* active (resizing or dragging) rect */
     int        _mouseClickX;   /* mouse click x position */
     int        _mouseClickY;   /* mouse click y position */
     QPen       _frectPen;      /* pen used to draw the frame rect */
-    QPen       _mouseRectPen;  /* pen used to draw the mouse rect */
+    QPen       _mrectPen;      /* pen used to draw the mouse rect */
     QPen       _mouseGuidePen; /* pen used to draw the mouse guides */
     QPen       _guidePen;      /* pen used to draw the "blue" guides */
     QPen       _resizeControlsPen; /* pen used to draw the resize controls */
