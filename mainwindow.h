@@ -173,6 +173,8 @@ private slots:
     void reloadSelImage();
     void reloadImage(Id imgId);
 
+    QString toRelativePath(const QString& filename);
+
     bool addFrameDialog();
     void showSelFrame(int row);
     void showFrame(Id frameId);
@@ -203,6 +205,9 @@ private slots:
     void showAframe(Id aframeId);
     void removeSelAframe();
     void removeAframe(int row);
+    void moveSelAframeUp();
+    void moveSelAframeDown();
+    void moveSelAframe(int offset);
 
     void updateImgTable(int row, int col);
     void updateFramesTable(int row, int col);

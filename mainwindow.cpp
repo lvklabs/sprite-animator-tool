@@ -62,15 +62,16 @@ enum {
 
 #define getImageId(row)         ui->imgTableWidget->item(row, ColImageId)->text().toInt()
 #define getFrameId(row)         ui->framesTableWidget->item(row, ColFrameId)->text().toInt()
-#define getAFrameId(row)        ui->aframesTableWidget->item(row, ColAframeId)->text().toInt()
-#define getAFrameFrameId(row)   ui->aframesTableWidget->item(row, ColAframeFrameId)->text().toInt()
+#define getAframeId(row)        ui->aframesTableWidget->item(row, ColAframeId)->text().toInt()
+#define getAframeFrameId(row)   ui->aframesTableWidget->item(row, ColAframeFrameId)->text().toInt()
+#define getAframeAniId(row)     ui->aframesTableWidget->item(row, ColAframeAniId)->text().toInt()
 #define getFrameImgId(row)      ui->framesTableWidget->item(row, ColFrameImgId)->text().toInt()
 #define getAnimationId(row)     ui->aniTableWidget->item(row, ColAniId)->text().toInt()
 
 #define selectedImgId()         getImageId(ui->imgTableWidget->currentRow())
 #define selectedFrameId()       getFrameId(ui->framesTableWidget->currentRow())
 #define selectedAniId()         getAnimationId(ui->aniTableWidget->currentRow())
-#define selectedAframeId()      getAFrameId(ui->aframesTableWidget->currentRow())
+#define selectedAframeId()      getAframeId(ui->aframesTableWidget->currentRow())
 
 #ifdef MAC_OS_X
 QString convertToMacKeys(const QString& str)
@@ -168,6 +169,8 @@ void MainWindow::initSignals()
     connect(ui->aniDecSpeedButton,     SIGNAL(clicked()),            this, SLOT(decAniSpeed()));
     connect(ui->aniIncSpeedButton,     SIGNAL(clicked()),            this, SLOT(incAniSpeed()));
     connect(ui->hideFramePreviewButton,SIGNAL(clicked()),            this, SLOT(hideShowFramePreview()));
+    connect(ui->moveDownAframeButton,  SIGNAL(clicked()),            this, SLOT(moveSelAframeDown()));
+    connect(ui->moveUpAframeButton,    SIGNAL(clicked()),            this, SLOT(moveSelAframeUp()));
 
     connect(ui->previewScrSizeCombo,  SIGNAL(activated(QString)), this, SLOT(changePreviewScrSize(const QString &)));
 
@@ -522,9 +525,8 @@ void MainWindow::refresh_aframeTable()
     if (ani_row != -1) {
         Id aniId = getAnimationId(ani_row);
         
-        for (QHashIterator<Id, LvkAframe> it2(_sprState.aframes(aniId)); it2.hasNext();) {
-            it2.next();
-            const LvkAframe& aframe =  it2.value();
+        for (QListIterator<LvkAframe> it2(_sprState.aframes(aniId)); it2.hasNext();) {
+            const LvkAframe& aframe =  it2.next();
             addAframe_ui(aframe, aniId);
         }
     }
@@ -711,6 +713,31 @@ void MainWindow::showAnimationsTab()
     ui->tabWidget->setCurrentWidget(ui->animationsTab);
 }
 
+QString MainWindow::toRelativePath(const QString &filePath)
+{
+    const QString sep = QDir::separator();
+    QFileInfo fileInfo(filePath);
+    QStringList dirs1 = fileInfo.absolutePath().split(sep, QString::SkipEmptyParts);
+    QStringList dirs2 = QDir::currentPath().split(sep, QString::SkipEmptyParts);
+
+    QString relFilePath;
+
+    int i = 0;
+    int minSize = std::min(dirs1.size(), dirs2.size());
+
+    for (; i < minSize && dirs1[i] == dirs2[i]; ++i)
+        ;
+    for (int j = i; j < dirs2.size(); ++j) {
+        relFilePath.append(".." + sep);
+    }
+    for (int j = i; j < dirs1.size(); ++j) {
+        relFilePath.append(dirs1[j] + sep);
+    }
+    relFilePath.append(fileInfo.fileName());
+
+    return relFilePath;
+}
+
 void MainWindow::addImageDialog()
 {
     showFramesTab();
@@ -726,9 +753,11 @@ void MainWindow::addImageDialog()
     if (filenames.size() > 0) {
         lastDir = QFileInfo(filenames[0]).absolutePath();
 
+        _sprState.startTransaction();
         for (int i = 0; i < filenames.size(); ++i) {
-            addImage(InputImage(NullId, filenames[i]));
+            addImage(InputImage(NullId, toRelativePath(filenames[i])));
         }
+        _sprState.endTransaction();
     }
 }
 
@@ -1148,8 +1177,8 @@ void MainWindow::showAframes(int row)
     int animationId = getAnimationId(row);
     QList<QGraphicsPixmapItem*> aniFrames;
     LvkAnimation ani = _sprState.animations().value(animationId);
-    for (QHashIterator<Id, LvkAframe> it(ani.aframes); it.hasNext();){
-        LvkAframe aFrame = it.next().value();
+    for (QListIterator<LvkAframe> it(ani._aframes); it.hasNext();){
+        LvkAframe aFrame = it.next();
         addAframe_ui(aFrame,animationId);
     }
 
@@ -1353,7 +1382,7 @@ void MainWindow::addAframe_ui(const LvkAframe& aframe, Id aniId)
 
 void MainWindow::showSelAframe(int row)
 {
-    Id frameId = (row == -1) ? NullId : getAFrameFrameId(row);
+    Id frameId = (row == -1) ? NullId : getAframeFrameId(row);
     showAframe(frameId);
 }
 
@@ -1388,7 +1417,9 @@ void MainWindow::removeSelAframe()
 
 void MainWindow::removeAframe(int row)
 {
-    Id frameId = getAFrameId(row);
+    Id frameId = getAframeId(row);
+    Id aniId = selectedAniId();
+    _sprState.removeAframe(frameId, aniId);
 
     cellChangedSignals(false);
     ui->aframesTableWidget->removeRow(row);
@@ -1396,10 +1427,52 @@ void MainWindow::removeAframe(int row)
 
     ui->aframePreview->setPixmap(QPixmap());
 
-    _sprState.removeAframe(frameId, selectedAniId());
-
     previewAnimation();
 }
+
+void MainWindow::moveSelAframeUp()
+{
+    moveSelAframe(1);
+}
+
+void MainWindow::moveSelAframeDown()
+{
+    moveSelAframe(-1);
+}
+
+void MainWindow::moveSelAframe(int offset)
+{
+    LvkTableWidget *table = ui->aframesTableWidget;
+
+    if (table->currentRow() == -1) {
+        infoDialog(tr("No frame selected"));
+        return;
+    } else if (ui->aniTableWidget->currentRow() == -1) {
+        infoDialog(tr("No animation selected"));
+        return;
+    }
+
+    int currentRow = table->currentRow();
+    int targetRow = table->currentRow() - offset;
+
+    if (targetRow < 0 || targetRow >= table->rowCount()) {
+        return;
+    }
+
+
+    LvkAnimation ani = _sprState.const_animation(selectedAniId());
+    ani.swapAframes(getAframeId(currentRow), getAframeId(targetRow));
+    _sprState.updateAnimation(ani);
+
+    cellChangedSignals(false);
+    table->swapRows(currentRow, targetRow);
+    cellChangedSignals(true);
+
+    previewAnimation();
+    table->setCurrentCell(targetRow, table->currentColumn());
+}
+
+
 
 void MainWindow::incAniSpeed(int ms)
 {
@@ -1411,7 +1484,7 @@ void MainWindow::incAniSpeed(int ms)
     Id aniId = selectedAniId();
 
     for (int r = 0; r < ui->aframesTableWidget->rowCount(); ++r) {
-        LvkAframe aframe = _sprState.const_aframe(aniId, getAFrameId(r));
+        LvkAframe aframe = _sprState.const_aframe(aniId, getAframeId(r));
         aframe.delay -= ms;
         if (aframe.delay < 0) {
             aframe.delay = 0;

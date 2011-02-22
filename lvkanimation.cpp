@@ -35,3 +35,44 @@ bool LvkAnimation::fromString(const QString& str)
         return false;
     }
 }
+
+LvkAframe& LvkAnimation::aframe(Id aframeId)
+{
+    static LvkAframe nullAframe;
+
+    for (int i = 0; i < _aframes.size(); ++i) {
+        if (_aframes[i].id == aframeId) {
+            return _aframes[i];
+        }
+    }
+    return nullAframe;
+}
+
+void LvkAnimation::addAframe(const LvkAframe &aframe)
+{
+    _aframes.push_back(aframe);
+}
+
+void LvkAnimation::removeAframe(Id aframeId)
+{
+    for (int i = 0; i < _aframes.size(); ++i) {
+        if (_aframes[i].id == aframeId) {
+            _aframes.removeAt(i);
+        }
+    }
+}
+
+void LvkAnimation::swapAframes(Id aframeId1, Id aframeId2)
+{
+    for (int k = 0, i = -1, j = -1; k < _aframes.size(); ++k) {
+        if (_aframes[k].id == aframeId1) {
+            i = k;
+        } else if (_aframes[k].id == aframeId2) {
+            j = k;
+        }
+        if (i != -1 && j != -1) {
+            _aframes.swap(i, j);
+            break;
+        }
+    }
+}

@@ -15,6 +15,8 @@ public:
     void ignoreRow(int row);
     void ignoreColumn(int col);
 
+    void swapRows(int row1, int row2);
+
 protected:
     virtual void keyPressEvent(QKeyEvent *event);
     virtual void keyReleaseEvent(QKeyEvent *event);

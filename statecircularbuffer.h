@@ -31,6 +31,8 @@ public:
         st_removeFrame,
         st_removeAnimation,
         st_removeAframe,
+        st_transactionStart,
+        st_transactionEnd,
     };
 
     struct Data {
@@ -73,9 +75,9 @@ public:
     ~StateCircularBuffer();
 
     void addState(const StateChange& st);
-    StateChange currentState();
-    bool hasNextState();
-    bool hasPrevState();
+    StateChange currentState() const;
+    bool hasNextState() const;
+    bool hasPrevState() const;
     void nextState();
     void prevState();
     void clear();
@@ -84,9 +86,10 @@ public:
     void setSavedFlag();
 
     /// returns true if the current state has the saved flag
-    bool hasSavedFlag();
+    bool hasSavedFlag() const;
 
-    QString toString();
+    /// returns the string representation
+    QString toString() const;
 
 private:
 
@@ -95,7 +98,7 @@ private:
     int          _first;  /* first position in the buffer */
     int          _saved;  /* saved position in the buffer, -1 if not saved */
 
-    inline int inc(int& i)
+    inline int inc(int& i) const
     {
         i = (i + 1) % BUFF_SIZE;
         if (i < 0) {
@@ -104,7 +107,7 @@ private:
         return i;
     }
 
-    inline int dec(int& i)
+    inline int dec(int& i) const
     {
         i = (i - 1) % BUFF_SIZE;
         if (i < 0) {

@@ -15,8 +15,8 @@ void LvkAnimationWidget::setAnimation(const LvkAnimation& ani, const QHash<Id, Q
 {
     clear();
 
-    for (QHashIterator<Id, LvkAframe> it(ani.aframes); it.hasNext();) {
-        LvkAframe aframe = it.next().value();
+    for (QListIterator<LvkAframe> it(ani._aframes); it.hasNext();) {
+        LvkAframe aframe = it.next();
         _fpixmaps << QPixmap(fpixmaps.value(aframe.frameId));
         _delays   << aframe.delay;
         _oxs      << aframe.ox;

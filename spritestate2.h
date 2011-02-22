@@ -17,10 +17,13 @@ public:
     bool undo();
     bool redo();
 
-    bool canUndo();
-    bool canRedo();
+    bool canUndo() const;
+    bool canRedo() const;
 
-    bool hasUnsavedChanges();
+    bool hasUnsavedChanges() const;
+
+    void startTransaction();
+    void endTransaction();
 
     /* inherited methods */
 
@@ -45,6 +48,9 @@ public:
 
 private:
     StateCircularBuffer _stBuffer;
+
+    bool undo(StateChange& st);
+    bool redo(StateChange& st);
 };
 
 #endif // SPRITESTATE2_H

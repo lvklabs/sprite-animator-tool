@@ -34,9 +34,9 @@ public:
     const QHash<Id, LvkAnimation>& animations() const
     { return _animations; }
 
-    /// get aframes hash from animation @param aniId
-    const QHash<Id, LvkAframe>& aframes(Id aniId) const
-    { return _animations[aniId].aframes; }
+    /// get aframes list from animation @param aniId
+    const QList<LvkAframe>& aframes(Id aniId) const
+    { return _animations[aniId]._aframes; }
 
     /// get frame pixmaps hash
     const QHash<Id, QPixmap>& fpixmaps() const
@@ -68,7 +68,7 @@ public:
 
     /// get const aframe by Id
     const LvkAframe& const_aframe(Id aniId, Id aframeId) /* const */
-    { return _animations[aniId].aframes[aframeId]; }
+    { return _animations[aniId].aframe(aframeId); }
 
     // update *******************************************************************
 
@@ -93,7 +93,7 @@ public:
 
     /// update aframe
     void updateAframe(const LvkAframe& aframe, Id aniId)
-    { _animations[aniId].aframes[aframe.id] = aframe; }
+    { _animations[aniId].aframe(aframe.id) = aframe; }
 
     // add *********************************************************************
 
@@ -133,7 +133,7 @@ public:
 
     /// remove aframe @param id in animation @param aniId
     void removeAframe(Id aframeId, Id aniId)
-    { _animations[aniId].aframes.remove(aframeId); }
+    { _animations[aniId].removeAframe(aframeId); }
 
     // Load, save, export ******************************************************
 

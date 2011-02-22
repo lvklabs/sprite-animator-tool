@@ -2,7 +2,7 @@
 #define LVKANIMATION_H
 
 #include <QString>
-#include <QHash>
+#include <QList>
 
 #include "types.h"
 #include "lvkaframe.h"
@@ -17,17 +17,29 @@ struct LvkAnimation
     Id      id;         /* animation id */
     QString name;       /* animation name */
 
-    QHash<Id, LvkAframe> aframes;
-
     /// returns the string representation
     QString toString() const;
 
     /// initializes the current instance from the string @param str
     bool fromString(const QString& str);
 
+    ///  get aframe with id aframeId
+    LvkAframe& aframe(Id aframeId);
+
+    /// add aframe
+    void addAframe(const LvkAframe& aframe);
+
+    /// remove aframe
+    void removeAframe(Id aframeId);
+
+    /// swap aframes
+    void swapAframes(Id aframeId1, Id aframeId2);
+
     /// operator ==
-    bool operator==(const LvkAnimation& a) const
-    { return id == a.id && name == a.name && aframes == a.aframes; }
+    bool operator==(const LvkAnimation& ani) const
+    { return id == ani.id && name == ani.name && _aframes == ani._aframes; }
+
+    QList<LvkAframe> _aframes;
 };
 
 #endif // LVKANIMATION_H

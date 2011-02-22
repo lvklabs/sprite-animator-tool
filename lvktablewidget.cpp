@@ -17,6 +17,19 @@ void LvkTableWidget::ignoreColumn(int col)
     ignoredCols.insert(col);
 }
 
+void LvkTableWidget::swapRows(int row1, int row2)
+{
+    QTableWidgetItem* tmp1;
+    QTableWidgetItem* tmp2;
+
+    for (int col = 0; col < columnCount(); ++col) {
+        tmp1 = takeItem(row1, col);
+        tmp2 = takeItem(row2, col);
+        setItem(row1, col, tmp2);
+        setItem(row2, col, tmp1);
+    }
+}
+
 void LvkTableWidget::keyPressEvent(QKeyEvent *event)
 {
     if ((event->modifiers() & Qt::ControlModifier) && event->key() == Qt::Key_Up) {

@@ -11,147 +11,194 @@ SpriteState2::SpriteState2(QObject* parent)
 
 bool SpriteState2::undo()
 {
-    if (canUndo()) {
+    if (!canUndo()) {
+        return false;
+    }
 
 #ifdef DEBUG_UNDO
-        qDebug() << "--- Undo ---";
+    qDebug() << "--- Undo ---";
 #endif
-        StateChange st = _stBuffer.currentState();
-        _stBuffer.prevState();
 
-        switch (st.type) {
+    StateChange st = _stBuffer.currentState();
+    _stBuffer.prevState();
 
-        /* undo update */
-        case StateCircularBuffer::st_updateImage:
-            st.data.old_img.reloadImage();
-            SpriteState::updateImage(st.data.old_img);
-            break;
-        case StateCircularBuffer::st_updateFrame:
-            SpriteState::updateFrame(st.data.old_frame);
-            break;
-        case StateCircularBuffer::st_updateAnimation:
-            SpriteState::updateAnimation(st.data.old_ani);
-            break;
-        case StateCircularBuffer::st_updateAframe:
-            SpriteState::updateAframe(st.data.old_aframe, st.data.ani.id);
-            break;
-
-        /* undo add */
-        case StateCircularBuffer::st_addImage:
-            SpriteState::removeImage(st.data.img.id);
-            break;
-        case StateCircularBuffer::st_addFrame:
-            SpriteState::removeFrame(st.data.frame.id);
-            break;
-        case StateCircularBuffer::st_addAnimation:
-            SpriteState::removeAnimation(st.data.ani.id);
-            break;
-        case StateCircularBuffer::st_addAframe:
-            SpriteState::removeAframe(st.data.aframe.id, st.data.ani.id);
-            break;
-
-        /* undo remove */
-        case StateCircularBuffer::st_removeImage:
-            st.data.img.reloadImage();
-            SpriteState::addImage(st.data.img);
-            break;
-        case StateCircularBuffer::st_removeFrame:
-            SpriteState::addFrame(st.data.frame);
-            break;
-        case StateCircularBuffer::st_removeAnimation:
-            SpriteState::addAnimation(st.data.ani);
-            break;
-        case StateCircularBuffer::st_removeAframe:
-            SpriteState::addAframe(st.data.aframe, st.data.ani.id);
-            break;
-
-        default:
-            break;
-        }
-
-        return true;
+    if (st.type == StateCircularBuffer::st_transactionEnd) {
+        do {
+            st = _stBuffer.currentState();
+            _stBuffer.prevState();
+            undo(st);
+        } while (st.type != StateCircularBuffer::st_transactionStart);
+    } else {
+        undo(st);
     }
-    return false;
+
+    return true;
 }
+
+bool SpriteState2::undo(StateChange &st)
+{
+    switch (st.type) {
+
+    /* undo update */
+    case StateCircularBuffer::st_updateImage:
+        st.data.old_img.reloadImage();
+        SpriteState::updateImage(st.data.old_img);
+        break;
+    case StateCircularBuffer::st_updateFrame:
+        SpriteState::updateFrame(st.data.old_frame);
+        break;
+    case StateCircularBuffer::st_updateAnimation:
+        SpriteState::updateAnimation(st.data.old_ani);
+        break;
+    case StateCircularBuffer::st_updateAframe:
+        SpriteState::updateAframe(st.data.old_aframe, st.data.ani.id);
+        break;
+
+    /* undo add */
+    case StateCircularBuffer::st_addImage:
+        SpriteState::removeImage(st.data.img.id);
+        break;
+    case StateCircularBuffer::st_addFrame:
+        SpriteState::removeFrame(st.data.frame.id);
+        break;
+    case StateCircularBuffer::st_addAnimation:
+        SpriteState::removeAnimation(st.data.ani.id);
+        break;
+    case StateCircularBuffer::st_addAframe:
+        SpriteState::removeAframe(st.data.aframe.id, st.data.ani.id);
+        break;
+
+    /* undo remove */
+    case StateCircularBuffer::st_removeImage:
+        st.data.img.reloadImage();
+        SpriteState::addImage(st.data.img);
+        break;
+    case StateCircularBuffer::st_removeFrame:
+        SpriteState::addFrame(st.data.frame);
+        break;
+    case StateCircularBuffer::st_removeAnimation:
+        SpriteState::addAnimation(st.data.ani);
+        break;
+    case StateCircularBuffer::st_removeAframe:
+        SpriteState::addAframe(st.data.aframe, st.data.ani.id);
+        break;
+
+    default:
+        break;
+    }
+
+    return true;
+}
+
 
 bool SpriteState2::redo()
 {
-    if (canRedo()) {
+    if (!canRedo()) {
+        return false;
+    }
 
 #ifdef DEBUG_UNDO
-        qDebug() << "--- Redo --- ";
+    qDebug() << "--- Redo --- ";
 #endif
-        _stBuffer.nextState();
-        StateChange st = _stBuffer.currentState();
 
-        switch (st.type) {
+    _stBuffer.nextState();
+    StateChange st = _stBuffer.currentState();
 
-        /* redo update */
-        case StateCircularBuffer::st_updateImage:
-            st.data.img.reloadImage();
-            SpriteState::updateImage(st.data.img);
-            break;
-        case StateCircularBuffer::st_updateFrame:
-            SpriteState::updateFrame(st.data.frame);
-            break;
-        case StateCircularBuffer::st_updateAnimation:
-            SpriteState::updateAnimation(st.data.ani);
-            break;
-        case StateCircularBuffer::st_updateAframe:
-            SpriteState::updateAframe(st.data.aframe, st.data.ani.id);
-            break;
-
-        /* redo add */
-        case StateCircularBuffer::st_addImage:
-            st.data.img.reloadImage();
-            SpriteState::addImage(st.data.img);
-            break;
-        case StateCircularBuffer::st_addFrame:
-            SpriteState::addFrame(st.data.frame);
-            break;
-        case StateCircularBuffer::st_addAnimation:
-            SpriteState::addAnimation(st.data.ani);
-            break;
-        case StateCircularBuffer::st_addAframe:
-            SpriteState::addAframe(st.data.aframe, st.data.ani.id);
-            break;
-
-        /* redo remove */
-        case StateCircularBuffer::st_removeImage:
-            SpriteState::removeImage(st.data.img.id);
-            break;
-        case StateCircularBuffer::st_removeFrame:
-            SpriteState::removeFrame(st.data.frame.id);
-            break;
-        case StateCircularBuffer::st_removeAnimation:
-            SpriteState::removeAnimation(st.data.ani.id);
-            break;
-        case StateCircularBuffer::st_removeAframe:
-            SpriteState::removeAframe(st.data.aframe.id, st.data.ani.id);
-            break;
-
-        default:
-            break;
-        }
-
-        return true;
+    if (st.type == StateCircularBuffer::st_transactionStart) {
+        do {
+            _stBuffer.nextState();
+            st = _stBuffer.currentState();
+            redo(st);
+        } while (st.type != StateCircularBuffer::st_transactionEnd);
+    } else {
+        redo(st);
     }
-    return false;
+
+    return true;
 }
 
-bool SpriteState2::canUndo()
+bool SpriteState2::redo(StateChange &st)
+{
+    switch (st.type) {
+
+    /* redo update */
+    case StateCircularBuffer::st_updateImage:
+        st.data.img.reloadImage();
+        SpriteState::updateImage(st.data.img);
+        break;
+    case StateCircularBuffer::st_updateFrame:
+        SpriteState::updateFrame(st.data.frame);
+        break;
+    case StateCircularBuffer::st_updateAnimation:
+        SpriteState::updateAnimation(st.data.ani);
+        break;
+    case StateCircularBuffer::st_updateAframe:
+        SpriteState::updateAframe(st.data.aframe, st.data.ani.id);
+        break;
+
+    /* redo add */
+    case StateCircularBuffer::st_addImage:
+        st.data.img.reloadImage();
+        SpriteState::addImage(st.data.img);
+        break;
+    case StateCircularBuffer::st_addFrame:
+        SpriteState::addFrame(st.data.frame);
+        break;
+    case StateCircularBuffer::st_addAnimation:
+        SpriteState::addAnimation(st.data.ani);
+        break;
+    case StateCircularBuffer::st_addAframe:
+        SpriteState::addAframe(st.data.aframe, st.data.ani.id);
+        break;
+
+    /* redo remove */
+    case StateCircularBuffer::st_removeImage:
+        SpriteState::removeImage(st.data.img.id);
+        break;
+    case StateCircularBuffer::st_removeFrame:
+        SpriteState::removeFrame(st.data.frame.id);
+        break;
+    case StateCircularBuffer::st_removeAnimation:
+        SpriteState::removeAnimation(st.data.ani.id);
+        break;
+    case StateCircularBuffer::st_removeAframe:
+        SpriteState::removeAframe(st.data.aframe.id, st.data.ani.id);
+        break;
+
+    default:
+        break;
+    }
+
+    return true;
+}
+
+bool SpriteState2::canUndo() const
 {
     return _stBuffer.hasPrevState();
 }
 
-bool SpriteState2::canRedo()
+bool SpriteState2::canRedo() const
 {
     return _stBuffer.hasNextState();
 }
 
-bool SpriteState2::hasUnsavedChanges()
+bool SpriteState2::hasUnsavedChanges() const
 {
     return !_stBuffer.hasSavedFlag();
+}
+
+void SpriteState2::startTransaction()
+{
+    StateChange st;
+    st.type = StateCircularBuffer::st_transactionStart;
+    _stBuffer.addState(st);
+}
+
+void SpriteState2::endTransaction()
+{
+    StateChange st;
+    st.type = StateCircularBuffer::st_transactionEnd;
+    _stBuffer.addState(st);
 }
 
  /* inherited methods */
@@ -237,14 +284,14 @@ void SpriteState2::updateAnimation(const LvkAnimation& ani)
 
 void SpriteState2::updateAframe(const LvkAframe& aframe, Id aniId)
 {
-    if (aframe == _animations[aniId].aframes[aframe.id]) {
+    if (aframe == _animations[aniId].aframe(aframe.id)) {
         return;
     }
 
     StateChange st;
     st.type = StateCircularBuffer::st_updateAframe;
     st.data.ani.id = aniId;
-    st.data.old_aframe = _animations[aniId].aframes[aframe.id];
+    st.data.old_aframe = _animations[aniId].aframe(aframe.id);
     st.data.aframe = aframe;
     _stBuffer.addState(st);
 
@@ -332,7 +379,7 @@ void SpriteState2::removeAframe(Id aframeId, Id aniId)
 {
     StateChange st;
     st.type = StateCircularBuffer::st_removeAframe;
-    st.data.aframe = _animations[aniId].aframes[aframeId];
+    st.data.aframe = _animations[aniId].aframe(aframeId);
     st.data.ani.id = aniId;
     _stBuffer.addState(st);
 

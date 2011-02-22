@@ -34,8 +34,8 @@ void StateCircularBuffer::clear()
     _buf[_i] = StateChange();
 
 #ifdef DEBUG_UNDO
-        qDebug() << " clear";
-        qDebug() << toString();
+    qDebug() << " clear";
+    qDebug() << toString();
 #endif
 }
 
@@ -77,7 +77,7 @@ void StateCircularBuffer::addState(const StateChange& st)
 #endif
 }
 
-StateCircularBuffer::StateChange StateCircularBuffer::currentState()
+StateCircularBuffer::StateChange StateCircularBuffer::currentState() const
 {
     StateCircularBuffer::StateChange st;
 
@@ -87,7 +87,7 @@ StateCircularBuffer::StateChange StateCircularBuffer::currentState()
     return st;
 }
 
-bool StateCircularBuffer::hasNextState()
+bool StateCircularBuffer::hasNextState() const
 {
     int next = _i;
     inc(next);
@@ -99,7 +99,7 @@ bool StateCircularBuffer::hasNextState()
     }
 }
 
-bool StateCircularBuffer::hasPrevState()
+bool StateCircularBuffer::hasPrevState() const
 {
     return _i != _first;
 }
@@ -138,21 +138,29 @@ void StateCircularBuffer::setSavedFlag()
 #endif
 }
 
-bool StateCircularBuffer::hasSavedFlag()
+bool StateCircularBuffer::hasSavedFlag() const
 {
     return _saved == _i;
 }
 
-QString StateCircularBuffer::toString()
+QString StateCircularBuffer::toString() const
 {
     QString str;
 
 //    str.append("\n  ");
     str.append(" ");
     for (int i = 0; i < BUFF_SIZE; ++i) {
-        str.append(" ");
+        if (_buf[i].type == st_transactionStart) {
+            str.append("(");
+        } else {
+            str.append(" ");
+        }
         str.append(QString::number(i, 16));
-        str.append("  ");
+        if (_buf[i].type == st_transactionEnd) {
+            str.append(") ");
+        } else {
+            str.append("  ");
+        }
     }
 
     str.append("\n | ");

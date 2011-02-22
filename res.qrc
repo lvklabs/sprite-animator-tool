@@ -15,6 +15,10 @@
         <file alias="button-decrease-speed">res/decrease-speed.png</file>
         <file alias="button-increase-speed">res/increase-speed.png</file>
         <file alias="button-refresh">res/refresh.png</file>
+        <file alias="button-play">res/play.png</file>
+        <file alias="button-move-down-aframe">res/move-down-aframe.png</file>
+        <file alias="button-move-up-aframe">res/move-up-aframe.png</file>
+        <file alias="button-pause">res/pause.png</file>
     </qresource>
     <qresource prefix="/icons">
         <file alias="app-icon-16x16">res/app-icon-16x16.png</file>

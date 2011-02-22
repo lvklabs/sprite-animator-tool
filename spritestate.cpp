@@ -53,7 +53,7 @@ void SpriteState::addAframe(LvkAframe& aframe, Id aniId)
     } else {
         _aframeId = std::max(_aframeId, aframe.id + 1);
     }
-    _animations[aniId].aframes.insert(aframe.id, aframe);
+    _animations[aniId]._aframes.insert(aframe.id, aframe);
 }
 
 void SpriteState::clear()
@@ -113,9 +113,8 @@ bool SpriteState::save(const QString& filename, SpriteStateError* err)
         it.next();
         stream << "\t" << it.value().toString() << "\n";        
         stream << "\taframes(\n";
-        for (QHashIterator<Id, LvkAframe> it2(it.value().aframes); it2.hasNext();) {
-            it2.next();
-            stream << "\t\t" << it2.value().toString() << "\n";
+        for (QListIterator<LvkAframe> it2(it.value()._aframes); it2.hasNext();) {
+            stream << "\t\t" << it2.next().toString() << "\n";
         }
         stream << "\t)\n\n";
     }
@@ -380,9 +379,8 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
         it.next();
         textStream << "\t" << it.value().toString() << "\n";
         textStream << "\taframes(\n";
-        for (QHashIterator<Id, LvkAframe> it2(it.value().aframes); it2.hasNext();) {
-            it2.next();
-            textStream << "\t\t" << it2.value().toString() << "\n";
+        for (QListIterator<LvkAframe> it2(it.value()._aframes); it2.hasNext();) {
+            textStream << "\t\t" << it2.next().toString() << "\n";
         }
         textStream << "\t)\n\n";
     }
