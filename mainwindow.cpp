@@ -24,6 +24,7 @@
 // imgTableWidget columns
 enum {
     ColImageId,
+    ColCheckable,
     ColImageVisibleId,
     ColImageFilename,
     ColImageTotal,
@@ -73,6 +74,39 @@ enum {
 #define selectedAniId()         getAnimationId(ui->aniTableWidget->currentRow())
 #define selectedAframeId()      getAframeId(ui->aframesTableWidget->currentRow())
 
+
+bool isValidAniName(const QString & name, bool showErrorDialog)
+{
+    if (name.isEmpty())  {
+        if (showErrorDialog) {
+            infoDialog(QObject::tr("Cannot add an animation without name"));
+        }
+        return false;
+    } else if (name.contains(",")) {
+        if (showErrorDialog) {
+            infoDialog(QObject::tr("Animation name cannot contain the character ','"));
+        }
+        return false;
+    }
+    return true;
+}
+
+bool isValidFrameName(const QString name, bool showErrorDialog)
+{
+    if (name.isEmpty())  {
+        if (showErrorDialog) {
+            infoDialog(QObject::tr("Cannot add a frame without name"));
+        }
+        return false;
+    } else if (name.contains(",")) {
+        if (showErrorDialog) {
+            infoDialog(QObject::tr("Frame name cannot contain the character ','"));
+        }
+        return false;
+    }
+    return true;
+}
+
 #ifdef MAC_OS_X
 QString convertToMacKeys(const QString& str)
 {
@@ -106,6 +140,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->imgPreview->setScrollArea(ui->imgPreviewScroll);
     ui->framePreview->setScrollArea(ui->framePreviewScroll);
     ui->aframePreview->setScrollArea(ui->aframePreviewScroll);
+
+    ui->createQuickAniButton->setVisible(false);
+    ui->checkAllImagesButton->setVisible(false);
+    ui->invertCheckedImagesButton->setVisible(false);
 
 #ifdef MAC_OS_X
     ui->imgTableWidget->setWhatsThis(convertToMacKeys(ui->imgTableWidget->whatsThis()));
@@ -172,7 +210,12 @@ void MainWindow::initSignals()
     connect(ui->moveDownAframeButton,  SIGNAL(clicked()),            this, SLOT(moveSelAframeDown()));
     connect(ui->moveUpAframeButton,    SIGNAL(clicked()),            this, SLOT(moveSelAframeUp()));
 
-    connect(ui->previewScrSizeCombo,  SIGNAL(activated(QString)), this, SLOT(changePreviewScrSize(const QString &)));
+    connect(ui->quickModeButton,       SIGNAL(clicked()),            this, SLOT(switchQuickMode()));
+    connect(ui->checkAllImagesButton,  SIGNAL(clicked()),            this, SLOT(checkAllImages()));
+    connect(ui->invertCheckedImagesButton,  SIGNAL(clicked()),       this, SLOT(invertCheckedImages()));
+    connect(ui->createQuickAniButton,  SIGNAL(clicked()),            this, SLOT(createQuickAnimation()));
+
+    connect(ui->previewScrSizeCombo,   SIGNAL(activated(QString)),   this, SLOT(changePreviewScrSize(const QString &)));
 
     connect(ui->imgPreview,            SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
     connect(ui->framePreview,          SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
@@ -222,10 +265,12 @@ void MainWindow::initTables()
     ui->imgTableWidget->setRowCount(0);
     ui->imgTableWidget->setColumnCount(ColImageTotal);
     ui->imgTableWidget->setColumnWidth(ColImageId, 30);
+    ui->imgTableWidget->setColumnWidth(ColCheckable, 30);
     ui->imgTableWidget->setColumnWidth(ColImageVisibleId, 30);
-    headersList << tr("Id") << tr("Id") << tr("Filename");
+    headersList << tr("Id") << tr("Ch") << tr("Id") << tr("Filename");
     ui->imgTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
+    ui->imgTableWidget->setColumnHidden(ColCheckable, true);
 #ifndef DEBUG_SHOW_ID_COLS
     ui->imgTableWidget->setColumnHidden(ColImageId, true);
 #endif
@@ -761,7 +806,7 @@ void MainWindow::addImageDialog()
     }
 }
 
-void MainWindow::addImage(const InputImage& image)
+Id MainWindow::addImage(const InputImage& image)
 {
     InputImage image_ = image;
 
@@ -772,6 +817,8 @@ void MainWindow::addImage(const InputImage& image)
 
     /* UI */
     addImage_ui(image_);
+
+    return image_.id;
 }
 
 void MainWindow::addImage_ui(const InputImage& image)
@@ -790,13 +837,17 @@ void MainWindow::addImage_ui(const InputImage& image)
 
     int rows = ui->imgTableWidget->rowCount();
 
-    QTableWidgetItem* item_id       = new QTableWidgetItem(QString::number(image.id));
-    QTableWidgetItem* item_vid      = new QTableWidgetItem(QString::number(image.id));
-    QTableWidgetItem* item_filename = new QTableWidgetItem(filename);
+    QTableWidgetItem* item_id        = new QTableWidgetItem(QString::number(image.id));
+    QTableWidgetItem* item_checkable = new QTableWidgetItem();
+    QTableWidgetItem* item_vid       = new QTableWidgetItem(QString::number(image.id));
+    QTableWidgetItem* item_filename  = new QTableWidgetItem(filename);
+
+    item_checkable->setCheckState(Qt::Unchecked);
 
     cellChangedSignals(false);
     ui->imgTableWidget->setRowCount(rows+1);
     ui->imgTableWidget->setItem(rows, ColImageId,        item_id);
+    ui->imgTableWidget->setItem(rows, ColCheckable,      item_checkable);
     ui->imgTableWidget->setItem(rows, ColImageVisibleId, item_vid);
     ui->imgTableWidget->setItem(rows, ColImageFilename,  item_filename);
     ui->imgTableWidget->setCurrentItem(item_id);
@@ -884,41 +935,43 @@ void MainWindow::reloadImage(Id imgId)
     refreshPreviews();
 }
 
-bool MainWindow::addFrameDialog()
+bool MainWindow::addFrameDialog(const QString & defaultName /*= ""*/, bool promptName /*= true*/)
 {
     showFramesTab();
 
-    if (ui->imgTableWidget->currentRow() == -1) {
-        infoDialog(tr("No input image selected"));
-        return false;
-    }
+    QString name = defaultName;
 
-    bool ok;
-    QString name = QInputDialog::getText(this, tr("New frame"),
-                                         tr("Frame name:"),
-                                         QLineEdit::Normal, "", &ok);
-    if (!ok) {
-        return false;
+    if (promptName) {
+        bool ok;
+        name = QInputDialog::getText(this, tr("New frame"), tr("Frame name:"),
+                                           QLineEdit::Normal, defaultName, &ok);
+        if (!ok) {
+            return false;
+        }
     }
 
     name = name.trimmed();
-    if (name.isEmpty())  {
-        infoDialog(tr("Cannot add a frame without name"));
-        return false;
-    } else if (name.contains(",")) {
-        infoDialog(tr("Frame name cannot contain the character ','"));
+    if (!isValidFrameName(name, true)) {
         return false;
     }
 
     Id imgId = selectedImgId();
+    if (addFrameFromMouseRect(imgId, name) != NullId) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+Id MainWindow::addFrameFromMouseRect(Id imgId, const QString &name)
+{
+    QRect frameRect = ui->imgPreview->mouseFrameRect();
+    bool validRect = true;
 
     int ox;
     int oy;
     int w;
     int h;
-
-    QRect frameRect = ui->imgPreview->mouseFrameRect();
-    bool validRect = true;
 
     if (frameRect.isNull()) {
         /* add frame using the whole image */
@@ -941,13 +994,13 @@ bool MainWindow::addFrameDialog()
     }
 
     if (validRect) {
-        addFrame(LvkFrame(NullId, imgId, ox, oy, w, h, name));
-        return true;
+        return addFrame(LvkFrame(NullId, imgId, ox, oy, w, h, name));
+    } else {
+        return NullId;
     }
-    return false;
 }
 
-void MainWindow::addFrame(const LvkFrame &frame)
+Id MainWindow::addFrame(const LvkFrame &frame)
 {
     LvkFrame frame_ = frame;
 
@@ -957,6 +1010,8 @@ void MainWindow::addFrame(const LvkFrame &frame)
 
     /* UI */
     addFrame_ui(frame_);
+
+    return frame_.id;
 }
 
 void MainWindow::addFrame_ui(const LvkFrame &frame)
@@ -1100,6 +1155,7 @@ void MainWindow::addAnimationDialog()
 
 void MainWindow::hideFramePreview()
 {
+    ui->tabLayout->setColumnStretch(12, 0);     //1,0,2,0,0,0,0,0,0,0,0,0,*0*
     ui->hSpacerFramePreview->changeSize(0, 0, QSizePolicy::Minimum, QSizePolicy::Preferred);
     ui->frameZoomInButton->hide();
     ui->frameZoomOutButton->hide();
@@ -1111,6 +1167,7 @@ void MainWindow::hideFramePreview()
 
 void MainWindow::showFramePreview()
 {
+    ui->tabLayout->setColumnStretch(12, 2); //1,0,2,0,0,0,0,0,0,0,0,0,*2*
     ui->hSpacerFramePreview->changeSize(0, 0, QSizePolicy::Expanding, QSizePolicy::Preferred);
     ui->frameZoomInButton->show();
     ui->frameZoomOutButton->show();
@@ -1132,7 +1189,7 @@ void MainWindow::hideShowFramePreview()
     visible = !visible;
 }
 
-void MainWindow::addAnimation(const LvkAnimation& ani)
+Id MainWindow::addAnimation(const LvkAnimation& ani)
 {
     LvkAnimation ani_ = ani;
 
@@ -1141,6 +1198,8 @@ void MainWindow::addAnimation(const LvkAnimation& ani)
 
     /* UI */
     addAnimation_ui(ani_);
+
+    return ani_.id;
 }
 
 void MainWindow::addAnimation_ui(const LvkAnimation& ani)
@@ -1338,7 +1397,7 @@ void MainWindow::addAframeDialog()
 }
 
 
-void MainWindow::addAframe(const LvkAframe& aframe, Id aniId)
+Id MainWindow::addAframe(const LvkAframe& aframe, Id aniId)
 {
     LvkAframe aframe_ = aframe;
 
@@ -1347,6 +1406,8 @@ void MainWindow::addAframe(const LvkAframe& aframe, Id aniId)
     
     /* UI */
     addAframe_ui(aframe_, aniId);
+
+    return aframe_.id;
 }
 
 void MainWindow::addAframe_ui(const LvkAframe& aframe, Id aniId)
@@ -1725,6 +1786,72 @@ void MainWindow::updateAniTable(int row, int col)
         }
         break;
     }
+}
+
+void MainWindow::switchQuickMode()
+{
+    if (ui->quickModeButton->isChecked()) {
+        ui->imgTableWidget->setColumnHidden(ColCheckable, false);
+        ui->createQuickAniButton->setVisible(true);
+        ui->checkAllImagesButton->setVisible(true);
+        ui->invertCheckedImagesButton->setVisible(true);
+    } else {
+        ui->imgTableWidget->setColumnHidden(ColCheckable, true);
+        ui->createQuickAniButton->setVisible(false);
+        ui->checkAllImagesButton->setVisible(false);
+        ui->invertCheckedImagesButton->setVisible(false);
+    }
+}
+
+void MainWindow::checkAllImages()
+{
+    for (int row = 0; row < ui->imgTableWidget->rowCount(); ++row) {
+            ui->imgTableWidget->item(row, ColCheckable)->setCheckState(Qt::Checked);
+    }
+}
+
+
+void MainWindow::invertCheckedImages()
+{
+    for (int row = 0; row < ui->imgTableWidget->rowCount(); ++row) {
+        if (ui->imgTableWidget->item(row, ColCheckable)->checkState() == Qt::Checked) {
+            ui->imgTableWidget->item(row, ColCheckable)->setCheckState(Qt::Unchecked);
+        } else {
+            ui->imgTableWidget->item(row, ColCheckable)->setCheckState(Qt::Checked);
+        }
+    }
+}
+
+void MainWindow::createQuickAnimation()
+{
+    // prompt animation name
+    bool ok;
+    QString aniName = QInputDialog::getText(this, tr("New animation"), tr("Animation name:"),
+                                            QLineEdit::Normal, "", &ok);
+    aniName = aniName.trimmed();
+    if (!ok || !isValidAniName(aniName, true)) {
+        return;
+    }
+
+    _sprState.startTransaction();
+
+    // add new animation
+    Id aniId = addAnimation(LvkAnimation(NullId, aniName));
+
+    // create new frame for each selected img. Add frame to animation
+    for (int row = 0; row < ui->imgTableWidget->rowCount(); ++row) {
+        if (ui->imgTableWidget->item(row, ColCheckable)->checkState() == Qt::Checked) {
+            QString frameName = aniName + "_frame_" + QString::number(row);
+            // add frame
+            Id frameId = addFrameFromMouseRect(getImageId(row), frameName);
+            // add aframe if not null
+            if (frameId != NullId) {
+                addAframe(LvkAframe(NullId, frameId), aniId);
+            }
+        }
+    }
+
+    _sprState.endTransaction();
 }
 
 void MainWindow::showMousePosition(int x, int y)

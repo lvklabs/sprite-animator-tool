@@ -82,25 +82,25 @@ private:
     void cellChangedSignals(bool connected);
 
     /// Add new input image
-    void addImage(const InputImage& image);
+    Id addImage(const InputImage& image);
 
     /// Add new input image but just updates ui (i.e sprite state is unchanged)
     void addImage_ui(const InputImage& image);
 
     /// Add new frame
-    void addFrame(const LvkFrame& frame);
+    Id addFrame(const LvkFrame& frame);
 
     /// Add new frame but just updates ui (i.e sprite state is unchanged)
     void addFrame_ui(const LvkFrame& frame);
 
     /// Add new animation
-    void addAnimation(const LvkAnimation& ani);
+    Id addAnimation(const LvkAnimation& ani);
 
     /// Add new animation but just updates ui (i.e sprite state is unchanged)
     void addAnimation_ui(const LvkAnimation& ani);
 
     /// Add new animation frame to the animation @param aniId
-    void addAframe(const LvkAframe& aframe, Id aniId);
+    Id addAframe(const LvkAframe& aframe, Id aniId);
 
     /// Add new aframe but just updates ui (i.e sprite state is unchanged)
     void addAframe_ui(const LvkAframe& aframe, Id aniId);
@@ -175,7 +175,9 @@ private slots:
 
     QString toRelativePath(const QString& filename);
 
-    bool addFrameDialog();
+    Id addFrameFromMouseRect(Id imgId, const QString &name);
+
+    bool addFrameDialog(const QString & defaultName = "", bool promptName = true);
     void showSelFrame(int row);
     void showFrame(Id frameId);
     void removeSelFrame();
@@ -216,6 +218,11 @@ private slots:
 
     void showMousePosition(int x, int y);
     void showMouseRect(const QRect& rect);
+
+    void switchQuickMode();
+    void checkAllImages();
+    void invertCheckedImages();
+    void createQuickAnimation();
 };
 
 #endif // MAINWINDOW_H

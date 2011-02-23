@@ -52,10 +52,7 @@
        <attribute name="title">
         <string>Frames</string>
        </attribute>
-       <layout class="QGridLayout" name="tabLayout">
-        <property name="sizeConstraint">
-         <enum>QLayout::SetDefaultConstraint</enum>
-        </property>
+       <layout class="QGridLayout" name="tabLayout" columnstretch="1,0,2,0,0,0,0,0,0,0,0,0,2">
         <item row="0" column="2" rowspan="5">
          <layout class="QGridLayout" name="imgPreviewLayout">
           <property name="sizeConstraint">
@@ -77,7 +74,7 @@
             </property>
            </spacer>
           </item>
-          <item row="1" column="1" colspan="12">
+          <item row="1" column="1" colspan="14">
            <widget class="QScrollArea" name="imgPreviewScroll">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -178,7 +175,7 @@ p, li { white-space: pre-wrap; }
             </property>
            </widget>
           </item>
-          <item row="0" column="9">
+          <item row="0" column="11">
            <widget class="QToolButton" name="imgZoomOutButton">
             <property name="maximumSize">
              <size>
@@ -201,7 +198,7 @@ p, li { white-space: pre-wrap; }
             </property>
            </widget>
           </item>
-          <item row="0" column="8">
+          <item row="0" column="10">
            <widget class="QToolButton" name="imgZoomInButton">
             <property name="maximumSize">
              <size>
@@ -224,7 +221,7 @@ p, li { white-space: pre-wrap; }
             </property>
            </widget>
           </item>
-          <item row="0" column="12">
+          <item row="0" column="14">
            <spacer name="horizontalSpacer_8">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -283,7 +280,7 @@ p, li { white-space: pre-wrap; }
             </property>
            </widget>
           </item>
-          <item row="0" column="7">
+          <item row="0" column="7" colspan="3">
            <spacer name="horizontalSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -299,7 +296,7 @@ p, li { white-space: pre-wrap; }
             </property>
            </spacer>
           </item>
-          <item row="0" column="11">
+          <item row="0" column="13">
            <widget class="QToolButton" name="refreshImgButton">
             <property name="toolTip">
              <string>Refresh image</string>
@@ -316,7 +313,7 @@ p, li { white-space: pre-wrap; }
             </property>
            </widget>
           </item>
-          <item row="0" column="10">
+          <item row="0" column="12">
            <spacer name="horizontalSpacer_9">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -336,14 +333,11 @@ p, li { white-space: pre-wrap; }
         </item>
         <item row="0" column="0" rowspan="5">
          <layout class="QGridLayout" name="tables1Layout">
-          <property name="sizeConstraint">
-           <enum>QLayout::SetFixedSize</enum>
-          </property>
-          <item row="1" column="0">
+          <item row="2" column="0">
            <widget class="QTableWidget" name="imgTableWidget">
             <property name="maximumSize">
              <size>
-              <width>300</width>
+              <width>369</width>
               <height>16777215</height>
              </size>
             </property>
@@ -401,21 +395,11 @@ p, li { white-space: pre-wrap; }
             </attribute>
            </widget>
           </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="inputImagesLabel">
-            <property name="text">
-             <string>Input Images:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="0">
+          <item row="4" column="0">
            <widget class="LvkTableWidget" name="framesTableWidget">
             <property name="maximumSize">
              <size>
-              <width>300</width>
+              <width>369</width>
               <height>16777215</height>
              </size>
             </property>
@@ -471,8 +455,14 @@ p, li { white-space: pre-wrap; }
             </attribute>
            </widget>
           </item>
-          <item row="2" column="0">
+          <item row="3" column="0">
            <widget class="QLabel" name="framesLabel">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="text">
              <string>Frames:</string>
             </property>
@@ -480,6 +470,94 @@ p, li { white-space: pre-wrap; }
              <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
             </property>
            </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="inputImagesLabel">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Input Images:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <layout class="QHBoxLayout" name="imgToolbarLayout" stretch="0,0,0,0,0">
+            <property name="spacing">
+             <number>-1</number>
+            </property>
+            <property name="sizeConstraint">
+             <enum>QLayout::SetMinimumSize</enum>
+            </property>
+            <item>
+             <widget class="QToolButton" name="quickModeButton">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="toolTip">
+               <string>Enable Quick Mode</string>
+              </property>
+              <property name="text">
+               <string>QM</string>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="checkAllImagesButton">
+              <property name="toolTip">
+               <string>Select all images</string>
+              </property>
+              <property name="text">
+               <string>SA</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="invertCheckedImagesButton">
+              <property name="toolTip">
+               <string>Invert selection</string>
+              </property>
+              <property name="text">
+               <string>IS</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="createQuickAniButton">
+              <property name="toolTip">
+               <string>Create Quick Animation</string>
+              </property>
+              <property name="text">
+               <string>CQ</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="imgToolbarSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::MinimumExpanding</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>10</width>
+                <height>0</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
           </item>
          </layout>
         </item>
@@ -689,8 +767,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>364</width>
-               <height>592</height>
+               <width>98</width>
+               <height>28</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -732,8 +810,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>365</width>
-               <height>579</height>
+               <width>98</width>
+               <height>28</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="aniPreview" native="true">
@@ -1143,7 +1221,7 @@ p, li { white-space: pre-wrap; }
                <string/>
               </property>
               <property name="icon">
-               <iconset>
+               <iconset resource="res.qrc">
                 <normaloff>:/buttons/button-move-down-aframe</normaloff>:/buttons/button-move-down-aframe</iconset>
               </property>
              </widget>
@@ -1160,7 +1238,7 @@ p, li { white-space: pre-wrap; }
                <string/>
               </property>
               <property name="icon">
-               <iconset>
+               <iconset resource="res.qrc">
                 <normaloff>:/buttons/button-move-up-aframe</normaloff>:/buttons/button-move-up-aframe</iconset>
               </property>
              </widget>
@@ -1218,7 +1296,7 @@ Currently, this button does nothing</string>
                <string/>
               </property>
               <property name="icon">
-               <iconset>
+               <iconset resource="res.qrc">
                 <normaloff>:/buttons/button-play</normaloff>:/buttons/button-play</iconset>
               </property>
              </widget>
