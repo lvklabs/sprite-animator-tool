@@ -8,6 +8,9 @@
 #include <QFileInfo>
 #include <QDir>
 
+#define HEADER_VER_01 "LvkSprite version 0.1"
+#define HEADER_VER_02 "LvkSprite version 0.2"
+
 #define setError(p, err_code) if (p) { *(p) = err_code; }
 
 SpriteState::SpriteState(QObject* parent)
@@ -84,10 +87,10 @@ bool SpriteState::save(const QString& filename, SpriteStateError* err)
 
     QTextStream stream(&file);
     stream << "### LvkSprite #########################################\n";
-    stream << "LvkSprite version 0.1\n\n";
+    stream << HEADER_VER_02 "\n\n";
 
     stream << "# Images\n";
-    stream << "# format: imageId,filename\n";
+    stream << "# format: imageId,filename,scale\n";
     stream << "images(\n";
     for (QHashIterator<Id, InputImage> it(_images); it.hasNext();) {
         it.next();
@@ -190,7 +193,7 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
         }
 
         if (state == StCheckVersion) {
-            if (line == "LvkSprite version 0.1") {
+            if (line == HEADER_VER_01 || line == HEADER_VER_02) {
                 state = StNoToken;
                 continue;
             } else {

@@ -14,6 +14,7 @@ struct LvkAnimation
     LvkAnimation(Id id = NullId, const QString& name = "");
     LvkAnimation(const QString& str);
 
+    // TODO move this as private members
     Id      id;         /* animation id */
     QString name;       /* animation name */
 

@@ -121,6 +121,10 @@ private:
     inline void setItem(const QTableWidget* table, int row, int col, int value)
     { setItem(table, row, col, QString::number(value)); }
 
+    /// shorthand to handle tables
+    inline void setItem(const QTableWidget* table, int row, int col, double value)
+    { setItem(table, row, col, QString::number(value)); }
+
     /// refresh whole user interface
     void refresh_ui();
 
@@ -166,7 +170,7 @@ private slots:
 
     void addImageDialog();
     void showSelImage(int row);
-    void showImage(Id imgId);
+    void showImage(Id imgId, bool clearPixmapCache = false);
     void showSelImageWithFrameRect(int row, const QRect& rect);
     void removeSelImage();
     void removeImage(int row);
@@ -200,6 +204,7 @@ private slots:
     void clearPreviewAnimation();
     void incAniSpeed(int ms = 10);
     void decAniSpeed(int ms = 10);
+    void switchLandscapeMode();
     void changePreviewScrSize(const QString& text);
 
     void addAframeDialog();
@@ -219,8 +224,10 @@ private slots:
     void showMousePosition(int x, int y);
     void showMouseRect(const QRect& rect);
 
+    void scaleCheckedImages();
     void switchQuickMode();
     void checkAllImages();
+    bool hasImagesChecked();
     void invertCheckedImages();
     void createQuickAnimation();
 };

@@ -488,7 +488,7 @@ p, li { white-space: pre-wrap; }
            </widget>
           </item>
           <item row="1" column="0">
-           <layout class="QHBoxLayout" name="imgToolbarLayout" stretch="0,0,0,0,0">
+           <layout class="QHBoxLayout" name="imgToolbarLayout" stretch="0,0,0,0,0,0">
             <property name="spacing">
              <number>-1</number>
             </property>
@@ -504,7 +504,7 @@ p, li { white-space: pre-wrap; }
                <string>Enable Quick Mode</string>
               </property>
               <property name="text">
-               <string>QM</string>
+               <string>QMode</string>
               </property>
               <property name="checkable">
                <bool>true</bool>
@@ -517,7 +517,7 @@ p, li { white-space: pre-wrap; }
                <string>Select all images</string>
               </property>
               <property name="text">
-               <string>SA</string>
+               <string>SelAll</string>
               </property>
              </widget>
             </item>
@@ -527,7 +527,17 @@ p, li { white-space: pre-wrap; }
                <string>Invert selection</string>
               </property>
               <property name="text">
-               <string>IS</string>
+               <string>InvSel</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="scaleImageButton">
+              <property name="toolTip">
+               <string>Scale image</string>
+              </property>
+              <property name="text">
+               <string>Scale</string>
               </property>
              </widget>
             </item>
@@ -537,7 +547,7 @@ p, li { white-space: pre-wrap; }
                <string>Create Quick Animation</string>
               </property>
               <property name="text">
-               <string>CQ</string>
+               <string>CrQA</string>
               </property>
              </widget>
             </item>
@@ -767,8 +777,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>98</width>
-               <height>28</height>
+               <width>331</width>
+               <height>592</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -800,7 +810,7 @@ p, li { white-space: pre-wrap; }
         </item>
         <item row="0" column="1" rowspan="5">
          <layout class="QGridLayout" name="aniPreviewLayout">
-          <item row="2" column="0" colspan="12">
+          <item row="2" column="0" colspan="13">
            <widget class="QScrollArea" name="aniPreviewScroll">
             <property name="widgetResizable">
              <bool>true</bool>
@@ -810,8 +820,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>98</width>
-               <height>28</height>
+               <width>430</width>
+               <height>578</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="aniPreview" native="true">
@@ -849,7 +859,7 @@ p, li { white-space: pre-wrap; }
             </widget>
            </widget>
           </item>
-          <item row="0" column="10">
+          <item row="0" column="11">
            <spacer name="horizontalSpacer_7">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -865,7 +875,7 @@ p, li { white-space: pre-wrap; }
             </property>
            </spacer>
           </item>
-          <item row="1" column="0" colspan="11">
+          <item row="1" column="0" colspan="12">
            <layout class="QHBoxLayout" name="resolutionLayout"/>
           </item>
           <item row="0" column="6" colspan="2">
@@ -894,7 +904,7 @@ p, li { white-space: pre-wrap; }
              <string>Screen Resolution Preview</string>
             </property>
             <property name="currentIndex">
-             <number>4</number>
+             <number>3</number>
             </property>
             <item>
              <property name="text">
@@ -913,17 +923,17 @@ p, li { white-space: pre-wrap; }
             </item>
             <item>
              <property name="text">
-              <string>320x240</string>
+              <string>320x480 (iPhone)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>320x480</string>
+              <string>640x960 (iPhone 4)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>480x320</string>
+              <string>768x1024 (iPad)</string>
              </property>
             </item>
             <item>
@@ -999,6 +1009,13 @@ p, li { white-space: pre-wrap; }
             <property name="icon">
              <iconset resource="res.qrc">
               <normaloff>:/buttons/button-add-animation</normaloff>:/buttons/button-add-animation</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="10">
+           <widget class="QCheckBox" name="landscapeCheckBox">
+            <property name="text">
+             <string>Landscape</string>
             </property>
            </widget>
           </item>

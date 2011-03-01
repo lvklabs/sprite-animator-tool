@@ -15,6 +15,7 @@ struct LvkAframe
 
     LvkAframe(const QString& str);
 
+    // TODO move this as private members
     Id     id;            /* Aframe id */
     Id     frameId;       /* frame id */
     int    delay;         /* time delay in milliseconds */

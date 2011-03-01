@@ -17,6 +17,7 @@ struct LvkFrame
 
     LvkFrame(const QString& str);
 
+    // TODO move this as private members
     Id  id;             /* frame id */
     Id  imgId;          /* input image id */
     int ox;             /* offset x */

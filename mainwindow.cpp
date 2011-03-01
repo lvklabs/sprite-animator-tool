@@ -24,8 +24,9 @@
 // imgTableWidget columns
 enum {
     ColImageId,
-    ColCheckable,
+    ColImageCheckable,
     ColImageVisibleId,
+    ColImageScale,
     ColImageFilename,
     ColImageTotal,
 };
@@ -38,8 +39,8 @@ enum {
     ColFrameOy,
     ColFrameW,
     ColFrameH,
-    ColFrameName,
     ColFrameImgId,
+    ColFrameName,
     ColFrameTotal,
 };
 
@@ -144,6 +145,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->createQuickAniButton->setVisible(false);
     ui->checkAllImagesButton->setVisible(false);
     ui->invertCheckedImagesButton->setVisible(false);
+    ui->scaleImageButton->setVisible(false);
 
 #ifdef MAC_OS_X
     ui->imgTableWidget->setWhatsThis(convertToMacKeys(ui->imgTableWidget->whatsThis()));
@@ -210,11 +212,13 @@ void MainWindow::initSignals()
     connect(ui->moveDownAframeButton,  SIGNAL(clicked()),            this, SLOT(moveSelAframeDown()));
     connect(ui->moveUpAframeButton,    SIGNAL(clicked()),            this, SLOT(moveSelAframeUp()));
 
+    connect(ui->scaleImageButton,      SIGNAL(clicked()),            this, SLOT(scaleCheckedImages()));
     connect(ui->quickModeButton,       SIGNAL(clicked()),            this, SLOT(switchQuickMode()));
     connect(ui->checkAllImagesButton,  SIGNAL(clicked()),            this, SLOT(checkAllImages()));
     connect(ui->invertCheckedImagesButton,  SIGNAL(clicked()),       this, SLOT(invertCheckedImages()));
     connect(ui->createQuickAniButton,  SIGNAL(clicked()),            this, SLOT(createQuickAnimation()));
 
+    connect(ui->landscapeCheckBox,     SIGNAL(stateChanged(int)),    this, SLOT(switchLandscapeMode()));
     connect(ui->previewScrSizeCombo,   SIGNAL(activated(QString)),   this, SLOT(changePreviewScrSize(const QString &)));
 
     connect(ui->imgPreview,            SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
@@ -265,12 +269,13 @@ void MainWindow::initTables()
     ui->imgTableWidget->setRowCount(0);
     ui->imgTableWidget->setColumnCount(ColImageTotal);
     ui->imgTableWidget->setColumnWidth(ColImageId, 30);
-    ui->imgTableWidget->setColumnWidth(ColCheckable, 30);
+    ui->imgTableWidget->setColumnWidth(ColImageCheckable, 30);
     ui->imgTableWidget->setColumnWidth(ColImageVisibleId, 30);
-    headersList << tr("Id") << tr("Ch") << tr("Id") << tr("Filename");
+    ui->imgTableWidget->setColumnWidth(ColImageScale, 40);
+    headersList << tr("Id") << tr("Ch") << tr("Id") << tr("Scale") << tr("Filename");
     ui->imgTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
-    ui->imgTableWidget->setColumnHidden(ColCheckable, true);
+    ui->imgTableWidget->setColumnHidden(ColImageCheckable, true);
 #ifndef DEBUG_SHOW_ID_COLS
     ui->imgTableWidget->setColumnHidden(ColImageId, true);
 #endif
@@ -285,9 +290,10 @@ void MainWindow::initTables()
     ui->framesTableWidget->setColumnWidth(ColFrameOy, 30);
     ui->framesTableWidget->setColumnWidth(ColFrameW, 30);
     ui->framesTableWidget->setColumnWidth(ColFrameH, 30);
+    ui->framesTableWidget->setColumnWidth(ColFrameImgId, 50);
     ui->framesTableWidget->ignoreColumn(ColFrameVisibleId);
     ui->framesTableWidget->ignoreColumn(ColFrameImgId);
-    headersList << tr("Id") << tr("Id") << tr("ox") << tr("oy") << tr("w") << tr("h") << tr("Name") << tr("Img Id");
+    headersList << tr("Id") << tr("Id") << tr("ox") << tr("oy") << tr("w") << tr("h") << tr("Img Id") << tr("Name");
     ui->framesTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
 #ifndef DEBUG_SHOW_ID_COLS
@@ -841,15 +847,17 @@ void MainWindow::addImage_ui(const InputImage& image)
     QTableWidgetItem* item_checkable = new QTableWidgetItem();
     QTableWidgetItem* item_vid       = new QTableWidgetItem(QString::number(image.id));
     QTableWidgetItem* item_filename  = new QTableWidgetItem(filename);
+    QTableWidgetItem* item_scale     = new QTableWidgetItem(QString::number(image.scale()));
 
     item_checkable->setCheckState(Qt::Unchecked);
 
     cellChangedSignals(false);
     ui->imgTableWidget->setRowCount(rows+1);
     ui->imgTableWidget->setItem(rows, ColImageId,        item_id);
-    ui->imgTableWidget->setItem(rows, ColCheckable,      item_checkable);
+    ui->imgTableWidget->setItem(rows, ColImageCheckable, item_checkable);
     ui->imgTableWidget->setItem(rows, ColImageVisibleId, item_vid);
     ui->imgTableWidget->setItem(rows, ColImageFilename,  item_filename);
+    ui->imgTableWidget->setItem(rows, ColImageScale,     item_scale);
     ui->imgTableWidget->setCurrentItem(item_id);
     cellChangedSignals(true);
 
@@ -862,8 +870,12 @@ void MainWindow::showSelImage(int row)
     showImage(imgId);
 }
 
-void MainWindow::showImage(Id imgId)
+void MainWindow::showImage(Id imgId, bool clearPixmapCache /*= false*/)
 {
+    if (clearPixmapCache) {
+        ui->imgPreview->clearPixmapCache(imgId);
+        ui->imgPreview->clear(); // FIXME
+    }
     const QPixmap& selPixmap = _sprState.ipixmap(imgId);
     ui->imgPreview->setPixmap(selPixmap, imgId);
 }
@@ -1263,7 +1275,7 @@ void MainWindow::refreshPreviews()
 void MainWindow::previewAnimation()
 {
     if (ui->aniTableWidget->currentRow() == -1) {
-        infoDialog(tr("No animation selected"));
+        //infoDialog(tr("No animation selected"));
         return;
     }
 
@@ -1277,12 +1289,19 @@ void MainWindow::clearPreviewAnimation()
     ui->aniPreview->clear();
 }
 
+void MainWindow::switchLandscapeMode()
+{
+    changePreviewScrSize(ui->previewScrSizeCombo->currentText());
+}
+
 void MainWindow::changePreviewScrSize(const QString &text)
 {
-    bool ok;
-    QString res = text;
+    QString res = text.mid(0, text.indexOf(' ')); // Remove comment and keep only resolution
+    bool ok = false;
 
+    bool custom = false;
     if (res == tr("Custom...")) {
+        custom = true;
         res = QInputDialog::getText(this,
                               tr("Insert custom screen resolution"),
                               tr("Insert custom screen resolution in format <width>x<height>"),
@@ -1311,17 +1330,23 @@ void MainWindow::changePreviewScrSize(const QString &text)
         return;
     }
 
-    ui->aniPreview->setScreenSize(w, h);
-
-    bool found = false;
-    for (int i = 0; i < ui->previewScrSizeCombo->count(); ++i) {
-        if (res == ui->previewScrSizeCombo->itemText(i)) {
-            found = true;
-            break;
-        }
+    if (ui->landscapeCheckBox->isChecked()) {
+        ui->aniPreview->setScreenSize(h, w);
+    } else {
+        ui->aniPreview->setScreenSize(w, h);
     }
-    if (!found) {
-        ui->previewScrSizeCombo->addItem(res);
+
+    if (custom) {
+        bool found = false;
+        for (int i = 0; i < ui->previewScrSizeCombo->count(); ++i) {
+            if (res == ui->previewScrSizeCombo->itemText(i)) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            ui->previewScrSizeCombo->addItem(res);
+        }
     }
 }
 
@@ -1568,6 +1593,13 @@ void MainWindow::updateImgTable(int row, int col)
     Id            imgId    = getIdItem(table, row, ColImageId);
     InputImage    img      = _sprState.const_image(imgId);
 
+    bool ok = true;
+    double newScale = 0;
+
+    if (col == ColImageScale) {
+        newScale = newValue.toDouble(&ok);
+    }
+
     switch (col) {
     case ColImageId:
     case ColImageVisibleId:
@@ -1590,15 +1622,33 @@ void MainWindow::updateImgTable(int row, int col)
                 infoDialog(tr("The file contains an invalid image format"));
             }
             _sprState.updateImage(img);
-
-            /* update UI */
-
             setItem(table, row, col, img.filename);
-
-            ui->imgPreview->clearPixmapCache(img.id);
-            refreshPreviews();
         }
         break;
+    case ColImageScale:
+        if (!ok) {
+            infoDialog(tr("Invalid image scale"));
+            setItem(table, row, col, img.scale());
+        } else if (newScale != img.scale()) {
+            img.scale(newScale);
+            setItem(table, row, col, newScale);
+        }
+        break;
+    }
+
+    if (ok) {
+        switch (col) {
+        case ColImageId:
+        case ColImageVisibleId:
+            //nothing to do
+            break;
+        case ColImageFilename:
+        case ColImageScale:
+                _sprState.updateImage(img);
+                ui->imgPreview->clearPixmapCache(img.id);
+                refreshPreviews();
+            break;
+        }
     }
 }
 
@@ -1791,22 +1841,24 @@ void MainWindow::updateAniTable(int row, int col)
 void MainWindow::switchQuickMode()
 {
     if (ui->quickModeButton->isChecked()) {
-        ui->imgTableWidget->setColumnHidden(ColCheckable, false);
+        ui->imgTableWidget->setColumnHidden(ColImageCheckable, false);
         ui->createQuickAniButton->setVisible(true);
         ui->checkAllImagesButton->setVisible(true);
         ui->invertCheckedImagesButton->setVisible(true);
+        ui->scaleImageButton->setVisible(true);
     } else {
-        ui->imgTableWidget->setColumnHidden(ColCheckable, true);
+        ui->imgTableWidget->setColumnHidden(ColImageCheckable, true);
         ui->createQuickAniButton->setVisible(false);
         ui->checkAllImagesButton->setVisible(false);
         ui->invertCheckedImagesButton->setVisible(false);
+        ui->scaleImageButton->setVisible(false);
     }
 }
 
 void MainWindow::checkAllImages()
 {
     for (int row = 0; row < ui->imgTableWidget->rowCount(); ++row) {
-            ui->imgTableWidget->item(row, ColCheckable)->setCheckState(Qt::Checked);
+            ui->imgTableWidget->item(row, ColImageCheckable)->setCheckState(Qt::Checked);
     }
 }
 
@@ -1814,16 +1866,66 @@ void MainWindow::checkAllImages()
 void MainWindow::invertCheckedImages()
 {
     for (int row = 0; row < ui->imgTableWidget->rowCount(); ++row) {
-        if (ui->imgTableWidget->item(row, ColCheckable)->checkState() == Qt::Checked) {
-            ui->imgTableWidget->item(row, ColCheckable)->setCheckState(Qt::Unchecked);
+        if (ui->imgTableWidget->item(row, ColImageCheckable)->checkState() == Qt::Checked) {
+            ui->imgTableWidget->item(row, ColImageCheckable)->setCheckState(Qt::Unchecked);
         } else {
-            ui->imgTableWidget->item(row, ColCheckable)->setCheckState(Qt::Checked);
+            ui->imgTableWidget->item(row, ColImageCheckable)->setCheckState(Qt::Checked);
         }
     }
 }
 
+bool MainWindow::hasImagesChecked()
+{
+    for (int row = 0; row < ui->imgTableWidget->rowCount(); ++row) {
+        if (ui->imgTableWidget->item(row, ColImageCheckable)->checkState() == Qt::Checked) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void MainWindow::scaleCheckedImages()
+{
+    if (!hasImagesChecked()) {
+        infoDialog(tr("This operation requires at least one image selected"));
+        return;
+    }
+
+    // prompt animation name
+    bool ok;
+    QString input = QInputDialog::getText(this, tr("Scale all images"), tr("Scale size:"),
+                                          QLineEdit::Normal, "", &ok);
+    if (!ok) {
+        return;
+    }
+
+    // validate input
+    double scale = input.toDouble(&ok);
+    if (!ok || scale <= 0) {
+        infoDialog(tr("Invalid scale. The scale must be a floating point number greater than zero."));
+        return;
+    }
+
+    // scale checked images
+    for (int row = 0; row < ui->imgTableWidget->rowCount(); ++row) {
+        if (ui->imgTableWidget->item(row, ColImageCheckable)->checkState() == Qt::Checked) {
+            InputImage img = _sprState.const_image(getImageId(row));
+            img.scale(scale);
+            _sprState.updateImage(img);
+            ui->imgPreview->clearPixmapCache(img.id);
+            setItem(ui->imgTableWidget, row, ColImageScale, scale);
+        }
+    }
+    refreshPreviews();
+}
+
 void MainWindow::createQuickAnimation()
 {
+    if (!hasImagesChecked()) {
+        infoDialog(tr("This operation requires at least one image selected"));
+        return;
+    }
+
     // prompt animation name
     bool ok;
     QString aniName = QInputDialog::getText(this, tr("New animation"), tr("Animation name:"),
@@ -1840,7 +1942,7 @@ void MainWindow::createQuickAnimation()
 
     // create new frame for each selected img. Add frame to animation
     for (int row = 0; row < ui->imgTableWidget->rowCount(); ++row) {
-        if (ui->imgTableWidget->item(row, ColCheckable)->checkState() == Qt::Checked) {
+        if (ui->imgTableWidget->item(row, ColImageCheckable)->checkState() == Qt::Checked) {
             QString frameName = aniName + "_frame_" + QString::number(row);
             // add frame
             Id frameId = addFrameFromMouseRect(getImageId(row), frameName);

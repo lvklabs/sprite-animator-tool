@@ -9,6 +9,7 @@ LvkAnimationWidget::LvkAnimationWidget(QWidget* parent)
         : QWidget(parent), _currentFrame(-1), _currentTimer(0), _isPlaying(false), _scrW(320), _scrH(480),
           _origin(QPoint(1,1))
 {
+    setCursor(QCursor(Qt::OpenHandCursor));
 }
 
 void LvkAnimationWidget::setAnimation(const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps)
@@ -31,6 +32,7 @@ void LvkAnimationWidget::setScreenSize(int w, int h)
     if (w > 0 && h > 0) {
         _scrW = w;
         _scrH = h;
+        setGeometry(x(), y(), w + 5, h + 5);
     }
 
     repaint();
@@ -79,17 +81,27 @@ void LvkAnimationWidget::paintEvent(QPaintEvent */*event*/)
     painter.drawRect(0, 0, _scrW, _scrH);
 }
 
-void LvkAnimationWidget::mousePressEvent(QMouseEvent *event)
+void LvkAnimationWidget::mousePressEvent(QMouseEvent */*event*/)
 {
-    if (event->buttons() == Qt::LeftButton) {
-        _origin.setX(event->x());
-        _origin.setY(event->y());
+    setCursor(QCursor(Qt::ClosedHandCursor));
+}
+
+void LvkAnimationWidget::mouseMoveEvent(QMouseEvent *event)
+{
+    if (event->buttons() == Qt::LeftButton && _currentFrame != -1) {
+        _origin.setX(event->x() - _fpixmaps[_currentFrame].width()/2);
+        _origin.setY(event->y() - _fpixmaps[_currentFrame].height()/2);
     } else {
         _origin.setX(1);
         _origin.setY(1);
     }
 
     repaint();
+}
+
+void LvkAnimationWidget::mouseReleaseEvent(QMouseEvent */*event*/)
+{
+    setCursor(QCursor(Qt::OpenHandCursor));
 }
 
 void LvkAnimationWidget::play()

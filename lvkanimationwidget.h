@@ -26,6 +26,8 @@ protected:
     virtual void timerEvent(QTimerEvent* event);
     virtual void paintEvent(QPaintEvent *event);
     virtual void mousePressEvent(QMouseEvent *event);
+    virtual void mouseMoveEvent(QMouseEvent *event);
+    virtual void mouseReleaseEvent(QMouseEvent *event);
 
 private:
     LvkAnimationWidget(const LvkAnimationWidget&);

@@ -9,9 +9,10 @@
 /// Input image abstraction
 struct InputImage
 {
-    InputImage(Id id = NullId, const QString& filename = "");
+    InputImage(Id id = NullId, const QString& filename = "", double scale = 1.0);
     InputImage(const QString& str);
 
+    // TODO move this as private members
     Id      id;         /* image id */
     QString filename;   /* image filename */
     QPixmap pixmap;     /* image pixmap */
@@ -28,9 +29,16 @@ struct InputImage
     /// free resources used by the image
     void freeImageData();
 
+    /// set/get image scale
+    void scale(double scale);
+    double scale() const;
+
     /// operator ==
     bool operator==(const InputImage& img) const
-    { return id == img.id && filename == img.filename; }
+    { return id == img.id && filename == img.filename && _scale == img._scale; }
+
+private:
+    double  _scale;      /* image scale */
 };
 
 #endif // INPUTIMAGE_H
