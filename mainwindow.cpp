@@ -118,7 +118,7 @@ QString convertToMacKeys(const QString& str)
     tmp.replace("Shift",    QString(QChar(0x21e7) /* ⇧ */), Qt::CaseInsensitive);
     tmp.replace("Ctrl",     QString(QChar(0x2318) /* ⌘ */), Qt::CaseInsensitive);
     tmp.replace("Alt",      QString(QChar(0x2325) /* ⌥ */), Qt::CaseInsensitive);
-    tmp.replace("or F2",    QString(/* FIXME which is the equivalent key? */), Qt::CaseInsensitive);
+    tmp.replace("F2",       QString(QChar(0x21a9) /* ↩ */), Qt::CaseInsensitive);
 
     return tmp;
 }
@@ -1935,10 +1935,15 @@ void MainWindow::createQuickAnimation()
         return;
     }
 
+    bool addReverseFrames = yesNoDialog(tr("After finishing the animationm,"
+                                           "do you want to add frames to reverse the animation?"));
+
     _sprState.startTransaction();
 
     // add new animation
     Id aniId = addAnimation(LvkAnimation(NullId, aniName));
+
+    QList<Id> newFrameIds; // list of new ids to reverse animation
 
     // create new frame for each selected img. Add frame to animation
     for (int row = 0; row < ui->imgTableWidget->rowCount(); ++row) {
@@ -1950,6 +1955,14 @@ void MainWindow::createQuickAnimation()
             if (frameId != NullId) {
                 addAframe(LvkAframe(NullId, frameId), aniId);
             }
+            newFrameIds << frameId;
+        }
+    }
+
+    // add reverse frames
+    if (addReverseFrames) {
+        for (int i = newFrameIds.size() - 1; i >= 0 ; --i) {
+            addAframe(LvkAframe(NullId, newFrameIds[i]), aniId);
         }
     }
 
