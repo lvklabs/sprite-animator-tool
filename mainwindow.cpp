@@ -62,6 +62,14 @@ enum {
     ColAframeTotal,
 };
 
+// transTableWidget columns
+enum {
+    ColTransAniId,
+    ColTransAniCheckable,
+    ColTransAniName,
+    ColTransTotal,
+};
+
 #define getImageId(row)         ui->imgTableWidget->item(row, ColImageId)->text().toInt()
 #define getFrameId(row)         ui->framesTableWidget->item(row, ColFrameId)->text().toInt()
 #define getAframeId(row)        ui->aframesTableWidget->item(row, ColAframeId)->text().toInt()
@@ -69,6 +77,7 @@ enum {
 #define getAframeAniId(row)     ui->aframesTableWidget->item(row, ColAframeAniId)->text().toInt()
 #define getFrameImgId(row)      ui->framesTableWidget->item(row, ColFrameImgId)->text().toInt()
 #define getAnimationId(row)     ui->aniTableWidget->item(row, ColAniId)->text().toInt()
+#define getTransAniId(row)      ui->transTableWidget->item(row, ColTransAniId)->text().toInt()
 
 #define selectedImgId()         getImageId(ui->imgTableWidget->currentRow())
 #define selectedFrameId()       getFrameId(ui->framesTableWidget->currentRow())
@@ -154,10 +163,12 @@ MainWindow::MainWindow(QWidget *parent)
     ui->aniTableWidget->setWhatsThis(convertToMacKeys(ui->aniTableWidget->whatsThis()));
     ui->imgPreviewScroll->setWhatsThis(convertToMacKeys(ui->imgPreviewScroll->whatsThis()));
 
-    ui->imgTableWidget->setFont(QFont("", 11));
-    ui->framesTableWidget->setFont(QFont("", 11));
-    ui->aniTableWidget->setFont(QFont("", 11));
-    ui->aframesTableWidget->setFont(QFont("", 11));
+    const int tableFontSize = 11;
+    ui->imgTableWidget->setFont(QFont("", tableFontSize));
+    ui->framesTableWidget->setFont(QFont("", tableFontSize));
+    ui->aniTableWidget->setFont(QFont("", tableFontSize));
+    ui->aframesTableWidget->setFont(QFont("", tableFontSize));
+    ui->transTableWidget->setFont(QFont("", tableFontSize));
 
     setWindowIcon(QIcon());
 #endif // MAC_OS_X
@@ -211,6 +222,14 @@ void MainWindow::initSignals()
     connect(ui->hideFramePreviewButton,SIGNAL(clicked()),            this, SLOT(hideShowFramePreview()));
     connect(ui->moveDownAframeButton,  SIGNAL(clicked()),            this, SLOT(moveSelAframeDown()));
     connect(ui->moveUpAframeButton,    SIGNAL(clicked()),            this, SLOT(moveSelAframeUp()));
+
+    connect(ui->addAniTransButton,     SIGNAL(clicked()),            this, SLOT(addTransDialog()));
+    connect(ui->refreshTransButton,    SIGNAL(clicked()),            this, SLOT(previewTransition()));
+    //TODO
+    //connect(ui->removeAniTransButton,  SIGNAL(clicked()),            this, SLOT(()));
+    //connect(ui->removeAllAniTransButton, SIGNAL(clicked()),          this, SLOT(()));
+    //connect(ui->moveAniTransDownButton,SIGNAL(clicked()),            this, SLOT(()));
+    //connect(ui->moveAniTransUpButton,  SIGNAL(clicked()),            this, SLOT(()));
 
     connect(ui->scaleImageButton,      SIGNAL(clicked()),            this, SLOT(scaleCheckedImages()));
     connect(ui->quickModeButton,       SIGNAL(clicked()),            this, SLOT(switchQuickMode()));
@@ -330,6 +349,20 @@ void MainWindow::initTables()
     ui->aframesTableWidget->setColumnHidden(ColAframeId, true);
     ui->aframesTableWidget->setColumnHidden(ColAframeAniId, true);
 #endif
+
+    /* transitions table */
+
+    ui->transTableWidget->setRowCount(0);
+    ui->transTableWidget->setColumnCount(ColTransTotal);
+    ui->transTableWidget->setColumnWidth(ColTransAniId, 30);
+    ui->transTableWidget->setColumnWidth(ColTransAniCheckable, 30);
+    headersList << tr("Animation Id") << tr("Ch") << tr("Animation Name");
+    ui->transTableWidget->setHorizontalHeaderLabels(headersList);
+    headersList.clear();
+#ifndef DEBUG_SHOW_ID_COLS
+    ui->transTableWidget->setColumnHidden(ColTransAniId, true);
+#endif
+
 }
 
 bool MainWindow::saveFile()
@@ -386,6 +419,10 @@ DialogButton MainWindow::saveChangesDialog()
     DialogButton button =  yesNoCancelDialog(msg);
 
     if (button == YesButton) {
+        if (ui->transTableWidget->rowCount() > 0) {
+            infoDialog(tr("Warning: transitions won't be saved."));
+        }
+
         if (!saveFile()) {
              button = CancelButton;
         }
@@ -496,6 +533,9 @@ void MainWindow::refresh_ui()
 
     if (ui->aniPreview->isPlaying()) {
         previewAnimation();
+    }
+    if (ui->transPreview->isPlaying()) {
+        previewTransition();
     }
 }
 
@@ -682,6 +722,8 @@ void MainWindow::closeFile()
     ui->aniTableWidget->setRowCount(0);
     ui->aframesTableWidget->clearContents();
     ui->aframesTableWidget->setRowCount(0);
+    ui->transTableWidget->clearContents();
+    ui->transTableWidget->setRowCount(0);
     cellChangedSignals(true);
 
     ui->imgPreview->clear();
@@ -689,6 +731,7 @@ void MainWindow::closeFile()
     ui->aframePreview->clear();
 
     clearPreviewAnimation();
+    clearPreviewTransition();
 }
 
 void MainWindow::exportFile()
@@ -1270,6 +1313,7 @@ void MainWindow::refreshPreviews()
     showSelFrame(ui->framesTableWidget->currentRow());
     showSelAframe(ui->aframesTableWidget->currentRow());
     previewAnimation();
+    previewTransition();
 }
 
 void MainWindow::previewAnimation()
@@ -1287,6 +1331,21 @@ void MainWindow::previewAnimation()
 void MainWindow::clearPreviewAnimation()
 {
     ui->aniPreview->clear();
+}
+
+void MainWindow::previewTransition()
+{
+    QList<LvkAnimation> aniList;
+    for (int row = 0; row < ui->transTableWidget->rowCount(); row++) {
+        aniList << _sprState.animations().value(getTransAniId(row));
+    }
+    ui->transPreview->setAnimations(aniList, _sprState.fpixmaps());
+    ui->transPreview->play();
+}
+
+void MainWindow::clearPreviewTransition()
+{
+    ui->transPreview->clear();
 }
 
 void MainWindow::switchLandscapeMode()
@@ -1332,8 +1391,10 @@ void MainWindow::changePreviewScrSize(const QString &text)
 
     if (ui->landscapeCheckBox->isChecked()) {
         ui->aniPreview->setScreenSize(h, w);
+        ui->transPreview->setScreenSize(h, w);
     } else {
         ui->aniPreview->setScreenSize(w, h);
+        ui->transPreview->setScreenSize(w, h);
     }
 
     if (custom) {
@@ -1387,7 +1448,7 @@ void MainWindow::removeAnimation(int row)
 void MainWindow::addAframeDialog()
 {
     if (_sprState.frames().isEmpty()) {
-        infoDialog(tr("No frames available.\n\nGo to the \"Frames\" tab and create at least one frame."));
+        infoDialog(tr("No frames available.\n\nGo to the \"Frames\" tab to create one frame."));
         return;
     }
     if (ui->aniTableWidget->currentRow() == -1) {
@@ -1397,12 +1458,12 @@ void MainWindow::addAframeDialog()
 
     QStringList framesList;
 
-    for (QHashIterator<int, LvkFrame> it(_sprState.frames()); it.hasNext();) {
+    for (QHashIterator<Id, LvkFrame> it(_sprState.frames()); it.hasNext();) {
         it.next();
         const LvkFrame& frame = it.value();
         framesList << tr("Id: ") + QString::number(frame.id) +  tr(" Name: ") + frame.name;
-        framesList.sort();
     }
+    framesList.sort();
 
     bool ok;
     QString frame_str = QInputDialog::getItem(this, tr("New Animation frame"),
@@ -1584,6 +1645,67 @@ void MainWindow::incAniSpeed(int ms)
 void MainWindow::decAniSpeed(int ms)
 {
     incAniSpeed(-ms);
+}
+
+void MainWindow::addTransDialog()
+{
+    if (_sprState.animations().isEmpty()) {
+        infoDialog(tr("No animations available.\n\nGo to the \"Animations\" tab to create one animation."));
+        return;
+    }
+
+    QStringList anisList;
+
+    for (QHashIterator<Id, LvkAnimation> it(_sprState.animations()); it.hasNext();) {
+        it.next();
+        const LvkAnimation & ani = it.value();
+        anisList << tr("Id: ") + QString::number(ani.id) +  tr(" Name: ") + ani.name;
+    }
+    anisList.sort();
+
+    bool ok;
+    QString ani_str = QInputDialog::getItem(this, tr("Add animation"),
+                                            tr("Choose animation:"),
+                                            anisList, 0, false, &ok);
+    if (ok) {
+        QStringList tokens = ani_str.split(" ");
+
+        if (tokens.size() < 2) {
+            infoDialog(tr("Cannot add animation. The selected animation could not be parsed"));
+            return;
+        }
+        Id aniId = tokens.at(1).toInt();
+
+        addTrans(aniId);
+    }
+}
+
+void MainWindow::addTrans(Id aniId)
+{
+    /* state */
+    // TODO: _sprState.addAniTrans(aniId);
+
+    /* UI */
+    addTrans_ui(aniId);
+}
+
+void MainWindow::addTrans_ui(Id aniId)
+{
+    LvkAnimation ani = _sprState.animations().value(aniId);
+
+    QTableWidgetItem* item_aniId      = new QTableWidgetItem(QString::number(ani.id));
+    QTableWidgetItem* item_aniName    = new QTableWidgetItem(ani.name);
+    QTableWidgetItem* item_aniChecked = new QTableWidgetItem(""); // FIXME
+
+    int rows = ui->transTableWidget->rowCount();
+
+    ui->transTableWidget->setRowCount(rows+1);
+    ui->transTableWidget->setItem(rows, ColTransAniId,        item_aniId);
+    ui->transTableWidget->setItem(rows, ColTransAniName,      item_aniName);
+    ui->transTableWidget->setItem(rows, ColTransAniCheckable, item_aniChecked);
+    ui->transTableWidget->setCurrentItem(item_aniId);
+
+    previewTransition();
 }
 
 void MainWindow::updateImgTable(int row, int col)
@@ -1992,7 +2114,9 @@ void MainWindow::showMouseRect(const QRect& rect)
 
 void MainWindow::undo()
 {
-    if (_sprState.canUndo()) {
+    if (ui->tabWidget->currentWidget() == ui->transitionsTab) {
+        infoDialog(tr("Actions in the \"Transitions\" tab cannot be undone or redone"));
+    } else if (_sprState.canUndo()) {
         _sprState.undo();
         refresh_ui();
     }
@@ -2000,7 +2124,9 @@ void MainWindow::undo()
 
 void MainWindow::redo()
 {
-    if (_sprState.canRedo()) {
+    if (ui->tabWidget->currentWidget() == ui->transitionsTab) {
+        infoDialog(tr("Actions in the \"Transitions\" tab cannot be undone or redone"));
+    } else if (_sprState.canRedo()) {
         _sprState.redo();
         refresh_ui();
     }
@@ -2056,7 +2182,4 @@ MainWindow::~MainWindow()
     delete statusBarMousePos;
     delete ui;
 }
-
-
-
 

@@ -27,6 +27,23 @@ void LvkAnimationWidget::setAnimation(const LvkAnimation& ani, const QHash<Id, Q
     repaint();
 }
 
+void LvkAnimationWidget::setAnimations(const QList<LvkAnimation>& anis, const QHash<Id, QPixmap>& fpixmaps)
+{
+    clear();
+
+    for (QListIterator<LvkAnimation> aniIter(anis); aniIter.hasNext();) {
+        for (QListIterator<LvkAframe> aframeIter(aniIter.next()._aframes); aframeIter.hasNext();) {
+            LvkAframe aframe = aframeIter.next();
+            _fpixmaps << QPixmap(fpixmaps.value(aframe.frameId));
+            _delays   << aframe.delay;
+            _oxs      << aframe.ox;
+            _oys      << aframe.oy;
+        }
+    }
+
+    repaint();
+}
+
 void LvkAnimationWidget::setScreenSize(int w, int h)
 {
     if (w > 0 && h > 0) {

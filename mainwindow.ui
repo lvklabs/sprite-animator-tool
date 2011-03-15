@@ -46,7 +46,7 @@
        </size>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="framesTab">
        <attribute name="title">
@@ -678,14 +678,7 @@ p, li { white-space: pre-wrap; }
         <string>Animations</string>
        </attribute>
        <layout class="QGridLayout" name="aniTabLayotWidget">
-        <item row="1" column="3">
-         <widget class="QLabel" name="speedLabel">
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="15" rowspan="5">
+        <item row="0" column="14" rowspan="4">
          <layout class="QGridLayout" name="aframePreviewLayout">
           <item row="0" column="1">
            <widget class="QToolButton" name="aframeZoomInButton">
@@ -749,7 +742,7 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>364</width>
+               <width>371</width>
                <height>592</height>
               </rect>
              </property>
@@ -780,19 +773,19 @@ p, li { white-space: pre-wrap; }
           </item>
          </layout>
         </item>
-        <item row="0" column="1" rowspan="5">
+        <item row="0" column="1" rowspan="4">
          <layout class="QGridLayout" name="aniPreviewLayout">
           <item row="1" column="0" colspan="7">
            <widget class="QScrollArea" name="aniPreviewScroll">
             <property name="widgetResizable">
              <bool>true</bool>
             </property>
-            <widget class="QWidget" name="scrollAreaWidgetContents">
+            <widget class="QWidget" name="scrollAniPreviewWidget">
              <property name="geometry">
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>365</width>
+               <width>371</width>
                <height>590</height>
               </rect>
              </property>
@@ -937,7 +930,7 @@ p, li { white-space: pre-wrap; }
           </item>
          </layout>
         </item>
-        <item row="0" column="0" rowspan="5">
+        <item row="0" column="0" rowspan="4">
          <layout class="QGridLayout" name="tables2Layout">
           <item row="0" column="0">
            <widget class="QLabel" name="animationsLabel">
@@ -1331,6 +1324,225 @@ Currently, this button does nothing</string>
              </spacer>
             </item>
            </layout>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="transitionsTab">
+       <attribute name="title">
+        <string>Transitions</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_3">
+        <item row="0" column="0">
+         <layout class="QGridLayout" name="gridLayout_2" columnstretch="1,3">
+          <item row="0" column="0">
+           <layout class="QVBoxLayout" name="verticalLayout">
+            <item>
+             <widget class="QLabel" name="transitionsTestLabel">
+              <property name="text">
+               <string>Transitions Test:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_4">
+              <item>
+               <widget class="QToolButton" name="addAniTransButton">
+                <property name="toolTip">
+                 <string>Add animation</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset resource="res.qrc">
+                  <normaloff>:/buttons/button-add-animation</normaloff>:/buttons/button-add-animation</iconset>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QToolButton" name="removeAniTransButton">
+                <property name="toolTip">
+                 <string>Remove animation</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset resource="res.qrc">
+                  <normaloff>:/buttons/button-remove-animation</normaloff>:/buttons/button-remove-animation</iconset>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QToolButton" name="removeAllAniTransButton">
+                <property name="toolTip">
+                 <string>Remove all animations</string>
+                </property>
+                <property name="text">
+                 <string>RmAll</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_9">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeType">
+                 <enum>QSizePolicy::Fixed</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>10</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QToolButton" name="moveAniTransDownButton">
+                <property name="toolTip">
+                 <string>Move animation down</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset resource="res.qrc">
+                  <normaloff>:/buttons/button-move-down-aframe</normaloff>:/buttons/button-move-down-aframe</iconset>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QToolButton" name="moveAniTransUpButton">
+                <property name="toolTip">
+                 <string>Move animation up</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset resource="res.qrc">
+                  <normaloff>:/buttons/button-move-up-aframe</normaloff>:/buttons/button-move-up-aframe</iconset>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_12">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeType">
+                 <enum>QSizePolicy::Fixed</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>10</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QToolButton" name="refreshTransButton">
+                <property name="toolTip">
+                 <string>Refresh</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset resource="res.qrc">
+                  <normaloff>:/buttons/button-refresh</normaloff>:/buttons/button-refresh</iconset>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QTableWidget" name="transTableWidget">
+              <property name="editTriggers">
+               <set>QAbstractItemView::NoEditTriggers</set>
+              </property>
+              <property name="selectionMode">
+               <enum>QAbstractItemView::SingleSelection</enum>
+              </property>
+              <property name="selectionBehavior">
+               <enum>QAbstractItemView::SelectRows</enum>
+              </property>
+              <attribute name="horizontalHeaderStretchLastSection">
+               <bool>true</bool>
+              </attribute>
+              <attribute name="verticalHeaderVisible">
+               <bool>false</bool>
+              </attribute>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="0" column="1">
+           <widget class="QScrollArea" name="scrollTransPreview">
+            <property name="widgetResizable">
+             <bool>true</bool>
+            </property>
+            <widget class="QWidget" name="scrollTransPreviewWidget">
+             <property name="geometry">
+              <rect>
+               <x>0</x>
+               <y>0</y>
+               <width>848</width>
+               <height>628</height>
+              </rect>
+             </property>
+             <widget class="LvkAnimationWidget" name="transPreview" native="true">
+              <property name="geometry">
+               <rect>
+                <x>0</x>
+                <y>0</y>
+                <width>531</width>
+                <height>601</height>
+               </rect>
+              </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="toolTip">
+               <string/>
+              </property>
+              <property name="whatsThis">
+               <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Sans'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;table border=&quot;0&quot; style=&quot;-qt-table-type: root; margin-top:4px; margin-bottom:4px; margin-left:4px; margin-right:4px;&quot;&gt;
+&lt;tr&gt;
+&lt;td style=&quot;border: none;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Animation preview&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-weight:600;&quot;&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; * Left click: To change the position of the animation.&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; * Right click: To reset the position&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+             </widget>
+            </widget>
+           </widget>
           </item>
          </layout>
         </item>

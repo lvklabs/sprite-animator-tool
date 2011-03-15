@@ -216,6 +216,13 @@ private slots:
     void moveSelAframeDown();
     void moveSelAframe(int offset);
 
+    void addTransDialog();
+    void addTrans(Id aniId);
+    void addTrans_ui(Id aniId);
+
+    void previewTransition();
+    void clearPreviewTransition();
+
     void updateImgTable(int row, int col);
     void updateFramesTable(int row, int col);
     void updateAframesTable(int row, int col);
