@@ -310,18 +310,18 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
 
     return (state != StError);
 }
-bool SpriteState::exportSprite(const QString& filename, const QString& outputDir_, int quality, SpriteStateError* err) const
+bool SpriteState::exportSprite(const QString& filename, const QString& outputDir_, int compression, SpriteStateError* err) const
 {
     setError(err, ErrNone);
 
-    if (quality < 0) {
-        qDebug() << "Error: quality < 0 is not allowed. Using minimum quality = 0";
-        quality = 0;
-    } else if (quality > 9) {
-        qDebug() << "Error: quality > 9 is not allowed. Using maximum quality = 9";
-        quality = 9;
+    if (compression < 0) {
+        qDebug() << "Error: compression < 0 is not allowed. Using minimum compression = 0";
+        compression = 0;
+    } else if (compression > 9) {
+        qDebug() << "Error: compression > 9 is not allowed. Using maximum compression = 9";
+        compression = 9;
     }
-    std::cout << "Exporting PNG with compression " << quality << "\n";
+    std::cout << "Exporting PNG with compression " << compression << "\n";
 
     QFileInfo fileInfo(filename);
 
@@ -382,7 +382,7 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
     textStream << "fpixmaps(\n";
 
     QImageWriter imgWriter(&binOutput, QByteArray("png"));
-    imgWriter.setCompression(quality);
+    imgWriter.setCompression(compression);
 
     qint64 prevOffset = 0; /* previous offset */
     qint64 offset = 0;

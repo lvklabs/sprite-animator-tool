@@ -65,8 +65,8 @@ private:
     /// current sprite state
     SpriteState2 _sprState;
 
-    /// PNG export quality
-    int _pngQuality;
+    /// PNG compression when exporting
+    int _pngCompressionLevel;
 
     /// Labels to show information in the status bar
     QLabel* statusBarMousePos;
@@ -155,7 +155,7 @@ private slots:
     void exportAsFile();
     void exit();
 
-    int pngQualityDialog();
+    int pngCompressionDialog();
 
     DialogButton saveChangesDialog();
     bool openFile_checkUnsaved(const QString& filename);

@@ -64,8 +64,8 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
     } else if (argc == 5 || argc == 7) {
         /* Valid options:
          *
-         * LvkSpriteEditor --export "sprite_file" --quality [0..9]
-         * LvkSpriteEditor --export "sprite_file" --quality [0..9] --output-dir "dir"
+         * LvkSpriteEditor --export "sprite_file" --compression [0..9]
+         * LvkSpriteEditor --export "sprite_file" --compression [0..9] --output-dir "dir"
          */
 
         std::string param1 = argv[1];
@@ -73,7 +73,7 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
         std::string param3 = argv[3];
         std::string param4 = argv[4];
 
-        if (param1 != "--export" || param3 != "--quality") {
+        if (param1 != "--export" || param3 != "--compression") {
             showHelp(binName);
             exit(-1);
         }
@@ -83,9 +83,9 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
         QString outputDir;
 
         bool ok;
-        int quality = QString(param4.c_str()).toInt(&ok);
+        int compression = QString(param4.c_str()).toInt(&ok);
 
-        if (!ok || quality < 0 || quality > 9) {
+        if (!ok || compression < 0 || compression > 9) {
             showHelp(binName);
             exit(-1);
         }
@@ -114,7 +114,7 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
                       << SpriteState::errorMessage(err).toStdString() << std::endl;
             exit(-1);
         }
-        if (!sprState.exportSprite(inputFile, outputDir, quality, &err)) {
+        if (!sprState.exportSprite(inputFile, outputDir, compression, &err)) {
             std::cerr << binName << ": Error: Cannot export '" << param2 << "' "
                       << SpriteState::errorMessage(err).toStdString() << std::endl;
             exit(-1);
@@ -132,7 +132,7 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
 void showHelp(const  std::string& binName)
 {
     std::cout << "Usage: " << binName << " [sprite-file]" << std::endl;
-    std::cout << "       " << binName << " --export sprite-file --quality 0..9 [--output-dir directory]" << std::endl;
+    std::cout << "       " << binName << " --export sprite-file --compression 0..9 [--output-dir directory]" << std::endl;
     std::cout << "       " << binName << " --version" << std::endl;
     std::cout << "       " << binName << " --help" << std::endl;
 }
