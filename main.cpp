@@ -61,17 +61,19 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
         if (!w.openFile(QString(param.c_str()))) {
             exit(-1);
         }
-    } else if (argc == 3 || argc == 5) {
+    } else if (argc == 5 || argc == 7) {
         /* Valid options:
          *
-         * LvkSpriteEditor --export "sprite_file"
-         * LvkSpriteEditor --export "sprite_file" --output-dir "dir"
+         * LvkSpriteEditor --export "sprite_file" --quality [0..9]
+         * LvkSpriteEditor --export "sprite_file" --quality [0..9] --output-dir "dir"
          */
 
         std::string param1 = argv[1];
         std::string param2 = argv[2];
+        std::string param3 = argv[3];
+        std::string param4 = argv[4];
 
-        if (param1 != "--export") {
+        if (param1 != "--export" || param3 != "--quality") {
             showHelp(binName);
             exit(-1);
         }
@@ -80,11 +82,19 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
         QString inputFile = QFileInfo(param2.c_str()).fileName();
         QString outputDir;
 
-        if (argc == 5) {
-            if (std::string(argv[3]) == "--output-dir") {
-                outputDir = argv[4];
+        bool ok;
+        int quality = QString(param4.c_str()).toInt(&ok);
+
+        if (!ok || quality < 0 || quality > 9) {
+            showHelp(binName);
+            exit(-1);
+        }
+
+        if (argc == 7) {
+            if (std::string(argv[5]) == "--output-dir") {
+                outputDir = argv[6];
                 if (!QDir(outputDir).exists()) {
-                    std::cerr << binName << ": Error: Output directory '" << argv[4]
+                    std::cerr << binName << ": Error: Output directory '" << argv[6]
                               << "' does not exist." << std::endl;
                     exit(-1);
                 }
@@ -104,7 +114,7 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
                       << SpriteState::errorMessage(err).toStdString() << std::endl;
             exit(-1);
         }
-        if (!sprState.exportSprite(inputFile, outputDir, &err)) {
+        if (!sprState.exportSprite(inputFile, outputDir, quality, &err)) {
             std::cerr << binName << ": Error: Cannot export '" << param2 << "' "
                       << SpriteState::errorMessage(err).toStdString() << std::endl;
             exit(-1);
@@ -113,7 +123,7 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
             exit(0);
         }
     } else if (argc > 3) {
-        std::cerr << binName << ": Error: Too many arguments" << std::endl;
+        std::cerr << binName << ": Error: bad arguments" << std::endl;
         showHelp(binName);
         exit(-1);
     }
@@ -122,7 +132,7 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
 void showHelp(const  std::string& binName)
 {
     std::cout << "Usage: " << binName << " [sprite-file]" << std::endl;
-    std::cout << "       " << binName << " --export sprite-file [--output-dir directory]" << std::endl;
+    std::cout << "       " << binName << " --export sprite-file --quality 0..9 [--output-dir directory]" << std::endl;
     std::cout << "       " << binName << " --version" << std::endl;
     std::cout << "       " << binName << " --help" << std::endl;
 }

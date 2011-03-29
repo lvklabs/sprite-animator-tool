@@ -7,6 +7,7 @@
 #include <QImageWriter>
 #include <QFileInfo>
 #include <QDir>
+#include <iostream>
 
 #define HEADER_VER_01 "LvkSprite version 0.1"
 #define HEADER_VER_02 "LvkSprite version 0.2"
@@ -309,9 +310,18 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
 
     return (state != StError);
 }
-bool SpriteState::exportSprite(const QString& filename, const QString& outputDir_, SpriteStateError* err) const
+bool SpriteState::exportSprite(const QString& filename, const QString& outputDir_, int quality, SpriteStateError* err) const
 {
     setError(err, ErrNone);
+
+    if (quality < 0) {
+        qDebug() << "Error: quality < 0 is not allowed. Using minimum quality = 0";
+        quality = 0;
+    } else if (quality > 9) {
+        qDebug() << "Error: quality > 9 is not allowed. Using maximum quality = 9";
+        quality = 9;
+    }
+    std::cout << "Exporting PNG with compression " << quality << "\n";
 
     QFileInfo fileInfo(filename);
 
@@ -372,6 +382,8 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
     textStream << "fpixmaps(\n";
 
     QImageWriter imgWriter(&binOutput, QByteArray("png"));
+    imgWriter.setCompression(quality);
+
     qint64 prevOffset = 0; /* previous offset */
     qint64 offset = 0;
 

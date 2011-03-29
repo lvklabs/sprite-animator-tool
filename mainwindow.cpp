@@ -134,7 +134,7 @@ QString convertToMacKeys(const QString& str)
 #endif // MAC_OS_X
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow),
+    : QMainWindow(parent), ui(new Ui::MainWindow), _pngQuality(9),
       statusBarMousePos(new QLabel()), statusBarRectSize(new QLabel())
 {
     ui->setupUi(this);
@@ -734,13 +734,30 @@ void MainWindow::closeFile()
     clearPreviewTransition();
 }
 
+int MainWindow::pngQualityDialog()
+{
+    QStringList framesList;
+
+    framesList << "0" << "1" << "2" << "3" << "4" << "5" << "6" << "7" << "8" << "9";
+
+    bool ok;
+    QString quality = QInputDialog::getItem(this, tr("PNG export quality"),
+                                            tr("Choose PNG export quality:"),
+                                            framesList, 9, false, &ok);
+    if (ok) {
+        return quality.toInt();
+    } else {
+        return -1;
+    }
+}
+
 void MainWindow::exportFile()
 {
     if (_exportFileName.isEmpty()) {
         exportAsFile();
     } else {
         SpriteStateError err;
-        if (!_sprState.exportSprite(_exportFileName, QString(), &err)) {
+        if (!_sprState.exportSprite(_exportFileName, QString(), _pngQuality, &err)) {
            infoDialog(tr("Cannot export '") + _exportFileName + "' "
                       + SpriteState::errorMessage(err));
            return;
@@ -756,8 +773,15 @@ void MainWindow::exportAsFile()
             this, tr("Export file"), QFileInfo(exportFileName).absolutePath(), "*.lkot *.lkob;; *.*");
 
     if (!exportFileName.isEmpty()) {
+        // get png qality from user
+        int quality = pngQualityDialog();
+        if (quality == -1) {
+            return;
+        }
+        _pngQuality = quality;
+
         SpriteStateError err;
-        if (!_sprState.exportSprite(exportFileName, QString(), &err)) {
+        if (!_sprState.exportSprite(exportFileName, QString(), _pngQuality, &err)) {
            infoDialog(tr("Cannot export '") + exportFileName + "' "
                       + SpriteState::errorMessage(err));
            return;
