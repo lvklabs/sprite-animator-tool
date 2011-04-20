@@ -6,6 +6,8 @@
 #include <QImage>
 #include <QPixmap>
 
+class QFile;
+
 #include "types.h"
 #include "inputimage.h"
 #include "lvkframe.h"
@@ -160,9 +162,8 @@ public:
 
     /// export sprite file @param filename.
     /// If @param outputDir is null, the sprite file directory is used.
-    /// @param compression level must be a value in the range [0, 9]
     bool exportSprite(const QString& filename, const QString& outputDir = QString(),
-                      int compression = 9, SpriteStateError* err = 0) const;
+                      SpriteStateError* err = 0) const;
 
     /// returns the error string of @param err
     static const QString& errorMessage(SpriteStateError err);
@@ -212,6 +213,9 @@ protected:
     // TODO (?) move this method inside LvkFrame
     /// force reload frame pixmap
     void reloadFramePixmap(const LvkFrame& frame);
+
+private:
+    bool writeImageWithPostprocessing(QFile &binOutput, const LvkFrame &frame) const;
 };
 
 typedef SpriteState::SpriteStateError SpriteStateError;

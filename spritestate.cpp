@@ -1,19 +1,29 @@
 #include "spritestate.h"
 
 #include <QFile>
+#include <QFileInfo>
 #include <QDebug>
 #include <QTextStream>
 #include <QStringList>
 #include <QImageWriter>
+#include <QImageReader>
 #include <QFileInfo>
 #include <QDir>
+#include <QProcess>
 #include <iostream>
 
 #define HEADER_VER_01 "LvkSprite version 0.1"
 #define HEADER_VER_02 "LvkSprite version 0.2"
 #define HEADER_LATEST HEADER_VER_02
 
+#ifdef WIN32
+#  define POST_PROCESSING_SCRIPT "/Users/andres/lvk/repos/anis/lvks/lvk-postprocessing.bat"
+#else
+#  define POST_PROCESSING_SCRIPT "/Users/andres/lvk/repos/anis/lvks/lvk-postprocessing.sh"
+#endif
+
 #define setError(p, err_code) if (p) { *(p) = err_code; }
+
 
 SpriteState::SpriteState(QObject* parent)
         : QObject(parent), _imgId(0), _frameId(0), _aniId(0), _aframeId(0)
@@ -310,18 +320,10 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
 
     return (state != StError);
 }
-bool SpriteState::exportSprite(const QString& filename, const QString& outputDir_, int compression, SpriteStateError* err) const
+
+bool SpriteState::exportSprite(const QString& filename, const QString& outputDir_, SpriteStateError* err) const
 {
     setError(err, ErrNone);
-
-    if (compression < 0) {
-        qDebug() << "Error: compression < 0 is not allowed. Using minimum compression = 0";
-        compression = 0;
-    } else if (compression > 9) {
-        qDebug() << "Error: compression > 9 is not allowed. Using maximum compression = 9";
-        compression = 9;
-    }
-    std::cout << "Exporting PNG with compression " << compression << "\n";
 
     QFileInfo fileInfo(filename);
 
@@ -381,16 +383,13 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
     textStream << "# format: frameId,offset(bytes),length(bytes)\n";
     textStream << "fpixmaps(\n";
 
-    QImageWriter imgWriter(&binOutput, QByteArray("png"));
-    imgWriter.setCompression(compression);
-
     qint64 prevOffset = 0; /* previous offset */
     qint64 offset = 0;
 
     for (QHashIterator<Id, LvkFrame> it(_frames); it.hasNext();) {
         LvkFrame frame = it.next().value();
         prevOffset = offset;
-        imgWriter.write(_fpixmaps[frame.id].toImage());
+        writeImageWithPostprocessing(binOutput, frame);
         offset = binOutput.size();
         textStream << "\t" <<  frame.id << "," <<  prevOffset << "," << (offset - prevOffset) << "\n";
     }
@@ -432,6 +431,93 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
     headerStream << "\n";
 
     headerOutput.close();
+
+    return true;
+}
+
+bool writeTempImage(QString &tmpImgFilename, const QImage &image)
+{
+    const int IMG_COMPRESSION = 9; // min:0, max:9
+
+    tmpImgFilename = QDir::tempPath() + QDir::separator() + "tmpLvkImg.png";
+
+    if (QFile::exists(tmpImgFilename) && !QFile::remove(tmpImgFilename)) {
+        qDebug() << "Could not remove temp file" << tmpImgFilename;
+        return false;
+    }
+
+    QImageWriter imgWriter(tmpImgFilename, QByteArray("png"));
+    imgWriter.setCompression(IMG_COMPRESSION);
+    imgWriter.write(image);
+
+    return true;
+}
+
+bool runPostprocessingScript(const QString &inputImg, const QString &outputImg)
+{
+    const int TIMEOUT_START = 3;
+    const int TIMEOUT_FINISH = 10;
+    QString cmdLine =  QString(POST_PROCESSING_SCRIPT) + " " + inputImg + " " + outputImg;
+
+    qDebug() << "Postprocessing script: " << cmdLine;
+
+    QProcess postprocScript;
+    postprocScript.start(cmdLine);
+    if (!postprocScript.waitForStarted(TIMEOUT_START*1000)) {
+        qDebug() << "Could not start postprocessing script" << cmdLine;
+        return false;
+    }
+    if (!postprocScript.waitForFinished(TIMEOUT_FINISH*1000)) {
+        qDebug() << "Postprocessing script took more than" << TIMEOUT_FINISH << " secs to finish. Aborting.";
+        return false;
+    }
+
+    return true;
+}
+
+bool writePostprocImage(QFile &binOutput, const QString &postprocImgFilename)
+{
+    QFile postprocImg(postprocImgFilename);
+    if (!postprocImg.open(QFile::ReadOnly)) {
+        qDebug() << "Could not open postprocessed image" << postprocImgFilename;
+        return false;
+    }
+
+    binOutput.write(postprocImg.readAll());
+
+    postprocImg.close();
+
+    return true;
+}
+
+bool SpriteState::writeImageWithPostprocessing(QFile &binOutput, const LvkFrame &frame) const
+{
+    // create temp image from frame pixmap data
+
+    qDebug() << "Creating temp image...";
+
+    QString tmpImgFilename;
+    if (!writeTempImage(tmpImgFilename, _fpixmaps[frame.id].toImage())) {
+        return false;
+    }
+
+    // run post processing script on temp image
+
+    qDebug() << "Postprocessing temp image...";
+
+    QString postprocImgFilename = tmpImgFilename + ".ppi";
+    if (!runPostprocessingScript(tmpImgFilename, postprocImgFilename)) {
+        //std::cout << "Could not postprocess image. Writing image without postprocessing.";
+        postprocImgFilename = tmpImgFilename;
+    }
+
+    // write postprocessed image in binOuput
+
+    qDebug() << "Writing postprocessed image...";
+
+    if (!writePostprocImage(binOutput, postprocImgFilename)) {
+        return false;
+    }
 
     return true;
 }

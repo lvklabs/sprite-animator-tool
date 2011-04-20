@@ -114,7 +114,7 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
                       << SpriteState::errorMessage(err).toStdString() << std::endl;
             exit(-1);
         }
-        if (!sprState.exportSprite(inputFile, outputDir, compression, &err)) {
+        if (!sprState.exportSprite(inputFile, outputDir, &err)) {
             std::cerr << binName << ": Error: Cannot export '" << param2 << "' "
                       << SpriteState::errorMessage(err).toStdString() << std::endl;
             exit(-1);

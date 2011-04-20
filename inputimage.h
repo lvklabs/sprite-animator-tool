@@ -12,6 +12,8 @@ struct InputImage
     InputImage(Id id = NullId, const QString& filename = "", double scale = 1.0);
     InputImage(const QString& str);
 
+    enum { PNG,  };
+
     // TODO move this as private members
     Id      id;         /* image id */
     QString filename;   /* image filename */

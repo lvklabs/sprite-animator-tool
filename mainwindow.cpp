@@ -134,7 +134,7 @@ QString convertToMacKeys(const QString& str)
 #endif // MAC_OS_X
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow), _pngCompressionLevel(9),
+    : QMainWindow(parent), ui(new Ui::MainWindow),
       statusBarMousePos(new QLabel()), statusBarRectSize(new QLabel())
 {
     ui->setupUi(this);
@@ -734,30 +734,13 @@ void MainWindow::closeFile()
     clearPreviewTransition();
 }
 
-int MainWindow::pngCompressionDialog()
-{
-    QStringList framesList;
-
-    framesList << "0" << "1" << "2" << "3" << "4" << "5" << "6" << "7" << "8" << "9";
-
-    bool ok;
-    QString compression = QInputDialog::getItem(this, tr("PNG compression level"),
-                                            tr("Choose PNG compression level:"),
-                                            framesList, 9, false, &ok);
-    if (ok) {
-        return compression.toInt();
-    } else {
-        return -1;
-    }
-}
-
 void MainWindow::exportFile()
 {
     if (_exportFileName.isEmpty()) {
         exportAsFile();
     } else {
         SpriteStateError err;
-        if (!_sprState.exportSprite(_exportFileName, QString(), _pngCompressionLevel, &err)) {
+        if (!_sprState.exportSprite(_exportFileName, QString(), &err)) {
            infoDialog(tr("Cannot export '") + _exportFileName + "' "
                       + SpriteState::errorMessage(err));
            return;
@@ -773,15 +756,8 @@ void MainWindow::exportAsFile()
             this, tr("Export file"), QFileInfo(exportFileName).absolutePath(), "*.lkot *.lkob;; *.*");
 
     if (!exportFileName.isEmpty()) {
-        // get png qality from user
-        int compression = pngCompressionDialog();
-        if (compression == -1) {
-            return;
-        }
-        _pngCompressionLevel = compression;
-
         SpriteStateError err;
-        if (!_sprState.exportSprite(exportFileName, QString(), _pngCompressionLevel, &err)) {
+        if (!_sprState.exportSprite(exportFileName, QString(), &err)) {
            infoDialog(tr("Cannot export '") + exportFileName + "' "
                       + SpriteState::errorMessage(err));
            return;
