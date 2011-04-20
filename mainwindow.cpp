@@ -740,7 +740,7 @@ void MainWindow::exportFile()
         exportAsFile();
     } else {
         SpriteStateError err;
-        if (!_sprState.exportSprite(_exportFileName, QString(), &err)) {
+        if (!_sprState.exportSprite(_exportFileName, "", "", &err)) {
            infoDialog(tr("Cannot export '") + _exportFileName + "' "
                       + SpriteState::errorMessage(err));
            return;
@@ -757,7 +757,7 @@ void MainWindow::exportAsFile()
 
     if (!exportFileName.isEmpty()) {
         SpriteStateError err;
-        if (!_sprState.exportSprite(exportFileName, QString(), &err)) {
+        if (!_sprState.exportSprite(exportFileName, "", "", &err)) {
            infoDialog(tr("Cannot export '") + exportFileName + "' "
                       + SpriteState::errorMessage(err));
            return;

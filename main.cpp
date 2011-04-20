@@ -35,7 +35,7 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
 {
     std::string binName(QFileInfo(argv[0]).fileName().toStdString());
 
-    // TODO use getopt
+    // TODO use getopt !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     if (argc == 2) {
         /* Valid options:
@@ -61,11 +61,10 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
         if (!w.openFile(QString(param.c_str()))) {
             exit(-1);
         }
-    } else if (argc == 5 || argc == 7) {
+    } else if (argc == 3 || argc == 5 || argc == 7) {
         /* Valid options:
          *
-         * LvkSpriteEditor --export "sprite_file" --compression [0..9]
-         * LvkSpriteEditor --export "sprite_file" --compression [0..9] --output-dir "dir"
+         * LvkSpriteEditor --export "sprite_file" [ --output-dir "dir" [ --postprocessing-script script_file ]  ]
          */
 
         std::string param1 = argv[1];
@@ -73,7 +72,7 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
         std::string param3 = argv[3];
         std::string param4 = argv[4];
 
-        if (param1 != "--export" || param3 != "--compression") {
+        if (param1 != "--export") {
             showHelp(binName);
             exit(-1);
         }
@@ -81,20 +80,27 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
         QString inputDir  = QFileInfo(param2.c_str()).absolutePath();
         QString inputFile = QFileInfo(param2.c_str()).fileName();
         QString outputDir;
+        QString postpScript;
 
-        bool ok;
-        int compression = QString(param4.c_str()).toInt(&ok);
-
-        if (!ok || compression < 0 || compression > 9) {
-            showHelp(binName);
-            exit(-1);
+        if (argc >= 5) {
+            if (std::string(argv[3]) == "--output-dir") {
+                outputDir = argv[4];
+                if (!QDir(outputDir).exists()) {
+                    std::cerr << binName << ": Error: Output directory '" << argv[4]
+                              << "' does not exist." << std::endl;
+                    exit(-1);
+                }
+            } else {
+                showHelp(binName);
+                exit(-1);
+            }
         }
 
-        if (argc == 7) {
-            if (std::string(argv[5]) == "--output-dir") {
-                outputDir = argv[6];
-                if (!QDir(outputDir).exists()) {
-                    std::cerr << binName << ": Error: Output directory '" << argv[6]
+        if (argc >= 7) {
+            if (std::string(argv[5]) == "--postprocessing-script") {
+                postpScript = argv[6];
+                if (!QFile(postpScript).exists()) {
+                    std::cerr << binName << ": Error: postprocessing script '" << argv[6]
                               << "' does not exist." << std::endl;
                     exit(-1);
                 }
@@ -114,7 +120,7 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
                       << SpriteState::errorMessage(err).toStdString() << std::endl;
             exit(-1);
         }
-        if (!sprState.exportSprite(inputFile, outputDir, &err)) {
+        if (!sprState.exportSprite(inputFile, outputDir, postpScript, &err)) {
             std::cerr << binName << ": Error: Cannot export '" << param2 << "' "
                       << SpriteState::errorMessage(err).toStdString() << std::endl;
             exit(-1);
@@ -132,7 +138,7 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
 void showHelp(const  std::string& binName)
 {
     std::cout << "Usage: " << binName << " [sprite-file]" << std::endl;
-    std::cout << "       " << binName << " --export sprite-file --compression 0..9 [--output-dir directory]" << std::endl;
+    std::cout << "       " << binName << " --export sprite-file [ --output-dir dir [ --postprocessing-script script_file ]  ]" << std::endl;
     std::cout << "       " << binName << " --version" << std::endl;
     std::cout << "       " << binName << " --help" << std::endl;
 }

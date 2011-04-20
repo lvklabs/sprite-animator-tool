@@ -163,7 +163,7 @@ public:
     /// export sprite file @param filename.
     /// If @param outputDir is null, the sprite file directory is used.
     bool exportSprite(const QString& filename, const QString& outputDir = QString(),
-                      SpriteStateError* err = 0) const;
+                      const QString& postpScript = "", SpriteStateError* err = 0) const;
 
     /// returns the error string of @param err
     static const QString& errorMessage(SpriteStateError err);
@@ -215,7 +215,8 @@ protected:
     void reloadFramePixmap(const LvkFrame& frame);
 
 private:
-    bool writeImageWithPostprocessing(QFile &binOutput, const LvkFrame &frame) const;
+    bool writeImageWithPostprocessing(QFile &binOutput, const LvkFrame &frame,
+                                      const QString &postpScript) const;
 };
 
 typedef SpriteState::SpriteStateError SpriteStateError;

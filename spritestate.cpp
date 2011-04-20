@@ -16,12 +16,6 @@
 #define HEADER_VER_02 "LvkSprite version 0.2"
 #define HEADER_LATEST HEADER_VER_02
 
-#ifdef WIN32
-#  define POST_PROCESSING_SCRIPT "/Users/andres/lvk/repos/anis/lvks/lvk-postprocessing.bat"
-#else
-#  define POST_PROCESSING_SCRIPT "/Users/andres/lvk/repos/anis/lvks/lvk-postprocessing.sh"
-#endif
-
 #define setError(p, err_code) if (p) { *(p) = err_code; }
 
 
@@ -321,7 +315,8 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
     return (state != StError);
 }
 
-bool SpriteState::exportSprite(const QString& filename, const QString& outputDir_, SpriteStateError* err) const
+bool SpriteState::exportSprite(const QString& filename, const QString& outputDir_,
+                               const QString &postpScript, SpriteStateError* err) const
 {
     setError(err, ErrNone);
 
@@ -389,7 +384,7 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
     for (QHashIterator<Id, LvkFrame> it(_frames); it.hasNext();) {
         LvkFrame frame = it.next().value();
         prevOffset = offset;
-        writeImageWithPostprocessing(binOutput, frame);
+        writeImageWithPostprocessing(binOutput, frame, postpScript);
         offset = binOutput.size();
         textStream << "\t" <<  frame.id << "," <<  prevOffset << "," << (offset - prevOffset) << "\n";
     }
@@ -453,21 +448,27 @@ bool writeTempImage(QString &tmpImgFilename, const QImage &image)
     return true;
 }
 
-bool runPostprocessingScript(const QString &inputImg, const QString &outputImg)
+bool runPostprocessingScript(const QString &postpScriptCmd, const QString &inputImg, const QString &outputImg)
 {
     const int TIMEOUT_START = 3;
     const int TIMEOUT_FINISH = 10;
-    QString cmdLine =  QString(POST_PROCESSING_SCRIPT) + " " + inputImg + " " + outputImg;
+
+    if (QFile::exists(outputImg) && !QFile::remove(outputImg)) {
+        qDebug() << "Could not remove temp file" << outputImg;
+        return false;
+    }
+
+    QString cmdLine =  postpScriptCmd + " " + inputImg + " " + outputImg;
 
     qDebug() << "Postprocessing script: " << cmdLine;
 
-    QProcess postprocScript;
-    postprocScript.start(cmdLine);
-    if (!postprocScript.waitForStarted(TIMEOUT_START*1000)) {
+    QProcess postpScript;
+    postpScript.start(cmdLine);
+    if (!postpScript.waitForStarted(TIMEOUT_START*1000)) {
         qDebug() << "Could not start postprocessing script" << cmdLine;
         return false;
     }
-    if (!postprocScript.waitForFinished(TIMEOUT_FINISH*1000)) {
+    if (!postpScript.waitForFinished(TIMEOUT_FINISH*1000)) {
         qDebug() << "Postprocessing script took more than" << TIMEOUT_FINISH << " secs to finish. Aborting.";
         return false;
     }
@@ -490,7 +491,7 @@ bool writePostprocImage(QFile &binOutput, const QString &postprocImgFilename)
     return true;
 }
 
-bool SpriteState::writeImageWithPostprocessing(QFile &binOutput, const LvkFrame &frame) const
+bool SpriteState::writeImageWithPostprocessing(QFile &binOutput, const LvkFrame &frame, const QString &postpScript) const
 {
     // create temp image from frame pixmap data
 
@@ -505,17 +506,22 @@ bool SpriteState::writeImageWithPostprocessing(QFile &binOutput, const LvkFrame 
 
     qDebug() << "Postprocessing temp image...";
 
-    QString postprocImgFilename = tmpImgFilename + ".ppi";
-    if (!runPostprocessingScript(tmpImgFilename, postprocImgFilename)) {
-        //std::cout << "Could not postprocess image. Writing image without postprocessing.";
-        postprocImgFilename = tmpImgFilename;
+    QString postpImgFilename = tmpImgFilename + ".ppi";
+    if (!postpScript.isEmpty()) {
+        if (!runPostprocessingScript(postpScript, tmpImgFilename, postpImgFilename)) {
+            std::cout << "Error: Postprocess script '" << postpScript.toStdString()
+                      << "' failed. Writing image without postprocessing.";
+            postpImgFilename = tmpImgFilename;
+        }
+    } else {
+        postpImgFilename = tmpImgFilename;
     }
 
     // write postprocessed image in binOuput
 
     qDebug() << "Writing postprocessed image...";
 
-    if (!writePostprocImage(binOutput, postprocImgFilename)) {
+    if (!writePostprocImage(binOutput, postpImgFilename)) {
         return false;
     }
 
