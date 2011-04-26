@@ -495,7 +495,7 @@ bool SpriteState::writeImageWithPostprocessing(QFile &binOutput, const LvkFrame 
 {
     // create temp image from frame pixmap data
 
-    qDebug() << "Creating temp image...";
+    std::cout << "Exporting frame " << frame.id << "..." << std::endl;
 
     QString tmpImgFilename;
     if (!writeTempImage(tmpImgFilename, _fpixmaps[frame.id].toImage())) {
@@ -504,22 +504,22 @@ bool SpriteState::writeImageWithPostprocessing(QFile &binOutput, const LvkFrame 
 
     // run post processing script on temp image
 
-    qDebug() << "Postprocessing temp image...";
-
     QString postpImgFilename = tmpImgFilename + ".ppi";
     if (!postpScript.isEmpty()) {
+        qDebug() << "Postprocessing temp image...";
+
         if (!runPostprocessingScript(postpScript, tmpImgFilename, postpImgFilename)) {
             std::cout << "Error: Postprocess script '" << postpScript.toStdString()
-                      << "' failed. Writing image without postprocessing.";
+                      << "' failed. Writing image without postprocessing." << std::endl;
             postpImgFilename = tmpImgFilename;
         }
+
+        qDebug() << "Writing postprocessed image...";
     } else {
         postpImgFilename = tmpImgFilename;
     }
 
     // write postprocessed image in binOuput
-
-    qDebug() << "Writing postprocessed image...";
 
     if (!writePostprocImage(binOutput, postpImgFilename)) {
         return false;

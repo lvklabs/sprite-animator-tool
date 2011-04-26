@@ -115,6 +115,7 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
 
         QDir::setCurrent(inputDir);
 
+        std::cout << "Loading " << inputFile.toStdString() << "..." << std::endl;
         if (!sprState.load(inputFile, &err)) {
             std::cerr << binName << ": Error: Cannot open '" << param2 << "' "
                       << SpriteState::errorMessage(err).toStdString() << std::endl;
