@@ -451,7 +451,7 @@ bool writeTempImage(QString &tmpImgFilename, const QImage &image)
 bool runPostprocessingScript(const QString &postpScriptCmd, const QString &inputImg, const QString &outputImg)
 {
     const int TIMEOUT_START = 3;
-    const int TIMEOUT_FINISH = 10;
+    const int TIMEOUT_FINISH = 30;
 
     if (QFile::exists(outputImg) && !QFile::remove(outputImg)) {
         qDebug() << "Could not remove temp file" << outputImg;
