@@ -180,6 +180,11 @@ public:
     /// only reloads those frames using the image @param img
     void reloadFramePixmaps(Id imgId);
 
+    // queries ****************************************************************
+
+    /// Returns true if the frame is not used by any animation
+    bool isFrameUnused(Id frameId) const;
+
 protected:
 
     /// Counter. Next image id

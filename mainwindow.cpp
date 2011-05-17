@@ -1203,20 +1203,7 @@ void MainWindow::removeAllUnusedFrames()
     // iterate frames and find all unused frames
     for (int row = 0; row < ui->framesTableWidget->rowCount(); ++row) {
         Id frameId = getFrameId(row);
-        bool isUnused = true;
-        // iterate animations
-        QHashIterator<Id, LvkAnimation> aniIt(_sprState.animations());
-        while (aniIt.hasNext() && isUnused) {
-            Id aniId = aniIt.next().value().id;
-            // iterate aframes and check if frameId is used in current animation
-            QListIterator<LvkAframe> aframeIt(_sprState.aframes(aniId));
-            while (aframeIt.hasNext() && isUnused) {
-                if (aframeIt.next().frameId == frameId) {
-                    isUnused = false;
-                }
-            }
-        }
-        if (isUnused) {
+        if (_sprState.isFrameUnused(frameId)) {
             unusedRows.append(row);
         }
     }

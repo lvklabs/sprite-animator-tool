@@ -385,7 +385,7 @@ p, li { white-space: pre-wrap; }
                <string>Remove all unused frames. A frame is considered unused if it does not belong to any animation.</string>
               </property>
               <property name="text">
-               <string>RU</string>
+               <string>RmAllU</string>
               </property>
              </widget>
             </item>
@@ -755,8 +755,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>378</width>
-               <height>598</height>
+               <width>98</width>
+               <height>28</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -798,8 +798,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>379</width>
-               <height>591</height>
+               <width>98</width>
+               <height>28</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="aniPreview" native="true">
@@ -1518,8 +1518,8 @@ Currently, this button does nothing</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>861</width>
-               <height>628</height>
+               <width>98</width>
+               <height>28</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="transPreview" native="true">
@@ -1571,7 +1571,7 @@ p, li { white-space: pre-wrap; }
      <x>0</x>
      <y>0</y>
      <width>1199</width>
-     <height>23</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">

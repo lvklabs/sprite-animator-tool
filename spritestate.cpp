@@ -383,10 +383,18 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
 
     for (QHashIterator<Id, LvkFrame> it(_frames); it.hasNext();) {
         LvkFrame frame = it.next().value();
-        prevOffset = offset;
-        writeImageWithPostprocessing(binOutput, frame, postpScript);
-        offset = binOutput.size();
-        textStream << "\t" <<  frame.id << "," <<  prevOffset << "," << (offset - prevOffset) << "\n";
+
+        // export only those frames that are used at least in one animation
+        if (!isFrameUnused(frame.id)) {
+            prevOffset = offset;
+            writeImageWithPostprocessing(binOutput, frame, postpScript);
+            offset = binOutput.size();
+            textStream << "\t" <<  frame.id << "," <<  prevOffset << "," << (offset - prevOffset) << "\n";
+        }
+        else
+        {
+            qDebug() << "Omitting unused frame " << frame.id;
+        }
     }
     textStream << ")\n\n";
 
@@ -562,6 +570,24 @@ void SpriteState::reloadFramePixmaps(Id imgId)
             reloadFramePixmap(frame);
         }
     }
+}
+
+bool SpriteState::isFrameUnused(Id frameId) const
+{
+    bool isUnused = true;
+
+    QHashIterator<Id, LvkAnimation> aniIt(_animations);
+    while (aniIt.hasNext() && isUnused) {
+        const LvkAnimation &ani = aniIt.next().value();
+        QListIterator<LvkAframe> aframeIt(ani._aframes);
+        while (aframeIt.hasNext() && isUnused) {
+            if (aframeIt.next().frameId == frameId) {
+                isUnused = false;
+            }
+        }
+    }
+
+    return isUnused;
 }
 
 const QString& SpriteState::errorMessage(SpriteStateError err)
