@@ -323,7 +323,7 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
     QFileInfo fileInfo(filename);
 
     QString outputDir;
-    if (!outputDir_.isNull()) {
+    if (!outputDir_.isEmpty()) {
         outputDir = outputDir_;
     } else {
         outputDir = fileInfo.path();

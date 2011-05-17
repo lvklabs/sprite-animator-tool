@@ -37,7 +37,9 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
 
     // TODO use getopt !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    if (argc == 2) {
+    if (argc == 1) {
+        //nothing to do
+    } else if (argc == 2) {
         /* Valid options:
          *
          * LvkSpriteEditor "sprite_file"
@@ -53,6 +55,9 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
         } else if (param == "--version") {
             showVersion();
             exit(0);
+        } else if (param == "--export") {
+            showHelp(binName);
+            exit(-1);
         } else if (param[0] == '-') {
             std::cerr << binName << ": Error: Unknown option " << param << std::endl;
             exit(-1);
@@ -69,8 +74,6 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
 
         std::string param1 = argv[1];
         std::string param2 = argv[2];
-        std::string param3 = argv[3];
-        std::string param4 = argv[4];
 
         if (param1 != "--export") {
             showHelp(binName);
@@ -129,7 +132,7 @@ void parseCmdLine(int argc, char *argv[], MainWindow& w)
             std::cerr << binName << ": Export '" << param2 << "' succesful!" << std::endl;
             exit(0);
         }
-    } else if (argc > 3) {
+    } else {
         std::cerr << binName << ": Error: bad arguments" << std::endl;
         showHelp(binName);
         exit(-1);
