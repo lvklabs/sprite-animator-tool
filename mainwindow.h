@@ -181,6 +181,8 @@ private slots:
 
     Id addFrameFromMouseRect(Id imgId, const QString &name);
 
+    Id getFrameDialog(const QString& title);
+
     bool addFrameDialog(const QString & defaultName = "", bool promptName = true);
     void showSelFrame(int row);
     void showFrame(Id frameId);
@@ -216,6 +218,9 @@ private slots:
     void moveSelAframeUp();
     void moveSelAframeDown();
     void moveSelAframe(int offset);
+
+    void setBlendPixmap();
+    void switchPreviewWithBlend();
 
     void addTransDialog();
     void addTrans(Id aniId);

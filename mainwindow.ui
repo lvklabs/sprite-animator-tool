@@ -414,7 +414,7 @@ p, li { white-space: pre-wrap; }
           <property name="sizeConstraint">
            <enum>QLayout::SetDefaultConstraint</enum>
           </property>
-          <item row="1" column="0" colspan="6">
+          <item row="1" column="0" colspan="8">
            <widget class="QScrollArea" name="framePreviewScroll">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -459,7 +459,7 @@ p, li { white-space: pre-wrap; }
             </widget>
            </widget>
           </item>
-          <item row="0" column="5">
+          <item row="0" column="7">
            <widget class="QToolButton" name="hideFramePreviewButton">
             <property name="whatsThis">
              <string>Show/hide frame preview</string>
@@ -473,7 +473,7 @@ p, li { white-space: pre-wrap; }
             </property>
            </widget>
           </item>
-          <item row="0" column="3" colspan="2">
+          <item row="0" column="4" colspan="3">
            <spacer name="hSpacerFramePreview">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -532,6 +532,26 @@ p, li { white-space: pre-wrap; }
             <property name="icon">
              <iconset resource="res.qrc">
               <normaloff>:/buttons/button-zoom-out</normaloff>:/buttons/button-zoom-out</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QToolButton" name="switchBlendButton">
+            <property name="toolTip">
+             <string>Enable/Disable preview with blend image</string>
+            </property>
+            <property name="text">
+             <string>BlendSwitch</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QToolButton" name="setBlendImageButton">
+            <property name="toolTip">
+             <string>Set blend image</string>
+            </property>
+            <property name="text">
+             <string>SetBlendPixmap</string>
             </property>
            </widget>
           </item>
@@ -755,8 +775,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>98</width>
-               <height>28</height>
+               <width>371</width>
+               <height>592</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -798,8 +818,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>98</width>
-               <height>28</height>
+               <width>371</width>
+               <height>590</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="aniPreview" native="true">
@@ -1518,8 +1538,8 @@ Currently, this button does nothing</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>98</width>
-               <height>28</height>
+               <width>848</width>
+               <height>628</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="transPreview" native="true">
@@ -1633,6 +1653,7 @@ p, li { white-space: pre-wrap; }
     <addaction name="actionRemoveFrame"/>
     <addaction name="actionRemoveAnimation"/>
     <addaction name="actionRemoveAframe"/>
+    <addaction name="actionRemoveAllUnusedFrames"/>
     <addaction name="separator"/>
     <addaction name="actionRefreshAnimation"/>
    </widget>
@@ -1852,6 +1873,14 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="shortcut">
     <string>F1</string>
+   </property>
+  </action>
+  <action name="actionRemoveAllUnusedFrames">
+   <property name="text">
+    <string>Remove all unused frames</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R, Ctrl+U</string>
    </property>
   </action>
  </widget>

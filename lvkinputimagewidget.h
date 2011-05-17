@@ -39,6 +39,9 @@ public:
     /// than PCACHE_ROW_SIZE and unique for every different pixmap.
     void setPixmap(const QPixmap &pixmap, Id useCacheId  = NullId);
 
+    ///
+    void setBlendPixmap(const QPixmap &pixmap);
+
     /// Clears the whole pixmap cache used to speed the drawing of zoomed images
     void clearPixmapCache();
 
@@ -127,6 +130,7 @@ protected:
 private:
 
     QPixmap       _pixmap;        /* current pixmap */
+    QPixmap       _blendPixmap;   /* blend pixmap */
     QPixmap       _bg;            /* background pixmap */
     QBrush        _bgBrush;       /* background brush */
     Id            _cacheId;       /* current cache */

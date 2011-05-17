@@ -206,6 +206,7 @@ void MainWindow::initSignals()
     connect(ui->actionRemoveImage,     SIGNAL(triggered()),          this, SLOT(removeSelImage()));
     connect(ui->actionRemoveFrame,     SIGNAL(triggered()),          this, SLOT(removeSelFrame()));
     connect(ui->actionRemoveAnimation, SIGNAL(triggered()),          this, SLOT(removeSelAnimation()));
+    connect(ui->actionRemoveAllUnusedFrames, SIGNAL(triggered()),    this, SLOT(removeAllUnusedFrames()));
     connect(ui->actionRefreshAnimation,SIGNAL(triggered()),          this, SLOT(previewAnimation()));
 
     connect(ui->addImageButton,        SIGNAL(clicked()),            this, SLOT(addImageDialog()));
@@ -224,6 +225,7 @@ void MainWindow::initSignals()
     connect(ui->hideFramePreviewButton,SIGNAL(clicked()),            this, SLOT(hideShowFramePreview()));
     connect(ui->moveDownAframeButton,  SIGNAL(clicked()),            this, SLOT(moveSelAframeDown()));
     connect(ui->moveUpAframeButton,    SIGNAL(clicked()),            this, SLOT(moveSelAframeUp()));
+    connect(ui->setBlendImageButton,   SIGNAL(clicked()),            this, SLOT(setBlendPixmap()));
 
     connect(ui->addAniTransButton,     SIGNAL(clicked()),            this, SLOT(addTransDialog()));
     connect(ui->refreshTransButton,    SIGNAL(clicked()),            this, SLOT(previewTransition()));
@@ -992,6 +994,39 @@ void MainWindow::reloadImage(Id imgId)
     refreshPreviews();
 }
 
+Id MainWindow::getFrameDialog(const QString &title)
+{
+    if (_sprState.frames().isEmpty()) {
+        infoDialog(tr("No frames available.\n\nGo to the \"Frames\" tab to create one frame."));
+        return NullId;
+    }
+
+    QStringList framesList;
+
+    for (QHashIterator<Id, LvkFrame> it(_sprState.frames()); it.hasNext();) {
+        it.next();
+        const LvkFrame& frame = it.value();
+        framesList << tr("Id: ") + QString::number(frame.id) +  tr(" Name: ") + frame.name;
+    }
+    framesList.sort();
+
+    Id frameId = NullId;
+    bool ok;
+    QString frame_str = QInputDialog::getItem(this, title, tr("Choose a frame:"),
+                                              framesList, 0, false, &ok);
+    if (ok) {
+        QStringList tokens = frame_str.split(" ");
+
+        if (tokens.size() >= 2) {
+            frameId = tokens.at(1).toInt();
+        } else {
+            infoDialog(tr("The selected frame could not be parsed"));
+        }
+    }
+
+    return frameId;
+}
+
 bool MainWindow::addFrameDialog(const QString & defaultName /*= ""*/, bool promptName /*= true*/)
 {
     showFramesTab();
@@ -1244,6 +1279,8 @@ void MainWindow::hideFramePreview()
     ui->frameZoomInButton->hide();
     ui->frameZoomOutButton->hide();
     ui->framePreviewScroll->hide();
+    ui->switchBlendButton->hide();
+    ui->setBlendImageButton->hide();
     ui->hideFramePreviewButton->setIcon(QIcon(":/buttons/button-show"));
     ui->hideFramePreviewButton->setToolTip(tr("Show frames preview"));
     ui->framePreviewLayout->update();
@@ -1256,6 +1293,8 @@ void MainWindow::showFramePreview()
     ui->frameZoomInButton->show();
     ui->frameZoomOutButton->show();
     ui->framePreviewScroll->show();
+    ui->switchBlendButton->hide(); //FIXME
+    ui->setBlendImageButton->show();
     ui->hideFramePreviewButton->setIcon(QIcon(":/buttons/button-hide"));
     ui->hideFramePreviewButton->setToolTip(tr("Hide frames preview"));
     ui->framePreviewLayout->update();
@@ -1476,37 +1515,13 @@ void MainWindow::removeAnimation(int row)
 
 void MainWindow::addAframeDialog()
 {
-    if (_sprState.frames().isEmpty()) {
-        infoDialog(tr("No frames available.\n\nGo to the \"Frames\" tab to create one frame."));
-        return;
-    }
     if (ui->aniTableWidget->currentRow() == -1) {
         infoDialog(tr("No animation selected"));
         return;
     }
 
-    QStringList framesList;
-
-    for (QHashIterator<Id, LvkFrame> it(_sprState.frames()); it.hasNext();) {
-        it.next();
-        const LvkFrame& frame = it.value();
-        framesList << tr("Id: ") + QString::number(frame.id) +  tr(" Name: ") + frame.name;
-    }
-    framesList.sort();
-
-    bool ok;
-    QString frame_str = QInputDialog::getItem(this, tr("New Animation frame"),
-                                          tr("Choose a frame:"),
-                                          framesList, 0, false, &ok);
-    if (ok) {
-        QStringList tokens = frame_str.split(" ");
-
-        if (tokens.size() < 2) {
-            infoDialog(tr("Cannot add frame. The selected frame could not be parsed"));
-            return;
-        }
-        Id frameId = tokens.at(1).toInt();
-
+    Id frameId = getFrameDialog(tr("Add animation frame"));
+    if (frameId != NullId) {
         addAframe(LvkAframe(NullId, frameId), selectedAniId());
     }
 }
@@ -1648,7 +1663,21 @@ void MainWindow::moveSelAframe(int offset)
     table->setCurrentCell(targetRow, table->currentColumn());
 }
 
+void MainWindow::setBlendPixmap()
+{
+    Id frameId = getFrameDialog("Blend pixmap");
+    if (frameId != NullId) {
+        ui->framePreview->setBlendPixmap(_sprState.fpixmap(frameId));
+    } else {
+        ui->framePreview->setBlendPixmap(QPixmap());
+    }
+    ui->framePreview->repaint();
+}
 
+void MainWindow::switchPreviewWithBlend()
+{
+    // TODO
+}
 
 void MainWindow::incAniSpeed(int ms)
 {

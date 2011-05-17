@@ -83,6 +83,11 @@ void LvkInputImageWidget::setPixmap(const QPixmap &pixmap, Id useCacheId)
     resize(_pixmap.width()*_c + 1, _pixmap.height()*_c + 1);
 }
 
+void LvkInputImageWidget::setBlendPixmap(const QPixmap &pixmap)
+{
+    _blendPixmap = pixmap;
+}
+
 void LvkInputImageWidget::setBackground(const QPixmap& bg)
 {
     _bg = bg;
@@ -214,6 +219,11 @@ void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
 
         int z = _zoom >= 0 ? _zoom : ZOOM_MAX - _zoom;
 
+        if (!_blendPixmap.isNull()) {
+            painter.setOpacity(0.5);
+            painter.drawPixmap(0, 0, _blendPixmap.width()*_c, _blendPixmap.height()*_c, _blendPixmap);
+        }
+
         if (_cacheId != NullId) {
             if (!_pCache[_cacheId][z]) {
                 _pCache[_cacheId][z] = new QPixmap();
@@ -221,12 +231,16 @@ void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
             }
             painter.drawPixmap(hval, vval, w, h, *_pCache[_cacheId][z], hval, vval, w, h);
         } else {
-            fillBackground(painter, 0, 0, width(), height());
             painter.drawPixmap(hval, vval, w, h,
                                _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c),
                                hval, vval, w, h);
         }
     } else {
+        if (!_blendPixmap.isNull()) {
+            painter.setOpacity(0.5);
+            painter.drawPixmap(0, 0, _blendPixmap.width()*_c, _blendPixmap.height()*_c, _blendPixmap);
+        }
+
         painter.drawPixmap(0, 0, _pixmap.width()*_c, _pixmap.height()*_c, _pixmap);
     }
 }
