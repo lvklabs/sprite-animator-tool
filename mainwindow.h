@@ -188,6 +188,7 @@ private slots:
     void removeFrame(int row);
     void updateCurrentFrame(const QRect& rect);
     void updateCurrentFrame_ui(const QRect& rect);
+    void removeAllUnusedFrames();
 
     void hideFramePreview();
     void showFramePreview();

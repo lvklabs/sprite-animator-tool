@@ -12,6 +12,7 @@
 #include <QGraphicsPixmapItem>
 #include <QList>
 #include <QWhatsThis>
+#include <QHashIterator>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -212,6 +213,7 @@ void MainWindow::initSignals()
     connect(ui->refreshImgButton,      SIGNAL(clicked()),            this, SLOT(reloadSelImage()));
     connect(ui->addFrameButton,        SIGNAL(clicked()),            this, SLOT(addFrameDialog()));
     connect(ui->removeFrameButton,     SIGNAL(clicked()),            this, SLOT(removeSelFrame()));
+    connect(ui->removeAllUnusedFramesButton, SIGNAL(clicked()),      this, SLOT(removeAllUnusedFrames()));
     connect(ui->addAniButton,          SIGNAL(clicked()),            this, SLOT(addAnimationDialog()));
     connect(ui->removeAniButton,       SIGNAL(clicked()),            this, SLOT(removeSelAnimation()));
     connect(ui->refreshAniButton,      SIGNAL(clicked()),            this, SLOT(previewAnimation()));
@@ -1188,6 +1190,46 @@ void MainWindow::updateCurrentFrame_ui(const QRect &rect)
     ui->framesTableWidget->item(currentRow, ColFrameW)->setText(QString::number(rect.width()));
     ui->framesTableWidget->item(currentRow, ColFrameH)->setText(QString::number(rect.height()));
     cellChangedSignals(true);
+}
+
+void MainWindow::removeAllUnusedFrames()
+{
+    if (!yesNoDialog(tr("Are you sure you want to remove all unused animations?"))) {
+        return;
+    }
+
+    QVector<int> unusedRows;
+
+    // iterate frames and find all unused frames
+    for (int row = 0; row < ui->framesTableWidget->rowCount(); ++row) {
+        Id frameId = getFrameId(row);
+        bool isUnused = true;
+        // iterate animations
+        QHashIterator<Id, LvkAnimation> aniIt(_sprState.animations());
+        while (aniIt.hasNext() && isUnused) {
+            Id aniId = aniIt.next().value().id;
+            // iterate aframes and check if frameId is used in current animation
+            QListIterator<LvkAframe> aframeIt(_sprState.aframes(aniId));
+            while (aframeIt.hasNext() && isUnused) {
+                if (aframeIt.next().frameId == frameId) {
+                    isUnused = false;
+                }
+            }
+        }
+        if (isUnused) {
+            unusedRows.append(row);
+        }
+    }
+
+    _sprState.startTransaction();
+
+    // iterate in reverse order to not alter row numbers after removing one row
+    for (int i = unusedRows.size() - 1; i >= 0; --i) {
+        removeFrame(unusedRows[i]);
+    }
+    _sprState.endTransaction();
+
+    infoDialog(QString::number(unusedRows.size()) + tr(" unused frame(s) were removed."));
 }
 
 void MainWindow::addAnimationDialog()

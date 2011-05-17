@@ -46,7 +46,7 @@
        </size>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="framesTab">
        <attribute name="title">
@@ -212,7 +212,7 @@ p, li { white-space: pre-wrap; }
           <item row="1" column="0">
            <layout class="QHBoxLayout" name="imgToolbarLayout" stretch="0,0,0,0,0,0,0,0">
             <property name="spacing">
-             <number>-1</number>
+             <number>6</number>
             </property>
             <property name="sizeConstraint">
              <enum>QLayout::SetMinimumSize</enum>
@@ -373,6 +373,19 @@ p, li { white-space: pre-wrap; }
               <property name="icon">
                <iconset resource="res.qrc">
                 <normaloff>:/buttons/button-remove-frame</normaloff>:/buttons/button-remove-frame</iconset>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="removeAllUnusedFramesButton">
+              <property name="toolTip">
+               <string>Remove all unused frames.</string>
+              </property>
+              <property name="whatsThis">
+               <string>Remove all unused frames. A frame is considered unused if it does not belong to any animation.</string>
+              </property>
+              <property name="text">
+               <string>RU</string>
               </property>
              </widget>
             </item>
@@ -742,8 +755,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>371</width>
-               <height>592</height>
+               <width>378</width>
+               <height>598</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -785,8 +798,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>371</width>
-               <height>590</height>
+               <width>379</width>
+               <height>591</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="aniPreview" native="true">
@@ -1505,7 +1518,7 @@ Currently, this button does nothing</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>848</width>
+               <width>861</width>
                <height>628</height>
               </rect>
              </property>
@@ -1558,7 +1571,7 @@ p, li { white-space: pre-wrap; }
      <x>0</x>
      <y>0</y>
      <width>1199</width>
-     <height>22</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
