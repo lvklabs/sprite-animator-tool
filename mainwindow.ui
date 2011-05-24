@@ -260,10 +260,13 @@ p, li { white-space: pre-wrap; }
                <bool>true</bool>
               </property>
               <property name="toolTip">
-               <string>Enable Quick Mode</string>
+               <string>Enable Quick Animation Mode and image scaling</string>
+              </property>
+              <property name="whatsThis">
+               <string>Enable Quick Animation Mode and image scaling</string>
               </property>
               <property name="text">
-               <string>QMode</string>
+               <string>QMode/Sc</string>
               </property>
               <property name="checkable">
                <bool>true</bool>
@@ -800,8 +803,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>98</width>
-               <height>28</height>
+               <width>371</width>
+               <height>592</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -843,8 +846,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>98</width>
-               <height>28</height>
+               <width>371</width>
+               <height>590</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="aniPreview" native="true">
@@ -1268,6 +1271,9 @@ p, li { white-space: pre-wrap; }
             </item>
             <item>
              <widget class="QToolButton" name="playPauseButton">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
               <property name="toolTip">
                <string>Play animation</string>
               </property>
@@ -1461,6 +1467,9 @@ Currently, this button does nothing</string>
               </item>
               <item>
                <widget class="QToolButton" name="moveAniTransDownButton">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="toolTip">
                  <string>Move animation down</string>
                 </property>
@@ -1475,6 +1484,9 @@ Currently, this button does nothing</string>
               </item>
               <item>
                <widget class="QToolButton" name="moveAniTransUpButton">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="toolTip">
                  <string>Move animation up</string>
                 </property>
@@ -1563,8 +1575,8 @@ Currently, this button does nothing</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>98</width>
-               <height>28</height>
+               <width>848</width>
+               <height>628</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="transPreview" native="true">
