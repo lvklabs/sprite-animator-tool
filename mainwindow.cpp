@@ -1778,7 +1778,7 @@ void MainWindow::blendExistentFrame()
 
         // update combo box
         if (ui->blendModeComboBox->count() == BlendModeTotal) {
-            ui->blendModeComboBox->setItemText(BlendFrameId, tr("Using frame Id: ") + QString::number(frameId));
+            ui->blendModeComboBox->setItemText(BlendFrameId, tr("Selected frame with frame id ") + QString::number(frameId));
             ui->blendModeComboBox->setCurrentIndex(BlendFrameId);
         }
     } else { // if cancel button
@@ -1789,10 +1789,9 @@ void MainWindow::blendExistentFrame()
 
 void MainWindow::blendFrameRect()
 {
-    // this method may also be invoked from a signal, we need to check this:
-    if (ui->blendModeComboBox->currentIndex() != BlendFrameRect) {
-        return;
-    }
+    // FIXME this method is doing two things: Updating the blend pixmap
+    // if blendModeComboBox == BlendFrameRect, or udpating the
+    // main pixmap if blendModeComboBox == BlendNone
 
     QRect frameRect = ui->imgPreview->mouseFrameRect();
 
@@ -1802,12 +1801,16 @@ void MainWindow::blendFrameRect()
         if (imgId != NullId) {
             const QPixmap & imgPixmap = _sprState.images().value(imgId).pixmap;
             QPixmap mouseRectPixmap(imgPixmap.copy(frameRect));
-            ui->framePreview->setBlendPixmap(mouseRectPixmap);
+
+            // this method may also be invoked from a signal, we need to check this:
+            if (ui->blendModeComboBox->currentIndex() == BlendFrameRect) {
+                ui->framePreview->setBlendPixmap(mouseRectPixmap);
+            } else if (ui->blendModeComboBox->currentIndex() == BlendNone){
+                ui->framePreview->setPixmap(mouseRectPixmap);
+            }
+           ui->framePreview->repaint();
         }
     }
-
-     // this method may also be invoked from a signal, we need to repaint:
-    ui->framePreview->repaint();
 }
 
 void MainWindow::blendFrameId()
