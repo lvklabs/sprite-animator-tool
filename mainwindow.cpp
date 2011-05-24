@@ -686,7 +686,10 @@ void MainWindow::refresh_aframeTable()
     if (ani_row != -1) {
         Id aniId = getAnimationId(ani_row);
         
-        for (QListIterator<LvkAframe> it2(_sprState.aframes(aniId)); it2.hasNext();) {
+        // TODO check why do I need to copy the aframes to iterate them
+        // otherwise tha app crashes when undoing changes
+        const QList<LvkAframe> aframes = _sprState.aframes(aniId);
+        for (QListIterator<LvkAframe> it2(aframes); it2.hasNext();) {
             const LvkAframe& aframe =  it2.next();
             addAframe_ui(aframe, aniId);
         }
