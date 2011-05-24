@@ -69,6 +69,9 @@ private:
     QLabel* statusBarMousePos;
     QLabel* statusBarRectSize;
 
+    /// Blend Frame Id
+    Id _blendFrameId;
+
     /// initialize recent files menu
     void initRecentFilesMenu();
 
@@ -80,6 +83,9 @@ private:
 
     /// connect or disconnect cellChanged() signals
     void cellChangedSignals(bool connected);
+
+    /// connect or disconnect blendComboBox signals
+    void blendComboBoxSignals(bool connected);
 
     /// Add new input image
     Id addImage(const InputImage& image);
@@ -144,6 +150,21 @@ private:
     bool openFile_(const QString& filename, SpriteState::SpriteStateError* err = 0);
 
 private slots:
+
+    Id  getImageId(int row);
+    Id  getFrameId(int row);
+    Id  getAframeId(int row);
+    Id  getAframeFrameId(int row);
+    Id  getAframeAniId(int row);
+    Id  getFrameImgId(int row);
+    Id  getAnimationId(int row);
+    Id  getTransAniId(int row);
+
+    Id  selectedImgId();
+    Id  selectedFrameId();
+    Id  selectedAniId();
+    Id  selectedAframeId();
+
     bool saveFile();
     bool saveAsFile();
     void openFileDialog();
@@ -220,7 +241,10 @@ private slots:
     void moveSelAframe(int offset);
 
     void setBlendPixmap();
-    void switchPreviewWithBlend();
+    void blendExistentFrame();
+    void blendFrameRect();
+    void blendNone();
+    void blendFrameId();
 
     void addTransDialog();
     void addTrans(Id aniId);

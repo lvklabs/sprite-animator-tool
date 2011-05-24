@@ -47,6 +47,7 @@ void LvkInputImageWidget::clear()
     _pixmap = QPixmap();
     _zoom = 0;
     _c = pow(ZOOM_FACTOR, _zoom);
+    _blendPixmap = QPixmap();
     clearPixmapCache();
 }
 
@@ -93,7 +94,6 @@ void LvkInputImageWidget::setBackground(const QPixmap& bg)
     _bg = bg;
     _bgBrush = QBrush(bg);
 }
-
 
 void LvkInputImageWidget::registerRect(QRect * rect)
 {

@@ -71,20 +71,14 @@ enum {
     ColTransTotal,
 };
 
-#define getImageId(row)         ui->imgTableWidget->item(row, ColImageId)->text().toInt()
-#define getFrameId(row)         ui->framesTableWidget->item(row, ColFrameId)->text().toInt()
-#define getAframeId(row)        ui->aframesTableWidget->item(row, ColAframeId)->text().toInt()
-#define getAframeFrameId(row)   ui->aframesTableWidget->item(row, ColAframeFrameId)->text().toInt()
-#define getAframeAniId(row)     ui->aframesTableWidget->item(row, ColAframeAniId)->text().toInt()
-#define getFrameImgId(row)      ui->framesTableWidget->item(row, ColFrameImgId)->text().toInt()
-#define getAnimationId(row)     ui->aniTableWidget->item(row, ColAniId)->text().toInt()
-#define getTransAniId(row)      ui->transTableWidget->item(row, ColTransAniId)->text().toInt()
-
-#define selectedImgId()         getImageId(ui->imgTableWidget->currentRow())
-#define selectedFrameId()       getFrameId(ui->framesTableWidget->currentRow())
-#define selectedAniId()         getAnimationId(ui->aniTableWidget->currentRow())
-#define selectedAframeId()      getAframeId(ui->aframesTableWidget->currentRow())
-
+// Blend modes
+enum {
+    BlendNone,
+    BlendFrameRect,
+    BlendExistentFrame,
+    BlendFrameId,
+    BlendModeTotal
+};
 
 bool isValidAniName(const QString & name, bool showErrorDialog)
 {
@@ -136,7 +130,8 @@ QString convertToMacKeys(const QString& str)
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow),
-      statusBarMousePos(new QLabel()), statusBarRectSize(new QLabel())
+      statusBarMousePos(new QLabel()), statusBarRectSize(new QLabel()),
+      _blendFrameId(NullId)
 {
     ui->setupUi(this);
     ui->statusBar->addWidget(statusBarMousePos);
@@ -225,7 +220,6 @@ void MainWindow::initSignals()
     connect(ui->hideFramePreviewButton,SIGNAL(clicked()),            this, SLOT(hideShowFramePreview()));
     connect(ui->moveDownAframeButton,  SIGNAL(clicked()),            this, SLOT(moveSelAframeDown()));
     connect(ui->moveUpAframeButton,    SIGNAL(clicked()),            this, SLOT(moveSelAframeUp()));
-    connect(ui->setBlendImageButton,   SIGNAL(clicked()),            this, SLOT(setBlendPixmap()));
 
     connect(ui->addAniTransButton,     SIGNAL(clicked()),            this, SLOT(addTransDialog()));
     connect(ui->refreshTransButton,    SIGNAL(clicked()),            this, SLOT(previewTransition()));
@@ -249,6 +243,7 @@ void MainWindow::initSignals()
     connect(ui->aframePreview,         SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
     connect(ui->imgPreview,            SIGNAL(mouseRectChanging(const QRect&)),       this, SLOT(showMouseRect(const QRect&)));
     connect(ui->imgPreview,            SIGNAL(frameRectChanging(const QRect&)),       this, SLOT(updateCurrentFrame_ui(const QRect&)));
+    connect(ui->imgPreview,            SIGNAL(mouseRectChangeFinished(const QRect&)), this, SLOT(blendFrameRect()));
     connect(ui->imgPreview,            SIGNAL(mouseRectChangeFinished(const QRect&)), this, SLOT(showMouseRect(const QRect&)));
     connect(ui->imgPreview,            SIGNAL(frameRectChangeFinished(const QRect&)), this, SLOT(updateCurrentFrame(const QRect&)));
 
@@ -266,6 +261,7 @@ void MainWindow::initSignals()
     connect(ui->aniTableWidget,        SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showAframes(int)));
 
     cellChangedSignals(true);
+    blendComboBoxSignals(true);
 }
 
 void MainWindow::cellChangedSignals(bool connected)
@@ -280,6 +276,15 @@ void MainWindow::cellChangedSignals(bool connected)
         disconnect(ui->framesTableWidget, SIGNAL(cellChanged(int,int)), this, SLOT(updateFramesTable(int,int)));
         disconnect(ui->aframesTableWidget,SIGNAL(cellChanged(int,int)), this, SLOT(updateAframesTable(int,int)));
         disconnect(ui->aniTableWidget,    SIGNAL(cellChanged(int,int)), this, SLOT(updateAniTable(int,int)));
+    }
+}
+
+void MainWindow::blendComboBoxSignals(bool connected)
+{
+    if (connected) {
+        connect(ui->blendModeComboBox,    SIGNAL(currentIndexChanged(int)), this, SLOT(setBlendPixmap()));
+    } else {
+        disconnect(ui->blendModeComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(setBlendPixmap()));
     }
 }
 
@@ -368,6 +373,67 @@ void MainWindow::initTables()
 #endif
 
 }
+
+Id MainWindow::getImageId(int row)
+{
+    const QTableWidget *t = ui->imgTableWidget;
+    return (row >= 0 && row < t->rowCount()) ? t->item(row, ColImageId)->text().toInt() : NullId;
+}
+
+Id MainWindow::getFrameId(int row)
+{
+    const QTableWidget *t = ui->framesTableWidget;
+    return (row >= 0 && row < t->rowCount()) ? t->item(row, ColFrameId)->text().toInt() : NullId;
+}
+
+Id MainWindow::getAframeId(int row)
+{
+    const QTableWidget *t = ui->aframesTableWidget;
+    return (row >= 0 && row < t->rowCount()) ? t->item(row, ColAframeId)->text().toInt() : NullId;
+}
+
+Id MainWindow::getAframeFrameId(int row)
+{
+    const QTableWidget *t = ui->aframesTableWidget;
+    return (row >= 0 && row < t->rowCount()) ? t->item(row, ColAframeFrameId)->text().toInt() : NullId;
+}
+
+Id MainWindow::getAframeAniId(int row)
+{
+    const QTableWidget *t = ui->aframesTableWidget;
+    return (row >= 0 && row < t->rowCount()) ? t->item(row, ColAframeAniId)->text().toInt() : NullId;
+}
+
+Id MainWindow::getFrameImgId(int row)
+{
+    const QTableWidget *t = ui->framesTableWidget;
+    return (row >= 0 && row < t->rowCount()) ? t->item(row, ColFrameImgId)->text().toInt() : NullId;
+}
+
+Id MainWindow::getAnimationId(int row)
+{
+    const QTableWidget *t = ui->aniTableWidget;
+    return (row >= 0 && row < t->rowCount()) ? t->item(row, ColAniId)->text().toInt() : NullId;
+}
+
+Id MainWindow::getTransAniId(int row)
+{
+    const QTableWidget *t = ui->transTableWidget;
+    return (row >= 0 && row < t->rowCount()) ? t->item(row, ColTransAniId)->text().toInt() : NullId;
+}
+
+Id MainWindow::selectedImgId()
+{ return getImageId(ui->imgTableWidget->currentRow()); }
+
+Id MainWindow::selectedFrameId()
+{ return getFrameId(ui->framesTableWidget->currentRow()); }
+
+Id MainWindow::selectedAniId()
+{ return getAnimationId(ui->aniTableWidget->currentRow()); }
+
+Id MainWindow::selectedAframeId()
+{ return getAframeId(ui->aframesTableWidget->currentRow()); }
+
 
 bool MainWindow::saveFile()
 {
@@ -728,6 +794,8 @@ void MainWindow::closeFile()
     ui->aframesTableWidget->setRowCount(0);
     ui->transTableWidget->clearContents();
     ui->transTableWidget->setRowCount(0);
+    ui->blendModeComboBox->removeItem(BlendFrameId);
+    ui->blendModeComboBox->setCurrentIndex(BlendNone);
     cellChangedSignals(true);
 
     ui->imgPreview->clear();
@@ -1279,8 +1347,8 @@ void MainWindow::hideFramePreview()
     ui->frameZoomInButton->hide();
     ui->frameZoomOutButton->hide();
     ui->framePreviewScroll->hide();
-    ui->switchBlendButton->hide();
-    ui->setBlendImageButton->hide();
+    ui->blendModeComboBox->hide();
+    ui->blendModeLabel->hide();
     ui->hideFramePreviewButton->setIcon(QIcon(":/buttons/button-show"));
     ui->hideFramePreviewButton->setToolTip(tr("Show frames preview"));
     ui->framePreviewLayout->update();
@@ -1293,8 +1361,8 @@ void MainWindow::showFramePreview()
     ui->frameZoomInButton->show();
     ui->frameZoomOutButton->show();
     ui->framePreviewScroll->show();
-    ui->switchBlendButton->hide(); //FIXME
-    ui->setBlendImageButton->show();
+    ui->blendModeComboBox->show();
+    ui->blendModeLabel->show();
     ui->hideFramePreviewButton->setIcon(QIcon(":/buttons/button-hide"));
     ui->hideFramePreviewButton->setToolTip(tr("Hide frames preview"));
     ui->framePreviewLayout->update();
@@ -1663,20 +1731,100 @@ void MainWindow::moveSelAframe(int offset)
     table->setCurrentCell(targetRow, table->currentColumn());
 }
 
+
 void MainWindow::setBlendPixmap()
 {
-    Id frameId = getFrameDialog("Blend pixmap");
-    if (frameId != NullId) {
-        ui->framePreview->setBlendPixmap(_sprState.fpixmap(frameId));
-    } else {
-        ui->framePreview->setBlendPixmap(QPixmap());
+    blendComboBoxSignals(false);
+
+    switch (ui->blendModeComboBox->currentIndex()) {
+    case BlendNone:
+        blendNone();
+        break;
+    case BlendExistentFrame:
+        blendExistentFrame();
+        break;
+    case BlendFrameRect:
+        blendFrameRect();
+        break;
+    case BlendFrameId:
+        blendFrameId();
+        break;
+    default:
+        blendNone();
+        break;
     }
+
+    blendComboBoxSignals(true);
+
     ui->framePreview->repaint();
 }
 
-void MainWindow::switchPreviewWithBlend()
+void MainWindow::blendNone()
 {
-    // TODO
+    ui->framePreview->setBlendPixmap(QPixmap());
+}
+
+void MainWindow::blendExistentFrame()
+{
+    Id frameId = getFrameDialog("Blend pixmap");
+    if (frameId != NullId) {
+        _blendFrameId = frameId;
+        ui->framePreview->setBlendPixmap(_sprState.fpixmap(frameId));
+
+        // add new item in combo box with current frame Id
+        if (ui->blendModeComboBox->count() == BlendModeTotal - 1) {
+            ui->blendModeComboBox->addItem("");
+        }
+
+        // update combo box
+        if (ui->blendModeComboBox->count() == BlendModeTotal) {
+            ui->blendModeComboBox->setItemText(BlendFrameId, tr("Using frame Id: ") + QString::number(frameId));
+            ui->blendModeComboBox->setCurrentIndex(BlendFrameId);
+        }
+    } else { // if cancel button
+        blendNone();
+        ui->blendModeComboBox->setCurrentIndex(BlendNone);
+    }
+}
+
+void MainWindow::blendFrameRect()
+{
+    // this method may also be invoked from a signal, we need to check this:
+    if (ui->blendModeComboBox->currentIndex() != BlendFrameRect) {
+        return;
+    }
+
+    QRect frameRect = ui->imgPreview->mouseFrameRect();
+
+    // blend only if it's a valid rect
+    if (!frameRect.isNull() && frameRect.width() > 0 && frameRect.height() > 0) {
+        Id imgId = selectedImgId();
+        if (imgId != NullId) {
+            const QPixmap & imgPixmap = _sprState.images().value(imgId).pixmap;
+            QPixmap mouseRectPixmap(imgPixmap.copy(frameRect));
+            ui->framePreview->setBlendPixmap(mouseRectPixmap);
+        }
+    }
+
+     // this method may also be invoked from a signal, we need to repaint:
+    ui->framePreview->repaint();
+}
+
+void MainWindow::blendFrameId()
+{
+    // Check if frame id is still valid. e.g. it was not removed.
+    if (_blendFrameId != NullId && _sprState.fpixmaps().contains(_blendFrameId)) {
+        ui->framePreview->setBlendPixmap(_sprState.fpixmap(_blendFrameId));
+    } else {
+        infoDialog(tr("Frame id ") + QString::number(_blendFrameId) + tr(" is no longer available"));
+        _blendFrameId = NullId;
+    }
+
+    // if frame id is not valid, then udpate combo box
+    if (_blendFrameId == NullId) {
+        ui->blendModeComboBox->removeItem(BlendFrameId);
+        ui->blendModeComboBox->setCurrentIndex(BlendNone);
+    }
 }
 
 void MainWindow::incAniSpeed(int ms)

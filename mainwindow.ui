@@ -535,23 +535,32 @@ p, li { white-space: pre-wrap; }
             </property>
            </widget>
           </item>
-          <item row="0" column="2">
-           <widget class="QToolButton" name="switchBlendButton">
+          <item row="0" column="3">
+           <widget class="QComboBox" name="blendModeComboBox">
             <property name="toolTip">
-             <string>Enable/Disable preview with blend image</string>
+             <string>Blend Mode</string>
             </property>
-            <property name="text">
-             <string>BlendSwitch</string>
-            </property>
+            <item>
+             <property name="text">
+              <string>None</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Frame definition rect</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Select existent frame...</string>
+             </property>
+            </item>
            </widget>
           </item>
-          <item row="0" column="3">
-           <widget class="QToolButton" name="setBlendImageButton">
-            <property name="toolTip">
-             <string>Set blend image</string>
-            </property>
+          <item row="0" column="2">
+           <widget class="QLabel" name="blendModeLabel">
             <property name="text">
-             <string>SetBlendPixmap</string>
+             <string>Blend Mode:</string>
             </property>
            </widget>
           </item>
@@ -775,8 +784,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>371</width>
-               <height>592</height>
+               <width>98</width>
+               <height>28</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -818,8 +827,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>371</width>
-               <height>590</height>
+               <width>98</width>
+               <height>28</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="aniPreview" native="true">
@@ -1538,8 +1547,8 @@ Currently, this button does nothing</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>848</width>
-               <height>628</height>
+               <width>98</width>
+               <height>28</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="transPreview" native="true">
