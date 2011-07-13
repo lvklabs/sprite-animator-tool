@@ -181,6 +181,8 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::initSignals()
 {
+    connect(&_sprState,                SIGNAL(loadProgress(QString)),this, SLOT(showLoadProgress(QString)));
+
     connect(ui->actionSave,            SIGNAL(triggered()),          this, SLOT(saveFile()));
     connect(ui->actionSaveAs,          SIGNAL(triggered()),          this, SLOT(saveAsFile()));
     connect(ui->actionOpen,            SIGNAL(triggered()),          this, SLOT(openFileDialog()));
@@ -556,7 +558,14 @@ bool MainWindow::openFile_(const QString& filename_, SpriteStateError* err)
     closeFile();
     setCurrentFile(filename);
 
-    if (!_sprState.load(filename, err)) {
+    setCursor(QCursor(Qt::BusyCursor));
+
+    bool success = _sprState.load(filename, err);
+
+    statusBarRectSize->setText("");
+    setCursor(QCursor(Qt::ArrowCursor));
+
+    if (!success) {
         closeFile();
         return false;
     }
@@ -1420,6 +1429,8 @@ void MainWindow::showAframes(int row)
 
     cellChangedSignals(false);
 
+    ui->aframePreview->setEnabled(false);
+    ui->aframesTableWidget->setEnabled(false);
     ui->aframesTableWidget->clearContents();
     ui->aframesTableWidget->setRowCount(0);
 
@@ -1428,7 +1439,6 @@ void MainWindow::showAframes(int row)
     }
 
     int animationId = getAnimationId(row);
-    QList<QGraphicsPixmapItem*> aniFrames;
     LvkAnimation ani = _sprState.animations().value(animationId);
     for (QListIterator<LvkAframe> it(ani._aframes); it.hasNext();){
         LvkAframe aFrame = it.next();
@@ -1439,6 +1449,9 @@ void MainWindow::showAframes(int row)
         ui->aframesTableWidget->selectRow(0);
         showSelAframe(0);
     }
+
+    ui->aframePreview->setEnabled(true);
+    ui->aframesTableWidget->setEnabled(true);
 
     cellChangedSignals(true);
 
@@ -2322,6 +2335,13 @@ void MainWindow::showMouseRect(const QRect& rect)
                                    QString::number(x) + "," + QString::number(y) + "," +
                                    QString::number(w) + "," + QString::number(h));
     }
+}
+
+void MainWindow::showLoadProgress(const QString &progress)
+{
+    statusBarRectSize->setFixedWidth(500);
+    statusBarRectSize->setText("Loading " + progress);
+    statusBarRectSize->repaint();
 }
 
 void MainWindow::undo()

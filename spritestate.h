@@ -18,6 +18,7 @@ class QFile;
 /// input images, frames and animations
 class SpriteState : public QObject
 {
+    Q_OBJECT
 
 public:
     SpriteState(QObject* parent = 0);
@@ -184,6 +185,9 @@ public:
 
     /// Returns true if the frame is not used by any animation
     bool isFrameUnused(Id frameId) const;
+
+signals:
+    void loadProgress(QString progress);
 
 protected:
 

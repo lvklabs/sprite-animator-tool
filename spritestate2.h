@@ -11,6 +11,8 @@ class QObject;
 /// it also provides the method hasUnsavedChanges()
 class SpriteState2 : public SpriteState
 {
+    Q_OBJECT
+
 public:
     SpriteState2(QObject* parent = 0);
 

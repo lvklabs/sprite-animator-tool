@@ -237,6 +237,7 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
                 state = StNoToken;
             } else {
                 if (tmpImage.fromString(line)) {
+                    emit(loadProgress(tr("Image ") + tmpImage.filename));
                     addImage(tmpImage);
                 } else {
                     qDebug() << "Error: SpriteState::load(): invalid image entry"
@@ -253,6 +254,7 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
             } else {
                 if (tmpFrame.fromString(line)) {
                     addFrame(tmpFrame);
+                    emit(loadProgress(tr("Frame ") + tmpImage.filename));
                 } else {
                     qDebug() << "Error: SpriteState::load(): invalid frame entry"
                              << line << "at line" << lineNumber;
@@ -279,6 +281,7 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
                 if (tmpAni.fromString(line)) {
                     currentAniId = tmpAni.id;
                     addAnimation(tmpAni);
+                    emit(loadProgress(tr("Animation ") + tmpAni.name));
                 } else {
                     qDebug() << "Error: SpriteState::load(): invalid animation entry"
                              << line << "at line" << lineNumber;

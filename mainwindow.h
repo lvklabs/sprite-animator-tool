@@ -173,6 +173,8 @@ private slots:
     void exportAsFile();
     void exit();
 
+    void showLoadProgress(const QString &progress);
+
     DialogButton saveChangesDialog();
     bool openFile_checkUnsaved(const QString& filename);
     void closeFile_checkUnsaved();
