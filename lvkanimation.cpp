@@ -3,8 +3,8 @@
 
 #include "lvkanimation.h"
 
-LvkAnimation::LvkAnimation(Id id, const QString& name)
-        : id(id), name(name)
+LvkAnimation::LvkAnimation(Id id, const QString& name, unsigned flags)
+        : id(id), name(name), flags(flags)
 {
 }
 
@@ -17,9 +17,9 @@ LvkAnimation::LvkAnimation(const QString& str)
 
 QString LvkAnimation::toString() const
 {
-    QString str("%1,%2");
+    QString str("%1,%2,%3");
 
-    return str.arg(QString::number(id), name);
+    return str.arg(QString::number(id), name, QString::number(flags));
 }
 
 bool LvkAnimation::fromString(const QString& str)
@@ -27,8 +27,14 @@ bool LvkAnimation::fromString(const QString& str)
     QStringList list = str.split(",");
 
     if (list.size() == 2) {
-        id   = list.at(0).toInt();
-        name = list.at(1);
+        id    = list.at(0).toInt();
+        name  = list.at(1);
+        flags = 0;
+        return true;
+    } else if (list.size() == 3) {
+        id    = list.at(0).toInt();
+        name  = list.at(1);
+        flags = list.at(2).toInt();
         return true;
     } else {
         qDebug() << "Warning LvkAnimation::fromString(const QString&) invalid string format";

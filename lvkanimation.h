@@ -11,12 +11,13 @@
 /// and an ordered list of animation frames (aframes for short)
 struct LvkAnimation
 {
-    LvkAnimation(Id id = NullId, const QString& name = "");
+    LvkAnimation(Id id = NullId, const QString& name = "", unsigned flags = 0);
     LvkAnimation(const QString& str);
 
     // TODO move this as private members
-    Id      id;         /* animation id */
-    QString name;       /* animation name */
+    Id           id;         /* animation id */
+    QString      name;       /* animation name */
+    unsigned     flags;      /* animation flags */
 
     /// returns the string representation
     QString toString() const;
@@ -38,7 +39,7 @@ struct LvkAnimation
 
     /// operator ==
     bool operator==(const LvkAnimation& ani) const
-    { return id == ani.id && name == ani.name && _aframes == ani._aframes; }
+    { return id == ani.id && name == ani.name && _aframes == ani._aframes && flags == ani.flags; }
 
     QList<LvkAframe> _aframes;
 };

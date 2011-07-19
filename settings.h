@@ -2,7 +2,7 @@
 #define SETTINGS_H
 
 #define APP_NAME                "Lvk Sprite Animation Tool"
-#define APP_VERSION             "1.1"
+#define APP_VERSION             "1.2"
 #define APP_ABOUT               APP_NAME " " APP_VERSION "\n"\
                                 "(c) 2010 LavandaInk\n\n"\
                                 "This software is only for LavandaInk internal use.\n\n"\

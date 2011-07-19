@@ -49,6 +49,7 @@ enum {
 enum {
     ColAniId,
     ColAniName,
+    ColAniFlags,
     ColAniTotal,
 };
 
@@ -110,6 +111,11 @@ bool isValidFrameName(const QString name, bool showErrorDialog)
         return false;
     }
     return true;
+}
+
+QString toHexString(unsigned i)
+{
+    return "0x"  + QString::number(i, 16);
 }
 
 #ifdef MAC_OS_X
@@ -335,12 +341,11 @@ void MainWindow::initTables()
     ui->aniTableWidget->setRowCount(0);
     ui->aniTableWidget->setColumnCount(ColAniTotal);
     ui->aniTableWidget->setColumnWidth(ColAniId, 30);
-    headersList << "Id" << "Name";
+    ui->aniTableWidget->setColumnWidth(ColAniName, 270);
+    ui->aniTableWidget->setColumnWidth(ColAniFlags, 30);
+    headersList << "Id" << "Name" << "Flags";
     ui->aniTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
-#ifndef DEBUG_SHOW_ID_COLS
-    ui->aniTableWidget->setColumnHidden(ColAniId, true);
-#endif
 
     /* animation frames table */
 
@@ -1411,11 +1416,13 @@ void MainWindow::addAnimation_ui(const LvkAnimation& ani)
 
     QTableWidgetItem* item_id   = new QTableWidgetItem(QString::number(ani.id));
     QTableWidgetItem* item_name = new QTableWidgetItem(ani.name);
+    QTableWidgetItem* item_flags = new QTableWidgetItem(toHexString(ani.flags));
 
     cellChangedSignals(false);
     ui->aniTableWidget->setRowCount(rows+1);
-    ui->aniTableWidget->setItem(rows, ColAniId,   item_id);
-    ui->aniTableWidget->setItem(rows, ColAniName, item_name);
+    ui->aniTableWidget->setItem(rows, ColAniId,    item_id);
+    ui->aniTableWidget->setItem(rows, ColAniName,  item_name);
+    ui->aniTableWidget->setItem(rows, ColAniFlags, item_flags);
     ui->aniTableWidget->setCurrentItem(item_id);
     cellChangedSignals(true);
 
@@ -2180,6 +2187,22 @@ void MainWindow::updateAniTable(int row, int col)
         } else {
             ani.name = newValue;
             _sprState.updateAnimation(ani);
+        }
+    case ColAniFlags:
+        if (newValue.isEmpty()) {
+            ani.flags = 0;
+            _sprState.updateAnimation(ani);
+            setItem(table, row, col, toHexString(ani.flags));
+        } else {
+            bool ok = false;
+            unsigned flags = newValue.toInt(&ok, 16);
+            if (ok) {
+                ani.flags = flags;
+                _sprState.updateAnimation(ani);
+            } else {
+                infoDialog(tr("Animation flags must be a 32 bits hex number"));
+            }
+            setItem(table, row, col, toHexString(ani.flags));
         }
         break;
     }
