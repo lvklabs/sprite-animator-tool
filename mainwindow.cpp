@@ -2188,6 +2188,7 @@ void MainWindow::updateAniTable(int row, int col)
             ani.name = newValue;
             _sprState.updateAnimation(ani);
         }
+        break;
     case ColAniFlags:
         if (newValue.isEmpty()) {
             ani.flags = 0;
