@@ -1225,6 +1225,16 @@ p, li { white-space: pre-wrap; }
              </widget>
             </item>
             <item>
+             <widget class="QToolButton" name="invertAframesButton">
+              <property name="toolTip">
+               <string>Invert order of all frames</string>
+              </property>
+              <property name="text">
+               <string>Inv</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <spacer name="horizontalSpacer_6">
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
@@ -1569,8 +1579,8 @@ Currently, this button does nothing</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>848</width>
-               <height>628</height>
+               <width>98</width>
+               <height>28</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="transPreview" native="true">
@@ -1611,6 +1621,102 @@ p, li { white-space: pre-wrap; }
          </layout>
         </item>
        </layout>
+      </widget>
+      <widget class="QWidget" name="exportTab">
+       <attribute name="title">
+        <string>Export Options</string>
+       </attribute>
+       <widget class="QWidget" name="gridLayoutWidget_2">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>10</y>
+          <width>581</width>
+          <height>601</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_4">
+         <item row="3" column="0">
+          <widget class="QPlainTextEdit" name="customHeaderText">
+           <property name="lineWrapMode">
+            <enum>QPlainTextEdit::NoWrap</enum>
+           </property>
+           <property name="plainText">
+            <string>* not implemented *</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="exportExplanationLabel">
+           <property name="text">
+            <string>Write here any valid C/C++/Objective-C code that you want to append in the header file to be exported:</string>
+           </property>
+           <property name="textFormat">
+            <enum>Qt::PlainText</enum>
+           </property>
+           <property name="wordWrap">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="exportOptionsLabel">
+           <property name="text">
+            <string>Export Options:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <spacer name="verticalSpacer">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item row="4" column="0">
+          <spacer name="verticalSpacer_2">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="postprocessingLabel">
+           <property name="text">
+            <string>Postprocessing script:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="0">
+          <widget class="QLineEdit" name="lineEdit">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>* not implemented only available through command line arguments *</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
       </widget>
      </widget>
     </item>
@@ -1684,7 +1790,9 @@ p, li { white-space: pre-wrap; }
     <addaction name="actionRemoveFrame"/>
     <addaction name="actionRemoveAnimation"/>
     <addaction name="actionRemoveAframe"/>
+    <addaction name="separator"/>
     <addaction name="actionRemoveAllUnusedFrames"/>
+    <addaction name="actionInvertAframesOrder"/>
     <addaction name="separator"/>
     <addaction name="actionRefreshAnimation"/>
    </widget>
@@ -1912,6 +2020,11 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="shortcut">
     <string>Ctrl+R, Ctrl+U</string>
+   </property>
+  </action>
+  <action name="actionInvertAframesOrder">
+   <property name="text">
+    <string>Invert animation frames order</string>
    </property>
   </action>
  </widget>

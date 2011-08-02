@@ -241,6 +241,7 @@ private slots:
     void moveSelAframeUp();
     void moveSelAframeDown();
     void moveSelAframe(int offset);
+    void invertAframesOrder();
 
     void setBlendPixmap();
     void blendExistentFrame();

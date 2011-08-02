@@ -210,6 +210,7 @@ void MainWindow::initSignals()
     connect(ui->actionRemoveFrame,     SIGNAL(triggered()),          this, SLOT(removeSelFrame()));
     connect(ui->actionRemoveAnimation, SIGNAL(triggered()),          this, SLOT(removeSelAnimation()));
     connect(ui->actionRemoveAllUnusedFrames, SIGNAL(triggered()),    this, SLOT(removeAllUnusedFrames()));
+    connect(ui->actionInvertAframesOrder, SIGNAL(triggered()),       this, SLOT(invertAframesOrder()));
     connect(ui->actionRefreshAnimation,SIGNAL(triggered()),          this, SLOT(previewAnimation()));
 
     connect(ui->addImageButton,        SIGNAL(clicked()),            this, SLOT(addImageDialog()));
@@ -228,6 +229,7 @@ void MainWindow::initSignals()
     connect(ui->hideFramePreviewButton,SIGNAL(clicked()),            this, SLOT(hideShowFramePreview()));
     connect(ui->moveDownAframeButton,  SIGNAL(clicked()),            this, SLOT(moveSelAframeDown()));
     connect(ui->moveUpAframeButton,    SIGNAL(clicked()),            this, SLOT(moveSelAframeUp()));
+    connect(ui->invertAframesButton,   SIGNAL(clicked()),            this, SLOT(invertAframesOrder()));
 
     connect(ui->addAniTransButton,     SIGNAL(clicked()),            this, SLOT(addTransDialog()));
     connect(ui->refreshTransButton,    SIGNAL(clicked()),            this, SLOT(previewTransition()));
@@ -1754,6 +1756,24 @@ void MainWindow::moveSelAframe(int offset)
     table->setCurrentCell(targetRow, table->currentColumn());
 }
 
+void MainWindow::invertAframesOrder()
+{
+    LvkTableWidget *table = ui->aframesTableWidget;
+    LvkAnimation ani = _sprState.const_animation(selectedAniId());
+    int rowCount = table->rowCount();
+
+    cellChangedSignals(false);
+    for (int r = 0; r < rowCount/2; r++) {
+        int r2 = rowCount - r - 1;
+        ani.swapAframes(getAframeId(r), getAframeId(r2));
+        table->swapRows(r, r2);
+    }
+    cellChangedSignals(true);
+
+    _sprState.updateAnimation(ani);
+
+    previewAnimation();
+}
 
 void MainWindow::setBlendPixmap()
 {
