@@ -44,6 +44,9 @@ public:
     void removeAnimation(Id id);
     void removeAframe(Id aframeId, Id aniId);
 
+    void setCustomHeader(const QString& header);
+    QString getCustomHeader();
+
     void clear();
     bool save(const QString& filename, SpriteStateError* err = 0);
     bool load(const QString& filename, SpriteStateError* err = 0);

@@ -200,12 +200,12 @@ void MainWindow::initSignals()
     connect(ui->actionExit,            SIGNAL(triggered()),          this, SLOT(exit()));
     connect(ui->actionAbout,           SIGNAL(triggered()),          this, SLOT(about()));
     connect(ui->actionWhatsThis,       SIGNAL(triggered()),          this, SLOT(whatsThisMode()));
-    connect(ui->actionFramesTab,       SIGNAL(triggered()),          this, SLOT(showFramesTab()));
-    connect(ui->actionAnimationsTab,   SIGNAL(triggered()),          this, SLOT(showAnimationsTab()));
+    //connect(ui->actionFramesTab,       SIGNAL(triggered()),          this, SLOT(showFramesTab()));
+    //connect(ui->actionAnimationsTab,   SIGNAL(triggered()),          this, SLOT(showAnimationsTab()));
     connect(ui->actionAddImage,        SIGNAL(triggered()),          this, SLOT(addImageDialog()));
     connect(ui->actionAddFrame,        SIGNAL(triggered()),          this, SLOT(addFrameDialog()));
     connect(ui->actionAddAnimation,    SIGNAL(triggered()),          this, SLOT(addAnimationDialog()));
-    connect(ui->actionShowHideFramesPreview, SIGNAL(triggered()),    this, SLOT(hideShowFramePreview()));
+    //connect(ui->actionShowHideFramesPreview, SIGNAL(triggered()),    this, SLOT(hideShowFramePreview()));
     connect(ui->actionRemoveImage,     SIGNAL(triggered()),          this, SLOT(removeSelImage()));
     connect(ui->actionRemoveFrame,     SIGNAL(triggered()),          this, SLOT(removeSelFrame()));
     connect(ui->actionRemoveAnimation, SIGNAL(triggered()),          this, SLOT(removeSelAnimation()));
@@ -269,6 +269,9 @@ void MainWindow::initSignals()
     connect(ui->framesTableWidget,     SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showSelFrame(int)));
     connect(ui->aframesTableWidget,    SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showSelAframe(int)));
     connect(ui->aniTableWidget,        SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showAframes(int)));
+
+    connect(ui->saveCustomHeaderButton,    SIGNAL(clicked()),                       this, SLOT(saveCustomHeader()));
+    connect(ui->restoreCustomHeaderButton, SIGNAL(clicked()),                       this, SLOT(restoreCustomHeader()));
 
     cellChangedSignals(true);
     blendComboBoxSignals(true);
@@ -607,6 +610,8 @@ bool MainWindow::openFile_(const QString& filename_, SpriteStateError* err)
         ui->aframePreview->setPixmap(QPixmap());
     }
 
+    ui->customHeaderText->setPlainText(_sprState.getCustomHeader());
+
     return true;
 }
 
@@ -820,6 +825,8 @@ void MainWindow::closeFile()
     ui->imgPreview->clear();
     ui->framePreview->clear();
     ui->aframePreview->clear();
+
+    ui->customHeaderText->clear();
 
     clearPreviewAnimation();
     clearPreviewTransition();
@@ -2379,6 +2386,16 @@ void MainWindow::showMouseRect(const QRect& rect)
                                    QString::number(x) + "," + QString::number(y) + "," +
                                    QString::number(w) + "," + QString::number(h));
     }
+}
+
+void MainWindow::saveCustomHeader()
+{
+    _sprState.setCustomHeader(ui->customHeaderText->toPlainText());
+}
+
+void MainWindow::restoreCustomHeader()
+{
+    ui->customHeaderText->setPlainText(_sprState.getCustomHeader());
 }
 
 void MainWindow::showLoadProgress(const QString &progress)

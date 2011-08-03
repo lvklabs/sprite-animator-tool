@@ -385,3 +385,16 @@ void SpriteState2::removeAframe(Id aframeId, Id aniId)
 
     SpriteState::removeAframe(aframeId, aniId);
 }
+
+void SpriteState2::setCustomHeader(const QString &header)
+{
+    SpriteState::setCustomHeader(header);
+}
+
+
+QString SpriteState2::getCustomHeader()
+{
+    return SpriteState::getCustomHeader();
+}
+
+

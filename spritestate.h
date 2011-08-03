@@ -116,7 +116,6 @@ public:
     /// then addAframe() auto-asigns an unique Id
     void addAframe(LvkAframe& aframe, Id aniId);
 
-
     // remove ******************************************************************
 
     /// remove input image by id
@@ -137,6 +136,14 @@ public:
     /// remove aframe @param id in animation @param aniId
     void removeAframe(Id aframeId, Id aniId)
     { _animations[aniId].removeAframe(aframeId); }
+
+    // Custom header ***********************************************************
+
+    void setCustomHeader(const QString& header)
+    { _customHeader = header; }
+
+    QString getCustomHeader()
+    { return _customHeader; }
 
     // Load, save, export ******************************************************
 
@@ -218,6 +225,9 @@ protected:
     // TODO (?) move frame pixmap into the LvkFrame classs
     /// Frame pixmaps
     QHash<Id, QPixmap>      _fpixmaps;
+
+    /// Custom data appended to the header
+    QString                 _customHeader;
 
     // TODO (?) move this method inside LvkFrame
     /// force reload frame pixmap

@@ -264,6 +264,9 @@ private slots:
     void showMousePosition(int x, int y);
     void showMouseRect(const QRect& rect);
 
+    void saveCustomHeader();
+    void restoreCustomHeader();
+
     void scaleCheckedImages();
     void switchQuickMode();
     void checkAllImages();

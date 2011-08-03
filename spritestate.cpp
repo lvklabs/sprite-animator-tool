@@ -98,6 +98,8 @@ void SpriteState::clear()
     _frames.clear();
     _animations.clear();
     _fpixmaps.clear();
+
+    _customHeader = "";
 }
 
 bool SpriteState::save(const QString& filename, SpriteStateError* err)
@@ -151,6 +153,11 @@ bool SpriteState::save(const QString& filename, SpriteStateError* err)
     }
     stream << ")\n\n";
 
+    stream << "# Custom data appended to the header\n";
+    stream << "custom_header(\n";
+    stream << _customHeader << "\n";
+    stream << ")\n\n";
+
     stream << "### End LvkSprite #####################################\n";
 
     file.close();
@@ -190,6 +197,7 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
         StTokenFrames     = 3,
         StTokenAnimations = 4,
         StTokenAframes    = 5,
+        StTokenHeader     = 6,
         StError           = 999,
     } state = StCheckVersion;
 
@@ -213,10 +221,10 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
         if (line.isNull()) {
             break; /* end of stream */
         }
-        if (line.isEmpty()) {
+        if (line.isEmpty() && state != StTokenHeader) {
             continue;
         }
-        if (line.startsWith('#')) {
+        if (line.startsWith('#') && state != StTokenHeader) {
             continue;
         }
 
@@ -241,6 +249,8 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
                 state = StTokenFrames;
             } else if (line == "animations(") {
                 state = StTokenAnimations;
+            } else if (line == "custom_header(") {
+                state = StTokenHeader;
             } else if (line == "aframes(") {
                 qDebug() << "Error: SpriteState::load(): Unspected token"
                          << line << "at line" << lineNumber;
@@ -325,6 +335,14 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
                     setError(err, ErrInvalidFormat);
                     state = StError;
                 }
+            }
+            break;
+
+        case StTokenHeader:
+            if (line == ")") {
+                state = StNoToken;
+            } else {
+                _customHeader.append(line).append("\n");
             }
             break;
 
@@ -460,6 +478,17 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
         headerStream << "#define ANIM_" << getMacroName(it.value().name) << "_FLAGS\t\t\t 0x" << QString::number(it.value().flags, 16) << "\n";
     }
     headerStream << "\n";
+
+    if (!_customHeader.isEmpty()) {
+        headerStream << "////////////////////////////////////////////////\n";
+        headerStream << "// starting custom header data\n";
+        headerStream << _customHeader << "\n";
+        headerStream << "// end custom header data\n";
+        headerStream << "////////////////////////////////////////////////\n";
+        headerStream << "\n";
+        headerStream << "\n";
+    }
+
     headerStream << "#endif\n";
 
     headerOutput.close();
