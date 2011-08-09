@@ -53,6 +53,7 @@ public:
 
 private:
     StateCircularBuffer _stBuffer;
+    bool headerHasChanged;
 
     bool undo(StateChange& st);
     bool redo(StateChange& st);

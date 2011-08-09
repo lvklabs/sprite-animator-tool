@@ -5,7 +5,7 @@
 #include "spritestate2.h"
 
 SpriteState2::SpriteState2(QObject* parent)
-    : SpriteState(parent)
+    : SpriteState(parent), headerHasChanged(false)
 {
 }
 
@@ -184,7 +184,7 @@ bool SpriteState2::canRedo() const
 
 bool SpriteState2::hasUnsavedChanges() const
 {
-    return !_stBuffer.hasSavedFlag();
+    return !_stBuffer.hasSavedFlag() || headerHasChanged;
 }
 
 void SpriteState2::startTransaction()
@@ -211,6 +211,7 @@ bool SpriteState2::save(const QString& filename, SpriteStateError* err)
 
     if (success) {
         _stBuffer.setSavedFlag();
+        headerHasChanged = false;
     }
 
     return success;
@@ -222,6 +223,7 @@ bool SpriteState2::load(const QString& filename, SpriteStateError* err)
 
     if (success) {
         _stBuffer.clear();
+        headerHasChanged = false;
     }
 
     return success;
@@ -231,6 +233,7 @@ void SpriteState2::clear()
 {
     _stBuffer.clear();
     SpriteState::clear();
+    headerHasChanged = false;
 }
 
 // update *******************************************************************
@@ -388,7 +391,10 @@ void SpriteState2::removeAframe(Id aframeId, Id aniId)
 
 void SpriteState2::setCustomHeader(const QString &header)
 {
-    SpriteState::setCustomHeader(header);
+    if (getCustomHeader() != header) {
+        headerHasChanged = true;
+        SpriteState::setCustomHeader(header);
+    }
 }
 
 
