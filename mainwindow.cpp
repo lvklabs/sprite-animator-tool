@@ -12,7 +12,7 @@
 #include <QGraphicsPixmapItem>
 #include <QList>
 #include <QWhatsThis>
-#include <QHashIterator>
+#include <QMapIterator>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -640,7 +640,7 @@ void MainWindow::refresh_imgTable()
     ui->imgTableWidget->clearContents();
     ui->imgTableWidget->setRowCount(0);
 
-    for (QHashIterator<Id, InputImage> it(_sprState.images()); it.hasNext();) {
+    for (QMapIterator<Id, InputImage> it(_sprState.images()); it.hasNext();) {
         it.next();
         const InputImage& image =  it.value();
         addImage_ui(image);
@@ -661,7 +661,7 @@ void MainWindow::refresh_frameTable()
     ui->framesTableWidget->clearContents();
     ui->framesTableWidget->setRowCount(0);
 
-    for (QHashIterator<Id, LvkFrame> it(_sprState.frames()); it.hasNext();) {
+    for (QMapIterator<Id, LvkFrame> it(_sprState.frames()); it.hasNext();) {
         it.next();
         const LvkFrame& frame =  it.value();
         addFrame_ui(frame);
@@ -682,7 +682,7 @@ void MainWindow::refresh_aniTable()
     ui->aniTableWidget->clearContents();
     ui->aniTableWidget->setRowCount(0);
 
-    for (QHashIterator<Id, LvkAnimation> it(_sprState.animations()); it.hasNext();) {
+    for (QMapIterator<Id, LvkAnimation> it(_sprState.animations()); it.hasNext();) {
         it.next();
         const LvkAnimation& ani =  it.value();
         addAnimation_ui(ani);
@@ -1097,7 +1097,7 @@ Id MainWindow::getFrameDialog(const QString &title)
 
     QStringList framesList;
 
-    for (QHashIterator<Id, LvkFrame> it(_sprState.frames()); it.hasNext();) {
+    for (QMapIterator<Id, LvkFrame> it(_sprState.frames()); it.hasNext();) {
         it.next();
         const LvkFrame& frame = it.value();
         framesList << tr("Id: ") + QString::number(frame.id) +  tr(" Name: ") + frame.name;
@@ -1915,7 +1915,7 @@ void MainWindow::addTransDialog()
 
     QStringList anisList;
 
-    for (QHashIterator<Id, LvkAnimation> it(_sprState.animations()); it.hasNext();) {
+    for (QMapIterator<Id, LvkAnimation> it(_sprState.animations()); it.hasNext();) {
         it.next();
         const LvkAnimation & ani = it.value();
         anisList << tr("Id: ") + QString::number(ani.id) +  tr(" Name: ") + ani.name;

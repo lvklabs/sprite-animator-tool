@@ -1,10 +1,10 @@
 #ifndef SPRITESTATE_H
 #define SPRITESTATE_H
 
-#include <QHash>
 #include <QString>
 #include <QImage>
 #include <QPixmap>
+#include <QMap>
 
 class QFile;
 
@@ -26,15 +26,15 @@ public:
     // hash getters ************************************************************
 
     /// get input images hash
-    const QHash<Id, InputImage>& images() const
+    const QMap<Id, InputImage>& images() const
     { return _images; }
 
     /// get frames hash
-    const QHash<Id, LvkFrame>& frames() const
+    const QMap<Id, LvkFrame>& frames() const
     { return _frames; }
 
     /// get animations hash
-    const QHash<Id, LvkAnimation>& animations() const
+    const QMap<Id, LvkAnimation>& animations() const
     { return _animations; }
 
     /// get aframes list from animation @param aniId
@@ -42,7 +42,7 @@ public:
     { return _animations[aniId]._aframes; }
 
     /// get frame pixmaps hash
-    const QHash<Id, QPixmap>& fpixmaps() const
+    const QMap<Id, QPixmap>& fpixmaps() const
     { return _fpixmaps; }
 
     // pixmap getters ***********************************************************
@@ -214,17 +214,17 @@ protected:
     QPixmap nullPixmap;
 
     /// input images hash
-    QHash<Id, InputImage>   _images;
+    QMap<Id, InputImage>   _images;
 
     /// frames hash
-    QHash<Id, LvkFrame>     _frames;
+    QMap<Id, LvkFrame>     _frames;
 
     /// animations hash
-    QHash<Id, LvkAnimation> _animations;
+    QMap<Id, LvkAnimation> _animations;
 
     // TODO (?) move frame pixmap into the LvkFrame classs
     /// Frame pixmaps
-    QHash<Id, QPixmap>      _fpixmaps;
+    QMap<Id, QPixmap>      _fpixmaps;
 
     /// Custom data appended to the header
     QString                 _customHeader;

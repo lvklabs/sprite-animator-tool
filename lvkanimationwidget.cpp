@@ -12,7 +12,7 @@ LvkAnimationWidget::LvkAnimationWidget(QWidget* parent)
     setCursor(QCursor(Qt::OpenHandCursor));
 }
 
-void LvkAnimationWidget::setAnimation(const LvkAnimation& ani, const QHash<Id, QPixmap>& fpixmaps)
+void LvkAnimationWidget::setAnimation(const LvkAnimation& ani, const QMap<Id, QPixmap>& fpixmaps)
 {
     clear();
 
@@ -27,7 +27,7 @@ void LvkAnimationWidget::setAnimation(const LvkAnimation& ani, const QHash<Id, Q
     repaint();
 }
 
-void LvkAnimationWidget::setAnimations(const QList<LvkAnimation>& anis, const QHash<Id, QPixmap>& fpixmaps)
+void LvkAnimationWidget::setAnimations(const QList<LvkAnimation>& anis, const QMap<Id, QPixmap>& fpixmaps)
 {
     clear();
 

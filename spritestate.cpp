@@ -122,7 +122,7 @@ bool SpriteState::save(const QString& filename, SpriteStateError* err)
     stream << "# Images\n";
     stream << "# format: imageId,filename,scale\n";
     stream << "images(\n";
-    for (QHashIterator<Id, InputImage> it(_images); it.hasNext();) {
+    for (QMapIterator<Id, InputImage> it(_images); it.hasNext();) {
         it.next();
         stream << "\t" <<  it.value().toString() << "\n";
     }
@@ -131,7 +131,7 @@ bool SpriteState::save(const QString& filename, SpriteStateError* err)
     stream << "# Frames\n";
     stream << "# format: frameId,name,imageId,ox,oy,w,h\n";
     stream << "frames(\n";
-    for (QHashIterator<Id, LvkFrame> it(_frames); it.hasNext();) {
+    for (QMapIterator<Id, LvkFrame> it(_frames); it.hasNext();) {
         it.next();
         stream << "\t" << it.value().toString() << "\n";
     }
@@ -142,7 +142,7 @@ bool SpriteState::save(const QString& filename, SpriteStateError* err)
     stream << "# Animation frames\n";
     stream << "# format: aframeId,frameId,delay,ox,oy\n";
     stream << "animations(\n";
-    for (QHashIterator<Id, LvkAnimation> it(_animations); it.hasNext();) {
+    for (QMapIterator<Id, LvkAnimation> it(_animations); it.hasNext();) {
         it.next();
         stream << "\t" << it.value().toString() << "\n";        
         stream << "\taframes(\n";
@@ -424,7 +424,7 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
     qint64 prevOffset = 0; /* previous offset */
     qint64 offset = 0;
 
-    for (QHashIterator<Id, LvkFrame> it(_frames); it.hasNext();) {
+    for (QMapIterator<Id, LvkFrame> it(_frames); it.hasNext();) {
         LvkFrame frame = it.next().value();
 
         // export only those frames that are used at least in one animation
@@ -448,7 +448,7 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
     textStream << "# Animation frames\n";
     textStream << "# format: aframeId,frameId,delay\n";
     textStream << "animations(\n";
-    for (QHashIterator<Id, LvkAnimation> it(_animations); it.hasNext();) {
+    for (QMapIterator<Id, LvkAnimation> it(_animations); it.hasNext();) {
         it.next();
         textStream << "\t" << it.value().toString() << "\n";
         textStream << "\taframes(\n";
@@ -474,7 +474,7 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
     headerStream << "#ifndef " << headerFileMacroName << "\n";
     headerStream << "#define " << headerFileMacroName << "\n\n";
 
-    for (QHashIterator<Id, LvkAnimation> it(_animations); it.hasNext();) {
+    for (QMapIterator<Id, LvkAnimation> it(_animations); it.hasNext();) {
         it.next();
         headerStream << "#define ANIM_" << getMacroName(it.value().name) << "\t\t\t\"" << it.value().name << "\"\n";
         headerStream << "#define ANIM_" << getMacroName(it.value().name) << "_FLAGS\t\t\t 0x" << QString::number(it.value().flags, 16) << "\n";
@@ -615,7 +615,7 @@ void SpriteState::reloadImagePixmap(Id imgId)
 
 void SpriteState::reloadImagePixmaps()
 {
-    for (QMutableHashIterator<Id, InputImage> it(_images); it.hasNext();) {
+    for (QMutableMapIterator<Id, InputImage> it(_images); it.hasNext();) {
         it.next();
         reloadImagePixmap(it.value().id);
     }
@@ -623,7 +623,7 @@ void SpriteState::reloadImagePixmaps()
 
 void SpriteState::reloadFramePixmaps(Id imgId)
 {
-    for (QHashIterator<Id, LvkFrame> it(_frames); it.hasNext();) {
+    for (QMapIterator<Id, LvkFrame> it(_frames); it.hasNext();) {
         it.next();
         const LvkFrame& frame =  it.value();
         if (imgId == NullId || frame.imgId == imgId) {
@@ -636,7 +636,7 @@ bool SpriteState::isFrameUnused(Id frameId) const
 {
     bool isUnused = true;
 
-    QHashIterator<Id, LvkAnimation> aniIt(_animations);
+    QMapIterator<Id, LvkAnimation> aniIt(_animations);
     while (aniIt.hasNext() && isUnused) {
         const LvkAnimation &ani = aniIt.next().value();
         QListIterator<LvkAframe> aframeIt(ani._aframes);
