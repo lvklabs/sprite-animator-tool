@@ -59,6 +59,7 @@ enum {
     ColAframeFrameId,
     ColAframeOx,
     ColAframeOy,
+    ColAframeSticky,
     ColAframeDelay,
     ColAframeAniId,
     ColAframeTotal,
@@ -360,10 +361,11 @@ void MainWindow::initTables()
     ui->aframesTableWidget->setColumnWidth(ColAframeFrameId, 60);
     ui->aframesTableWidget->setColumnWidth(ColAframeOx, 30);
     ui->aframesTableWidget->setColumnWidth(ColAframeOy, 30);
+    ui->aframesTableWidget->setColumnWidth(ColAframeSticky, 50);
     ui->aframesTableWidget->setColumnWidth(ColAframeDelay, 50);
     ui->aframesTableWidget->setColumnWidth(ColAframeAniId, 30);
     ui->aframesTableWidget->ignoreColumn(ColAframeFrameId);
-    headersList << tr("Id") << tr("Frame Id") << tr("ox") << tr("oy") << tr("Delay") << tr("Animation Id");
+    headersList << tr("Id") << tr("Frame Id") << tr("ox") << tr("oy") << tr("Sticky") << tr("Delay") << tr("Animation Id");
     ui->aframesTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
 #ifndef DEBUG_SHOW_ID_COLS
@@ -1642,12 +1644,13 @@ Id MainWindow::addAframe(const LvkAframe& aframe, Id aniId)
 
 void MainWindow::addAframe_ui(const LvkAframe& aframe, Id aniId)
 {
-    QTableWidgetItem* item_id    = new QTableWidgetItem(QString::number(aframe.id));
-    QTableWidgetItem* item_fid   = new QTableWidgetItem(QString::number(aframe.frameId));
-    QTableWidgetItem* item_delay = new QTableWidgetItem(QString::number(aframe.delay));
-    QTableWidgetItem* item_ox    = new QTableWidgetItem(QString::number(aframe.ox));
-    QTableWidgetItem* item_oy    = new QTableWidgetItem(QString::number(aframe.oy));
-    QTableWidgetItem* item_aniId = new QTableWidgetItem(QString::number(aniId));
+    QTableWidgetItem* item_id     = new QTableWidgetItem(QString::number(aframe.id));
+    QTableWidgetItem* item_fid    = new QTableWidgetItem(QString::number(aframe.frameId));
+    QTableWidgetItem* item_delay  = new QTableWidgetItem(QString::number(aframe.delay));
+    QTableWidgetItem* item_sticky = new QTableWidgetItem(QString::number(aframe.sticky));
+    QTableWidgetItem* item_ox     = new QTableWidgetItem(QString::number(aframe.ox));
+    QTableWidgetItem* item_oy     = new QTableWidgetItem(QString::number(aframe.oy));
+    QTableWidgetItem* item_aniId  = new QTableWidgetItem(QString::number(aniId));
 
     int rows = ui->aframesTableWidget->rowCount();
 
@@ -1656,6 +1659,7 @@ void MainWindow::addAframe_ui(const LvkAframe& aframe, Id aniId)
     ui->aframesTableWidget->setItem(rows, ColAframeId,      item_id);
     ui->aframesTableWidget->setItem(rows, ColAframeFrameId, item_fid);
     ui->aframesTableWidget->setItem(rows, ColAframeDelay,   item_delay);
+    ui->aframesTableWidget->setItem(rows, ColAframeSticky,  item_sticky);
     ui->aframesTableWidget->setItem(rows, ColAframeOx,      item_ox);
     ui->aframesTableWidget->setItem(rows, ColAframeOy,      item_oy);
     ui->aframesTableWidget->setItem(rows, ColAframeAniId,   item_aniId);
@@ -2174,8 +2178,16 @@ void MainWindow::updateAframesTable(int row, int col)
             setItem(table, row, col, aframe.oy);
         }
         break;
+    case ColAframeSticky:
+        if (ok && (i == 0 || i == 1)) {
+            aframe.sticky = i;
+        } else {
+            infoDialog(tr("Invalid sticky value. Use: 1 = On, 0 = Off"));
+            setItem(table, row, col, aframe.sticky);
+        }
+        break;
     case ColAframeDelay:
-        if (ok) {
+        if (ok && i >= 0) {
             aframe.delay = i;
         } else {
             infoDialog(tr("Invalid frame delay."));
