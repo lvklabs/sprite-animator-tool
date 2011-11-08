@@ -22,6 +22,7 @@ void LvkAnimationWidget::setAnimation(const LvkAnimation& ani, const QMap<Id, QP
         _delays   << aframe.delay;
         _oxs      << aframe.ox;
         _oys      << aframe.oy;
+        _stickies << aframe.sticky;
     }
 
     repaint();
@@ -38,6 +39,7 @@ void LvkAnimationWidget::setAnimations(const QList<LvkAnimation>& anis, const QM
             _delays   << aframe.delay;
             _oxs      << aframe.ox;
             _oys      << aframe.oy;
+            _stickies << aframe.sticky;
         }
     }
 
@@ -63,6 +65,7 @@ void LvkAnimationWidget::clear()
     _delays.clear();
     _oxs.clear();
     _oys.clear();
+    _stickies.clear();
     _origin.setX(1);
     _origin.setY(1);
 
@@ -71,10 +74,22 @@ void LvkAnimationWidget::clear()
 
 void LvkAnimationWidget::nextFrame()
 {
-    _currentFrame++;
+    // Search for the first aframe without sticky flag
+    do {
+        _currentFrame++;
+    } while (_currentFrame < _stickies.size() && _stickies[_currentFrame]);
 
-    if(_currentFrame >= _fpixmaps.size()) {
+    if (_currentFrame >= _fpixmaps.size()) {
         _currentFrame = 0;
+
+        while (_currentFrame < _stickies.size() && _stickies[_currentFrame]) {
+            _currentFrame++;
+        }
+
+        // If this happens if because we only have aframes with sticky flag
+        if(_currentFrame >= _fpixmaps.size()) {
+            _currentFrame = 0;
+        }
     }
 
     repaint();
@@ -90,11 +105,15 @@ void LvkAnimationWidget::timerEvent(QTimerEvent* /*event*/)
 void LvkAnimationWidget::paintEvent(QPaintEvent */*event*/)
 {
     QPainter painter(this);
-    if (_fpixmaps.size() > 0 && _currentFrame >= 0) {
-        painter.drawPixmap(_origin.x() + _oxs[_currentFrame],
-                           _origin.y() + _oys[_currentFrame],
-                           _fpixmaps[_currentFrame]);
+
+    // Draw current frame and frames with the sticky flag
+    for (int i = 0; i < _fpixmaps.size(); ++i) {
+        if (i == _currentFrame || _stickies[i]) {
+            painter.drawPixmap(_origin.x() + _oxs[i], _origin.y() + _oys[i], _fpixmaps[i]);
+        }
     }
+
+    // Draw screen rect
     painter.drawRect(0, 0, _scrW, _scrH);
 }
 

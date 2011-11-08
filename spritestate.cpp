@@ -15,8 +15,9 @@
 
 #define HEADER_VER_01 "LvkSprite version 0.1"
 #define HEADER_VER_02 "LvkSprite version 0.2"
-#define HEADER_VER_03 "LvkSprite version 0.3"
-#define HEADER_LATEST HEADER_VER_03
+#define HEADER_VER_03 "LvkSprite version 0.3"   // New: Custom header section
+#define HEADER_VER_04 "LvkSprite version 0.4"   // New: Sticky flag
+#define HEADER_LATEST HEADER_VER_04
 
 #define setError(p, err_code) if (p) { *(p) = err_code; }
 
@@ -229,7 +230,8 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
         }
 
         if (state == StCheckVersion) {
-            if (line == HEADER_VER_01 || line == HEADER_VER_02 || line == HEADER_VER_03) {
+            if (line == HEADER_VER_01 || line == HEADER_VER_02 ||
+                line == HEADER_VER_03 || line == HEADER_VER_04) {
                 state = StNoToken;
                 continue;
             } else {

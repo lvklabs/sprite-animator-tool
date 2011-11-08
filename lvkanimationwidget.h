@@ -38,6 +38,7 @@ private:
     QList<int> _delays;
     QList<int> _oxs;
     QList<int> _oys;
+    QList<bool> _stickies;
 
     int    _currentFrame;
     int    _currentTimer;
