@@ -448,7 +448,7 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
     textStream << "# Animations\n";
     textStream << "# format: animationId,name\n";
     textStream << "# Animation frames\n";
-    textStream << "# format: aframeId,frameId,delay\n";
+    textStream << "# format: aframeId,frameId,delay,ox,oy,sticky\n";
     textStream << "animations(\n";
     for (QMapIterator<Id, LvkAnimation> it(_animations); it.hasNext();) {
         it.next();
