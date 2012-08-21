@@ -184,6 +184,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     resize(1204, 768);
     updateGeometry();
+
+    about();
 }
 
 void MainWindow::initSignals()

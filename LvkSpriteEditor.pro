@@ -3,7 +3,7 @@
 # -------------------------------------------------
 
 #CONFIG += release
-TARGET = LvkSpriteEditor
+TARGET = LvkSpriteAnimation
 TEMPLATE = app
 SOURCES += main.cpp \
     mainwindow.cpp \

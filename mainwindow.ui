@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>LavandaInk Sprite Animation Tool</string>
+   <string>Lvk Sprite Animation Tool</string>
   </property>
   <property name="windowIcon">
    <iconset resource="res.qrc">
@@ -803,8 +803,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>378</width>
-               <height>582</height>
+               <width>98</width>
+               <height>28</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -846,8 +846,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>379</width>
-               <height>582</height>
+               <width>98</width>
+               <height>28</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="aniPreview" native="true">
