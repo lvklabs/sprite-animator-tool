@@ -32,7 +32,7 @@ QString getMacroName(const QString& name)
         char c = a[i];
         if (isalpha(c)) {
             macroName.append(toupper(c));
-        } else if (isnumber(c)) {
+        } else if (isdigit(c)) {
             macroName.append(c);
         } else if (c == ' ' || c == '_' || c == '.') {
             macroName.append('_');
