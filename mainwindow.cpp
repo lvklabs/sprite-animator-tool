@@ -234,6 +234,8 @@ void MainWindow::initSignals()
 
     connect(ui->addAniTransButton,     SIGNAL(clicked()),            this, SLOT(addTransDialog()));
     connect(ui->refreshTransButton,    SIGNAL(clicked()),            this, SLOT(previewTransition()));
+    connect(ui->removeAniTransButton, SIGNAL(clicked()),             this, SLOT(removeSelTrans()));
+    connect(ui->removeAllAniTransButton, SIGNAL(clicked()),          this, SLOT(removeAllTrans()));
     //TODO
     //connect(ui->removeAniTransButton,  SIGNAL(clicked()),            this, SLOT(()));
     //connect(ui->removeAllAniTransButton, SIGNAL(clicked()),          this, SLOT(()));
@@ -1971,6 +1973,22 @@ void MainWindow::addTrans_ui(Id aniId)
     previewTransition();
 }
 
+void MainWindow::removeSelTrans()
+{
+    if (ui->transTableWidget->currentRow() != -1) {
+        ui->transTableWidget->removeRow(ui->transTableWidget->currentRow());
+    }
+}
+
+void MainWindow::removeAllTrans()
+{
+    ui->transTableWidget->clearContents();
+    ui->transTableWidget->setRowCount(0);
+
+    previewTransition();
+}
+
+
 void MainWindow::updateImgTable(int row, int col)
 {
     QTableWidget* table    = ui->imgTableWidget;
@@ -2487,4 +2505,5 @@ MainWindow::~MainWindow()
     delete statusBarMousePos;
     delete ui;
 }
+
 

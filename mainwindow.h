@@ -252,6 +252,8 @@ private slots:
     void addTransDialog();
     void addTrans(Id aniId);
     void addTrans_ui(Id aniId);
+    void removeSelTrans();
+    void removeAllTrans();
 
     void previewTransition();
     void clearPreviewTransition();

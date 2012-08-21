@@ -46,7 +46,7 @@
        </size>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="framesTab">
        <attribute name="title">
@@ -803,8 +803,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>371</width>
-               <height>592</height>
+               <width>378</width>
+               <height>582</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -846,8 +846,8 @@ p, li { white-space: pre-wrap; }
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>371</width>
-               <height>590</height>
+               <width>379</width>
+               <height>582</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="aniPreview" native="true">
@@ -1401,7 +1401,7 @@ Currently, this button does nothing</string>
       </widget>
       <widget class="QWidget" name="transitionsTab">
        <attribute name="title">
-        <string>Transitions</string>
+        <string>Test transitions</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_3">
         <item row="0" column="0">
@@ -1411,7 +1411,7 @@ Currently, this button does nothing</string>
             <item>
              <widget class="QLabel" name="transitionsTestLabel">
               <property name="text">
-               <string>Transitions Test:</string>
+               <string>Test transitions:</string>
               </property>
              </widget>
             </item>
@@ -1477,7 +1477,7 @@ Currently, this button does nothing</string>
                  <bool>false</bool>
                 </property>
                 <property name="toolTip">
-                 <string>Move animation down</string>
+                 <string>Move animation down (Not implemented)</string>
                 </property>
                 <property name="text">
                  <string/>
@@ -1494,7 +1494,7 @@ Currently, this button does nothing</string>
                  <bool>false</bool>
                 </property>
                 <property name="toolTip">
-                 <string>Move animation up</string>
+                 <string>Move animation up  (Not implemented)</string>
                 </property>
                 <property name="text">
                  <string/>
@@ -1581,8 +1581,8 @@ Currently, this button does nothing</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>98</width>
-               <height>28</height>
+               <width>861</width>
+               <height>620</height>
               </rect>
              </property>
              <widget class="LvkAnimationWidget" name="transPreview" native="true">
@@ -1768,7 +1768,7 @@ p, li { white-space: pre-wrap; }
      <x>0</x>
      <y>0</y>
      <width>1199</width>
-     <height>22</height>
+     <height>27</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
