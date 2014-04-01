@@ -18,17 +18,23 @@ To compile, just:
     qmake
     make
 
-
-### How to use
-
-More info soon. If you are interested ASAP, please send an email to contact@lvklabs.com
+(There are some precompiled versions in the 'releases' folder)
 
 
 ### Screenshots
 
+
 ![!Tab to define frames](http://www.lvklabs.com/wp-content/uploads/2014/04/lvk-sprite-editor-frames-tab.png)
+*Tab to define frames*
+
 
 ![!Tab to define animations](http://www.lvklabs.com/wp-content/uploads/2014/04/lvk-sprite-editor-animations-tab.png)
+*Tab to define animations*
+
 
 ![!Tab to test transitions between animations](http://www.lvklabs.com/wp-content/uploads/2014/04/lvk-sprite-editor-transitions-tab.png)
+*Tab to test transitions between animations*
 
+### How to use
+
+There are some examples in the 'examples' directory. More info soon. If you are interested, please send an email to contact@lvklabs.com
