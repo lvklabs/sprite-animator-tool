@@ -37,4 +37,10 @@ To compile, just:
 
 ### How to use
 
-There are some examples in the 'examples' directory. More info soon. If you are interested, please send an email to contact@lvklabs.com
+1. Create an sprite file (or open an example from the 'examples' folder)
+2. Create/edit your animations
+3. Export with menu option: File -> Export
+4. Include the generated files .h, .lkot and .lkob in your game
+5. Include the [LvkSprite-iphone](https://github.com/lvklabs/lvksprite-iphone) or [LvkSprite-x](https://github.com/lvklabs/lvksprite-x) library and load the files.
+
+More detailed info soon. If you are interested, please send an email to contact@lvklabs.com
