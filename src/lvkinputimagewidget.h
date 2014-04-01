@@ -49,8 +49,6 @@ public:
     void clearPixmapCache(Id cacheId);
 
     /// Sets scroll parent widget
-    // TODO this sucks, should be handled transparentely by the
-    // LvkInputImageWidget class
     void setScrollArea(QScrollArea* scroll);
 
     /// Sets the widget background
