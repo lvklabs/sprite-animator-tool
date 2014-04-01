@@ -1979,6 +1979,7 @@ void MainWindow::removeSelTrans()
 {
     if (ui->transTableWidget->currentRow() != -1) {
         ui->transTableWidget->removeRow(ui->transTableWidget->currentRow());
+        previewTransition();
     }
 }
 
@@ -1986,7 +1987,6 @@ void MainWindow::removeAllTrans()
 {
     ui->transTableWidget->clearContents();
     ui->transTableWidget->setRowCount(0);
-
     previewTransition();
 }
 
