@@ -25,10 +25,10 @@ More info soon. If you are interested ASAP, please send an email to contact@lvkl
 
 
 ### Screenshots
-###### Linux Screenshots
-![!The frames tab](http://www.lvklabs.com/?attachment_id=553)
 
-![!The animations tab](http://www.lvklabs.com/?attachment_id=552)
+![!Tab to define frames](http://www.lvklabs.com/wp-content/uploads/2014/04/lvk-sprite-editor-frames-tab.png)
 
-![!The transitions tab](http://www.lvklabs.com/?attachment_id=554)
+![!Tab to define animations](http://www.lvklabs.com/wp-content/uploads/2014/04/lvk-sprite-editor-animations-tab.png)
+
+![!Tab to test transitions between animations](http://www.lvklabs.com/wp-content/uploads/2014/04/lvk-sprite-editor-transitions-tab.png)
 
