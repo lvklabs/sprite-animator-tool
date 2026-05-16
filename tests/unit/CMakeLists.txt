@@ -49,6 +49,9 @@ lvk_add_test(tst_spritestate_crud
         ${SRC_DIR}/lvkframe.cpp
         ${SRC_DIR}/lvkanimation.cpp
         ${SRC_DIR}/lvkaframe.cpp
+        # Agent 8: SpriteState::exportSprite now references the JSON
+        # exporter; include it so the unit test still links.
+        ${SRC_DIR}/exporters/JsonAtlasExporter.cpp
     LINKS
         Qt6::Widgets
 )

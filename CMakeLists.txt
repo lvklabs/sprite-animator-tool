@@ -49,6 +49,14 @@ set(LVK_SOURCES
     src/dialogs.cpp
     src/statecircularbuffer.cpp
     src/lvkframedefwidget.cpp
+    # Agent 8: JSON atlas exporter + 5 MainWindow tab controllers split
+    # out of the 2,511-line god class.
+    src/exporters/JsonAtlasExporter.cpp
+    src/controllers/ImageTabController.cpp
+    src/controllers/FrameTabController.cpp
+    src/controllers/AnimationTabController.cpp
+    src/controllers/TransitionTabController.cpp
+    src/controllers/ExportController.cpp
 )
 
 set(LVK_HEADERS
@@ -68,6 +76,12 @@ set(LVK_HEADERS
     src/dialogs.h
     src/statecircularbuffer.h
     src/lvkframedefwidget.h
+    src/exporters/JsonAtlasExporter.h
+    src/controllers/ImageTabController.h
+    src/controllers/FrameTabController.h
+    src/controllers/AnimationTabController.h
+    src/controllers/TransitionTabController.h
+    src/controllers/ExportController.h
 )
 
 set(LVK_FORMS
@@ -88,6 +102,13 @@ add_executable(LvkSpriteEditor
 
 target_include_directories(LvkSpriteEditor PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+
+# AUTOUIC needs to find mainwindow.ui from the controllers/ + exporters/
+# subdirectories that include "ui_mainwindow.h". Adding the .ui dir to
+# AUTOUIC_SEARCH_PATHS is the canonical Qt6 way.
+set_target_properties(LvkSpriteEditor PROPERTIES
+    AUTOUIC_SEARCH_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 
 target_link_libraries(LvkSpriteEditor PRIVATE

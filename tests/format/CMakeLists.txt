@@ -27,6 +27,9 @@ set(_LVK_FORMAT_SOURCES
     "${_LVK_SRC}/inputimage.cpp"
     "${_LVK_SRC}/lvkanimation.cpp"
     "${_LVK_SRC}/lvkaframe.cpp"
+    # Agent 8: SpriteState::exportSprite() now dispatches to the JSON
+    # exporter when format=Json|All. The format tests need it linked in.
+    "${_LVK_SRC}/exporters/JsonAtlasExporter.cpp"
 )
 
 set(_LVK_FORMAT_HEADERS
@@ -36,6 +39,7 @@ set(_LVK_FORMAT_HEADERS
     "${_LVK_SRC}/lvkanimation.h"
     "${_LVK_SRC}/lvkaframe.h"
     "${_LVK_SRC}/types.h"
+    "${_LVK_SRC}/exporters/JsonAtlasExporter.h"
 )
 
 # Absolute path to the `examples/` dir, propagated to tests via
@@ -76,3 +80,6 @@ endfunction()
 
 lvk_add_format_test(tst_lvks_roundtrip)
 lvk_add_format_test(tst_lvks_versions)
+# Agent 8 (Phase 3): JSON atlas + path-traversal hardening tests.
+lvk_add_format_test(tst_json_export)
+lvk_add_format_test(tst_path_traversal)

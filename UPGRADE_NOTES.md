@@ -239,3 +239,46 @@ The fix landed (`append` instead of `insert(id,...)`). The two `QSKIP`
 markers in `tests/format/tst_lvks_roundtrip.cpp` were removed and the
 mario / ryu round-trip subtests now PASS rather than skip.
 
+
+## Agent 8 findings (MainWindow Refactor + JSON Atlas Export)
+
+### Bug #5 RESOLVED: `custom_header` trailing-newline growth
+
+`SpriteState::save()` now strips trailing whitespace from `_customHeader`
+and writes exactly one '\n' terminator inside the `custom_header()`
+block. `load()` already appends `"\n"` per line, so the canonical form
+is now a fixed point and round-trips strictly. The `QSKIP`/tolerance in
+`tests/format/tst_lvks_roundtrip.cpp::roundtripPreservesCustomHeader`
+has been replaced with a strict `QCOMPARE`, plus a second save+reload
+to verify fixed-point convergence.
+
+### Agent 5 [FIXME] RESOLVED: path-traversal in `exportSprite()`
+
+Added `isSafeExportPath()` in `src/spritestate.cpp` that rejects:
+- empty baseName,
+- baseName containing '/' / '\\' or '..',
+- baseName equal to "." or "..",
+- absolute baseName,
+- outputDir that does not exist or cannot be canonicalised,
+- resolved path that escapes the canonical outputDir.
+
+A new SpriteStateError code `ErrUnsafeOutputPath` surfaces the
+rejection. Covered by `tests/format/tst_path_traversal.cpp`.
+
+### Refactor notes
+
+- `src/mainwindow.cpp` shrank from 2,528 LOC to 590 LOC. Five
+  thin controllers in `src/controllers/` own the per-tab logic:
+  `ImageTabController`, `FrameTabController`, `AnimationTabController`,
+  `TransitionTabController`, `ExportController`.
+- `SpriteState::exportSprite` gained an `ExportFormat` enum
+  (`Cocos2d | Json | All`) with a backwards-compat 4-arg overload so
+  Agent 10's main.cpp keeps compiling until it adopts the new
+  signature.
+- A new `JsonAtlasExporter` in `src/exporters/` emits a packed PNG
+  sheet (shelf-pack) + TexturePacker-compatible JSON descriptor with
+  an extra `animations` key (LVK extension).
+- `MainWindow::cellChangedSignals(bool)` is preserved as a no-op
+  bottleneck hook for future read-only mode work; the controllers
+  each wrap their `setText()` calls with local
+  disconnect/reconnect pairs (mirrors legacy behavior).

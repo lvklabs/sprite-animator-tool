@@ -16,6 +16,8 @@ set(SECTEST_SRCS
     "${CMAKE_SOURCE_DIR}/src/lvkframe.cpp"
     "${CMAKE_SOURCE_DIR}/src/lvkanimation.cpp"
     "${CMAKE_SOURCE_DIR}/src/lvkaframe.cpp"
+    # Agent 8: SpriteState::exportSprite() pulled in JsonAtlasExporter.
+    "${CMAKE_SOURCE_DIR}/src/exporters/JsonAtlasExporter.cpp"
 )
 
 add_executable(tst_postpscript_injection
