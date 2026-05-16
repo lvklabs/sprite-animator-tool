@@ -124,3 +124,73 @@ The test was rewritten to read via `s.animations().value(aniId)._aframes`
 suite does not depend on the latent bug being fixed first. Once Agent 6/7
 land the fix, the test can be simplified back to `s.aframes(aniId)`.
 
+## Agent 6 findings (Qt6 Deeper API Migration)
+
+### 6. `QComboBox::activated(QString)` -> `activated(int) + itemText()` semantic risk
+
+- **Site:** `src/mainwindow.cpp:259` (`ui->previewScrSizeCombo`).
+- **Context:** The Qt4/Qt5 code wired `SIGNAL(activated(QString))` to
+  `changePreviewScrSize(const QString&)`. Qt6 removed that overload entirely;
+  only `activated(int)` remains. Agent 6 converted the connect to
+  `QOverload<int>::of(&QComboBox::activated)` and recovers the text via
+  `ui->previewScrSizeCombo->itemText(index)` inside a lambda, preserving the
+  slot signature.
+- **Why `activated`, not `currentTextChanged`:** `changePreviewScrSize()`
+  pops up a modal `QInputDialog` when the user picks "Custom..." (line
+  1530-ish). Switching to `currentTextChanged` would also fire when the combo
+  is populated programmatically (e.g. when a custom resolution is added by
+  `addItem(res)` at line 1583), which would re-trigger the dialog and create
+  an infinite loop. `activated` only fires on user interaction, matching the
+  legacy behavior.
+- **Status:** Resolved by Agent 6. Listed here as documentation for the
+  semantics shift; no further work needed unless behavior reports surface.
+
+### 7. `QAction::triggered()` no-arg overload superseded by `triggered(bool=false)`
+
+- **Sites:** ~25 `&QAction::triggered` connections in `src/mainwindow.cpp`
+  and 1 in `src/lvkaction.cpp`.
+- **Context:** Qt6's `QAction` declares a single `triggered(bool checked = false)`
+  signal; the no-arg `triggered()` of the SIGNAL/SLOT era is just that signal
+  invoked with the default. Agent 6 bound zero-arg slots directly via PMF
+  (Qt auto-discards the trailing `bool`), and used `[this](bool){ ... }`
+  lambdas where the slot has its own default arguments (`addFrameDialog`,
+  `incAniSpeed`, `decAniSpeed`, `saveFile`/`saveAsFile`) so the slot's
+  default-value path is taken rather than the `bool->int`/`bool->QString`
+  implicit conversion.
+- **Status:** Resolved. No risk.
+
+### 8. `LvkAction::triggered(const QString&)` overload selection
+
+- **Site:** `src/mainwindow.cpp:798-801` and `src/lvkaction.cpp:8`.
+- **Context:** `LvkAction` redeclares a `triggered(const QString&)` signal
+  on top of `QAction::triggered(bool)`. Name lookup in the derived class
+  scope hides the base-class member, so unqualified `&LvkAction::triggered`
+  is ambiguous to PMF; we explicitly select with
+  `QOverload<const QString&>::of(&LvkAction::triggered)` for the
+  `addRecentFileMenu` wiring, and bind via `&QAction::triggered` in the
+  constructor of `LvkAction` itself.
+- **Status:** Resolved.
+
+### 9. `MainWindow::about()` is called from the constructor and blocks `--version`/`--help`
+
+- **Site:** `src/mainwindow.cpp:188` (in `MainWindow::MainWindow`).
+- **Symptom:** Running `LvkSpriteEditor --version` or `--help` does not
+  print anything and never exits, because the modal About dialog is shown
+  inside the constructor (`about()` -> `msg.exec()`), and `parseCmdLine`
+  is only invoked after the constructor returns (`src/main.cpp:26-28`).
+- **Suggested fix:** Move the `about()` call out of the constructor (e.g.
+  defer it to the first event-loop iteration via `QTimer::singleShot(0,...)`,
+  or, better, only show it on first launch tracked by `QSettings`).
+  Independently, parse the CLI _before_ constructing `MainWindow` so that
+  `--help`/`--version` never instantiate the GUI at all.
+- **Owner:** Agent 10 (CLI modernization with `QCommandLineParser`) is the
+  natural place; Agent 9 (UX/Accessibility) may want to delete the splash
+  About entirely.
+
+### 10. `QApplication::keyboardModifiers()` is still fine in Qt6
+
+- **Sites:** `src/lvkinputimagewidget.h:113-120` (the `ctrlKey()`,
+  `shiftKey()`, `altKey()` helpers). Audited while reviewing event-handler
+  changes -- the static method is not deprecated in Qt6.
+- **Status:** No action required.
+

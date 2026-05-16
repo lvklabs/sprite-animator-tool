@@ -125,8 +125,10 @@ void LvkAnimationWidget::mousePressEvent(QMouseEvent */*event*/)
 void LvkAnimationWidget::mouseMoveEvent(QMouseEvent *event)
 {
     if (event->buttons() == Qt::LeftButton && _currentFrame != -1) {
-        _origin.setX(event->x() - _fpixmaps[_currentFrame].width()/2);
-        _origin.setY(event->y() - _fpixmaps[_currentFrame].height()/2);
+        // Qt6: QMouseEvent::x()/y() are deprecated; use position() (returns QPointF).
+        const QPoint p = event->position().toPoint();
+        _origin.setX(p.x() - _fpixmaps[_currentFrame].width()/2);
+        _origin.setY(p.y() - _fpixmaps[_currentFrame].height()/2);
     } else {
         _origin.setX(1);
         _origin.setY(1);

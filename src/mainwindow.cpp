@@ -190,93 +190,99 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::initSignals()
 {
-    connect(&_sprState,                SIGNAL(loadProgress(QString)),this, SLOT(showLoadProgress(QString)));
+    connect(&_sprState,                &SpriteState2::loadProgress,                this, &MainWindow::showLoadProgress);
 
-    connect(ui->actionSave,            SIGNAL(triggered()),          this, SLOT(saveFile()));
-    connect(ui->actionSaveAs,          SIGNAL(triggered()),          this, SLOT(saveAsFile()));
-    connect(ui->actionOpen,            SIGNAL(triggered()),          this, SLOT(openFileDialog()));
-    connect(ui->actionClose,           SIGNAL(triggered()),          this, SLOT(closeFile_checkUnsaved()));
-    connect(ui->actionExport,          SIGNAL(triggered()),          this, SLOT(exportFile()));
-    connect(ui->actionExportAs,        SIGNAL(triggered()),          this, SLOT(exportAsFile()));
-    connect(ui->actionUndo,            SIGNAL(triggered()),          this, SLOT(undo()));
-    connect(ui->actionRedo,            SIGNAL(triggered()),          this, SLOT(redo()));
-    connect(ui->actionExit,            SIGNAL(triggered()),          this, SLOT(exit()));
-    connect(ui->actionAbout,           SIGNAL(triggered()),          this, SLOT(about()));
-    connect(ui->actionWhatsThis,       SIGNAL(triggered()),          this, SLOT(whatsThisMode()));
-    //connect(ui->actionFramesTab,       SIGNAL(triggered()),          this, SLOT(showFramesTab()));
-    //connect(ui->actionAnimationsTab,   SIGNAL(triggered()),          this, SLOT(showAnimationsTab()));
-    connect(ui->actionAddImage,        SIGNAL(triggered()),          this, SLOT(addImageDialog()));
-    connect(ui->actionAddFrame,        SIGNAL(triggered()),          this, SLOT(addFrameDialog()));
-    connect(ui->actionAddAnimation,    SIGNAL(triggered()),          this, SLOT(addAnimationDialog()));
-    //connect(ui->actionShowHideFramesPreview, SIGNAL(triggered()),    this, SLOT(hideShowFramePreview()));
-    connect(ui->actionRemoveImage,     SIGNAL(triggered()),          this, SLOT(removeSelImage()));
-    connect(ui->actionRemoveFrame,     SIGNAL(triggered()),          this, SLOT(removeSelFrame()));
-    connect(ui->actionRemoveAnimation, SIGNAL(triggered()),          this, SLOT(removeSelAnimation()));
-    connect(ui->actionRemoveAllUnusedFrames, SIGNAL(triggered()),    this, SLOT(removeAllUnusedFrames()));
-    connect(ui->actionInvertAframesOrder, SIGNAL(triggered()),       this, SLOT(invertAframesOrder()));
-    connect(ui->actionRefreshAnimation,SIGNAL(triggered()),          this, SLOT(previewAnimation()));
+    connect(ui->actionSave,            &QAction::triggered,                        this, [this](bool){ saveFile(); });
+    connect(ui->actionSaveAs,          &QAction::triggered,                        this, [this](bool){ saveAsFile(); });
+    connect(ui->actionOpen,            &QAction::triggered,                        this, &MainWindow::openFileDialog);
+    connect(ui->actionClose,           &QAction::triggered,                        this, &MainWindow::closeFile_checkUnsaved);
+    connect(ui->actionExport,          &QAction::triggered,                        this, &MainWindow::exportFile);
+    connect(ui->actionExportAs,        &QAction::triggered,                        this, &MainWindow::exportAsFile);
+    connect(ui->actionUndo,            &QAction::triggered,                        this, &MainWindow::undo);
+    connect(ui->actionRedo,            &QAction::triggered,                        this, &MainWindow::redo);
+    connect(ui->actionExit,            &QAction::triggered,                        this, &MainWindow::exit);
+    connect(ui->actionAbout,           &QAction::triggered,                        this, &MainWindow::about);
+    connect(ui->actionWhatsThis,       &QAction::triggered,                        this, &MainWindow::whatsThisMode);
+    //connect(ui->actionFramesTab,       &QAction::triggered,                        this, &MainWindow::showFramesTab);
+    //connect(ui->actionAnimationsTab,   &QAction::triggered,                        this, &MainWindow::showAnimationsTab);
+    connect(ui->actionAddImage,        &QAction::triggered,                        this, &MainWindow::addImageDialog);
+    connect(ui->actionAddFrame,        &QAction::triggered,                        this, [this](bool){ addFrameDialog(); });
+    connect(ui->actionAddAnimation,    &QAction::triggered,                        this, &MainWindow::addAnimationDialog);
+    //connect(ui->actionShowHideFramesPreview, &QAction::triggered,                  this, &MainWindow::hideShowFramePreview);
+    connect(ui->actionRemoveImage,     &QAction::triggered,                        this, &MainWindow::removeSelImage);
+    connect(ui->actionRemoveFrame,     &QAction::triggered,                        this, &MainWindow::removeSelFrame);
+    connect(ui->actionRemoveAnimation, &QAction::triggered,                        this, &MainWindow::removeSelAnimation);
+    connect(ui->actionRemoveAllUnusedFrames, &QAction::triggered,                  this, &MainWindow::removeAllUnusedFrames);
+    connect(ui->actionInvertAframesOrder, &QAction::triggered,                     this, &MainWindow::invertAframesOrder);
+    connect(ui->actionRefreshAnimation, &QAction::triggered,                       this, &MainWindow::previewAnimation);
 
-    connect(ui->addImageButton,        SIGNAL(clicked()),            this, SLOT(addImageDialog()));
-    connect(ui->removeImageButton,     SIGNAL(clicked()),            this, SLOT(removeSelImage()));
-    connect(ui->refreshImgButton,      SIGNAL(clicked()),            this, SLOT(reloadSelImage()));
-    connect(ui->addFrameButton,        SIGNAL(clicked()),            this, SLOT(addFrameDialog()));
-    connect(ui->removeFrameButton,     SIGNAL(clicked()),            this, SLOT(removeSelFrame()));
-    connect(ui->removeAllUnusedFramesButton, SIGNAL(clicked()),      this, SLOT(removeAllUnusedFrames()));
-    connect(ui->addAniButton,          SIGNAL(clicked()),            this, SLOT(addAnimationDialog()));
-    connect(ui->removeAniButton,       SIGNAL(clicked()),            this, SLOT(removeSelAnimation()));
-    connect(ui->refreshAniButton,      SIGNAL(clicked()),            this, SLOT(previewAnimation()));
-    connect(ui->addAframeButton,       SIGNAL(clicked()),            this, SLOT(addAframeDialog()));
-    connect(ui->removeAframeButton,    SIGNAL(clicked()),            this, SLOT(removeSelAframe()));
-    connect(ui->aniDecSpeedButton,     SIGNAL(clicked()),            this, SLOT(decAniSpeed()));
-    connect(ui->aniIncSpeedButton,     SIGNAL(clicked()),            this, SLOT(incAniSpeed()));
-    connect(ui->hideFramePreviewButton,SIGNAL(clicked()),            this, SLOT(hideShowFramePreview()));
-    connect(ui->moveDownAframeButton,  SIGNAL(clicked()),            this, SLOT(moveSelAframeDown()));
-    connect(ui->moveUpAframeButton,    SIGNAL(clicked()),            this, SLOT(moveSelAframeUp()));
-    connect(ui->invertAframesButton,   SIGNAL(clicked()),            this, SLOT(invertAframesOrder()));
+    connect(ui->addImageButton,        &QAbstractButton::clicked,                  this, &MainWindow::addImageDialog);
+    connect(ui->removeImageButton,     &QAbstractButton::clicked,                  this, &MainWindow::removeSelImage);
+    connect(ui->refreshImgButton,      &QAbstractButton::clicked,                  this, &MainWindow::reloadSelImage);
+    connect(ui->addFrameButton,        &QAbstractButton::clicked,                  this, [this](bool){ addFrameDialog(); });
+    connect(ui->removeFrameButton,     &QAbstractButton::clicked,                  this, &MainWindow::removeSelFrame);
+    connect(ui->removeAllUnusedFramesButton, &QAbstractButton::clicked,            this, &MainWindow::removeAllUnusedFrames);
+    connect(ui->addAniButton,          &QAbstractButton::clicked,                  this, &MainWindow::addAnimationDialog);
+    connect(ui->removeAniButton,       &QAbstractButton::clicked,                  this, &MainWindow::removeSelAnimation);
+    connect(ui->refreshAniButton,      &QAbstractButton::clicked,                  this, &MainWindow::previewAnimation);
+    connect(ui->addAframeButton,       &QAbstractButton::clicked,                  this, &MainWindow::addAframeDialog);
+    connect(ui->removeAframeButton,    &QAbstractButton::clicked,                  this, &MainWindow::removeSelAframe);
+    connect(ui->aniDecSpeedButton,     &QAbstractButton::clicked,                  this, [this](bool){ decAniSpeed(); });
+    connect(ui->aniIncSpeedButton,     &QAbstractButton::clicked,                  this, [this](bool){ incAniSpeed(); });
+    connect(ui->hideFramePreviewButton, &QAbstractButton::clicked,                 this, &MainWindow::hideShowFramePreview);
+    connect(ui->moveDownAframeButton,  &QAbstractButton::clicked,                  this, &MainWindow::moveSelAframeDown);
+    connect(ui->moveUpAframeButton,    &QAbstractButton::clicked,                  this, &MainWindow::moveSelAframeUp);
+    connect(ui->invertAframesButton,   &QAbstractButton::clicked,                  this, &MainWindow::invertAframesOrder);
 
-    connect(ui->addAniTransButton,     SIGNAL(clicked()),            this, SLOT(addTransDialog()));
-    connect(ui->refreshTransButton,    SIGNAL(clicked()),            this, SLOT(previewTransition()));
-    connect(ui->removeAniTransButton, SIGNAL(clicked()),             this, SLOT(removeSelTrans()));
-    connect(ui->removeAllAniTransButton, SIGNAL(clicked()),          this, SLOT(removeAllTrans()));
+    connect(ui->addAniTransButton,     &QAbstractButton::clicked,                  this, &MainWindow::addTransDialog);
+    connect(ui->refreshTransButton,    &QAbstractButton::clicked,                  this, &MainWindow::previewTransition);
+    connect(ui->removeAniTransButton,  &QAbstractButton::clicked,                  this, &MainWindow::removeSelTrans);
+    connect(ui->removeAllAniTransButton, &QAbstractButton::clicked,                this, &MainWindow::removeAllTrans);
     //TODO
-    //connect(ui->removeAniTransButton,  SIGNAL(clicked()),            this, SLOT(()));
-    //connect(ui->removeAllAniTransButton, SIGNAL(clicked()),          this, SLOT(()));
-    //connect(ui->moveAniTransDownButton,SIGNAL(clicked()),            this, SLOT(()));
-    //connect(ui->moveAniTransUpButton,  SIGNAL(clicked()),            this, SLOT(()));
+    //connect(ui->removeAniTransButton,    &QAbstractButton::clicked,                this, &MainWindow::());
+    //connect(ui->removeAllAniTransButton, &QAbstractButton::clicked,                this, &MainWindow::());
+    //connect(ui->moveAniTransDownButton,  &QAbstractButton::clicked,                this, &MainWindow::());
+    //connect(ui->moveAniTransUpButton,    &QAbstractButton::clicked,                this, &MainWindow::());
 
-    connect(ui->scaleImageButton,      SIGNAL(clicked()),            this, SLOT(scaleCheckedImages()));
-    connect(ui->quickModeButton,       SIGNAL(clicked()),            this, SLOT(switchQuickMode()));
-    connect(ui->checkAllImagesButton,  SIGNAL(clicked()),            this, SLOT(checkAllImages()));
-    connect(ui->invertCheckedImagesButton,  SIGNAL(clicked()),       this, SLOT(invertCheckedImages()));
-    connect(ui->createQuickAniButton,  SIGNAL(clicked()),            this, SLOT(createQuickAnimation()));
+    connect(ui->scaleImageButton,      &QAbstractButton::clicked,                  this, &MainWindow::scaleCheckedImages);
+    connect(ui->quickModeButton,       &QAbstractButton::clicked,                  this, &MainWindow::switchQuickMode);
+    connect(ui->checkAllImagesButton,  &QAbstractButton::clicked,                  this, &MainWindow::checkAllImages);
+    connect(ui->invertCheckedImagesButton, &QAbstractButton::clicked,              this, &MainWindow::invertCheckedImages);
+    connect(ui->createQuickAniButton,  &QAbstractButton::clicked,                  this, &MainWindow::createQuickAnimation);
 
-    connect(ui->landscapeCheckBox,     SIGNAL(stateChanged(int)),    this, SLOT(switchLandscapeMode()));
-    connect(ui->previewScrSizeCombo,   SIGNAL(activated(QString)),   this, SLOT(changePreviewScrSize(const QString &)));
+    connect(ui->landscapeCheckBox,     &QCheckBox::stateChanged,                   this, &MainWindow::switchLandscapeMode);
+    // Qt6: QComboBox::activated(QString) was removed; use activated(int) + itemText().
+    // We use activated() (user-only) here -- NOT currentTextChanged() -- to preserve
+    // legacy semantics: changePreviewScrSize() may pop up a QInputDialog when "Custom..."
+    // is selected, and must NOT fire when the combo is populated programmatically.
+    // See note in changePreviewScrSize() and UPGRADE_NOTES.md "Agent 6 findings".
+    connect(ui->previewScrSizeCombo,   QOverload<int>::of(&QComboBox::activated),  this,
+            [this](int index){ changePreviewScrSize(ui->previewScrSizeCombo->itemText(index)); });
 
-    connect(ui->imgPreview,            SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
-    connect(ui->framePreview,          SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
-    connect(ui->aframePreview,         SIGNAL(mousePositionChanged(int,int)),  this, SLOT(showMousePosition(int,int)));
-    connect(ui->imgPreview,            SIGNAL(mouseRectChanging(const QRect&)),       this, SLOT(showMouseRect(const QRect&)));
-    connect(ui->imgPreview,            SIGNAL(frameRectChanging(const QRect&)),       this, SLOT(updateCurrentFrame_ui(const QRect&)));
-    connect(ui->imgPreview,            SIGNAL(mouseRectChangeFinished(const QRect&)), this, SLOT(blendFrameRect()));
-    connect(ui->imgPreview,            SIGNAL(mouseRectChangeFinished(const QRect&)), this, SLOT(showMouseRect(const QRect&)));
-    connect(ui->imgPreview,            SIGNAL(frameRectChangeFinished(const QRect&)), this, SLOT(updateCurrentFrame(const QRect&)));
+    connect(ui->imgPreview,            &LvkInputImageWidget::mousePositionChanged, this, &MainWindow::showMousePosition);
+    connect(ui->framePreview,          &LvkInputImageWidget::mousePositionChanged, this, &MainWindow::showMousePosition);
+    connect(ui->aframePreview,         &LvkInputImageWidget::mousePositionChanged, this, &MainWindow::showMousePosition);
+    connect(ui->imgPreview,            &LvkFrameDefWidget::mouseRectChanging,       this, &MainWindow::showMouseRect);
+    connect(ui->imgPreview,            &LvkFrameDefWidget::frameRectChanging,       this, &MainWindow::updateCurrentFrame_ui);
+    connect(ui->imgPreview,            &LvkFrameDefWidget::mouseRectChangeFinished, this, [this](const QRect&){ blendFrameRect(); });
+    connect(ui->imgPreview,            &LvkFrameDefWidget::mouseRectChangeFinished, this, &MainWindow::showMouseRect);
+    connect(ui->imgPreview,            &LvkFrameDefWidget::frameRectChangeFinished, this, &MainWindow::updateCurrentFrame);
 
-    connect(ui->imgZoomInButton,       SIGNAL(clicked()),  ui->imgPreview,    SLOT(zoomIn()));
-    connect(ui->imgZoomOutButton,      SIGNAL(clicked()),  ui->imgPreview,    SLOT(zoomOut()));
-    connect(ui->actionClearGuides,     SIGNAL(triggered()),ui->imgPreview,    SLOT(clearGuides()));
-    connect(ui->frameZoomInButton,     SIGNAL(clicked()),  ui->framePreview,  SLOT(zoomIn()));
-    connect(ui->frameZoomOutButton,    SIGNAL(clicked()),  ui->framePreview,  SLOT(zoomOut()));
-    connect(ui->aframeZoomInButton,    SIGNAL(clicked()),  ui->aframePreview, SLOT(zoomIn()));
-    connect(ui->aframeZoomOutButton,   SIGNAL(clicked()),  ui->aframePreview, SLOT(zoomOut()));
+    connect(ui->imgZoomInButton,       &QAbstractButton::clicked,                  ui->imgPreview,    &LvkInputImageWidget::zoomIn);
+    connect(ui->imgZoomOutButton,      &QAbstractButton::clicked,                  ui->imgPreview,    &LvkInputImageWidget::zoomOut);
+    connect(ui->actionClearGuides,     &QAction::triggered,                        ui->imgPreview,    &LvkFrameDefWidget::clearGuides);
+    connect(ui->frameZoomInButton,     &QAbstractButton::clicked,                  ui->framePreview,  &LvkInputImageWidget::zoomIn);
+    connect(ui->frameZoomOutButton,    &QAbstractButton::clicked,                  ui->framePreview,  &LvkInputImageWidget::zoomOut);
+    connect(ui->aframeZoomInButton,    &QAbstractButton::clicked,                  ui->aframePreview, &LvkInputImageWidget::zoomIn);
+    connect(ui->aframeZoomOutButton,   &QAbstractButton::clicked,                  ui->aframePreview, &LvkInputImageWidget::zoomOut);
 
-    connect(ui->imgTableWidget,        SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showSelImage(int)));
-    connect(ui->framesTableWidget,     SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showSelFrame(int)));
-    connect(ui->aframesTableWidget,    SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showSelAframe(int)));
-    connect(ui->aniTableWidget,        SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(showAframes(int)));
+    connect(ui->imgTableWidget,        &QTableWidget::currentCellChanged,          this, [this](int row, int, int, int){ showSelImage(row); });
+    connect(ui->framesTableWidget,     &QTableWidget::currentCellChanged,          this, [this](int row, int, int, int){ showSelFrame(row); });
+    connect(ui->aframesTableWidget,    &QTableWidget::currentCellChanged,          this, [this](int row, int, int, int){ showSelAframe(row); });
+    connect(ui->aniTableWidget,        &QTableWidget::currentCellChanged,          this, [this](int row, int, int, int){ showAframes(row); });
 
-    connect(ui->saveCustomHeaderButton,    SIGNAL(clicked()),                       this, SLOT(saveCustomHeader()));
-    connect(ui->restoreCustomHeaderButton, SIGNAL(clicked()),                       this, SLOT(restoreCustomHeader()));
+    connect(ui->saveCustomHeaderButton,    &QAbstractButton::clicked,              this, &MainWindow::saveCustomHeader);
+    connect(ui->restoreCustomHeaderButton, &QAbstractButton::clicked,              this, &MainWindow::restoreCustomHeader);
 
     cellChangedSignals(true);
     blendComboBoxSignals(true);
@@ -285,24 +291,25 @@ void MainWindow::initSignals()
 void MainWindow::cellChangedSignals(bool connected)
 {
     if (connected) {
-        connect(ui->imgTableWidget,       SIGNAL(cellChanged(int,int)), this, SLOT(updateImgTable(int,int)));
-        connect(ui->framesTableWidget,    SIGNAL(cellChanged(int,int)), this, SLOT(updateFramesTable(int,int)));
-        connect(ui->aframesTableWidget,   SIGNAL(cellChanged(int,int)), this, SLOT(updateAframesTable(int,int)));
-        connect(ui->aniTableWidget,       SIGNAL(cellChanged(int,int)), this, SLOT(updateAniTable(int,int)));
+        connect(ui->imgTableWidget,       &QTableWidget::cellChanged, this, &MainWindow::updateImgTable);
+        connect(ui->framesTableWidget,    &QTableWidget::cellChanged, this, &MainWindow::updateFramesTable);
+        connect(ui->aframesTableWidget,   &QTableWidget::cellChanged, this, &MainWindow::updateAframesTable);
+        connect(ui->aniTableWidget,       &QTableWidget::cellChanged, this, &MainWindow::updateAniTable);
     } else {
-        disconnect(ui->imgTableWidget,    SIGNAL(cellChanged(int,int)), this, SLOT(updateImgTable(int,int)));
-        disconnect(ui->framesTableWidget, SIGNAL(cellChanged(int,int)), this, SLOT(updateFramesTable(int,int)));
-        disconnect(ui->aframesTableWidget,SIGNAL(cellChanged(int,int)), this, SLOT(updateAframesTable(int,int)));
-        disconnect(ui->aniTableWidget,    SIGNAL(cellChanged(int,int)), this, SLOT(updateAniTable(int,int)));
+        disconnect(ui->imgTableWidget,    &QTableWidget::cellChanged, this, &MainWindow::updateImgTable);
+        disconnect(ui->framesTableWidget, &QTableWidget::cellChanged, this, &MainWindow::updateFramesTable);
+        disconnect(ui->aframesTableWidget, &QTableWidget::cellChanged, this, &MainWindow::updateAframesTable);
+        disconnect(ui->aniTableWidget,    &QTableWidget::cellChanged, this, &MainWindow::updateAniTable);
     }
 }
 
 void MainWindow::blendComboBoxSignals(bool connected)
 {
+    // Qt6: QComboBox::currentIndexChanged has only the (int) overload now.
     if (connected) {
-        connect(ui->blendModeComboBox,    SIGNAL(currentIndexChanged(int)), this, SLOT(setBlendPixmap()));
+        connect(ui->blendModeComboBox,    &QComboBox::currentIndexChanged, this, &MainWindow::setBlendPixmap);
     } else {
-        disconnect(ui->blendModeComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(setBlendPixmap()));
+        disconnect(ui->blendModeComboBox, &QComboBox::currentIndexChanged, this, &MainWindow::setBlendPixmap);
     }
 }
 
@@ -793,7 +800,10 @@ void MainWindow::addRecentFileMenu(const QString& filename)
     ui->actionNoRecentFiles->setVisible(false);
     LvkAction* action = new LvkAction(filename);
     ui->actionOpenRecent->addAction(action);
-    connect(action, SIGNAL(triggered(QString)), this, SLOT(openFile_checkUnsaved(QString)));
+    // LvkAction defines its own `triggered(const QString&)` overload distinct from
+    // QAction::triggered(bool). Bind via PMF using the explicit member-function pointer.
+    connect(action, QOverload<const QString&>::of(&LvkAction::triggered),
+            this, [this](const QString& f){ openFile_checkUnsaved(f); });
 }
 
 void MainWindow::closeFile_checkUnsaved()
