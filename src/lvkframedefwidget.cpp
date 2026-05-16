@@ -16,11 +16,11 @@ LvkFrameDefWidget::LvkFrameDefWidget(QWidget *parent)
 
     _frectPen.setColor(QColor(255, 100, 100));
     _frectPen.setStyle(Qt::SolidLine);
-    _mrectPen.setColor(Qt::black);
+    /* _mrectPen, _mouseGuidePen and _guidePen colors are derived from the
+     * widget's palette at paint time so they remain visible under both
+     * light and dark themes (and follow runtime theme changes). */
     _mrectPen.setStyle(Qt::DashLine);
-    _mouseGuidePen.setColor(Qt::gray);
     _mouseGuidePen.setStyle(Qt::SolidLine);
-    _guidePen.setColor(QColor(0, 0, 255));
     _guidePen.setStyle(Qt::DashLine);
     _resizeControlsPen.setColor(QColor(180, 180, 180));
     _resizeControlsPen.setStyle(Qt::SolidLine);
@@ -214,6 +214,7 @@ void LvkFrameDefWidget::paintEvent(QPaintEvent *event)
 
 void LvkFrameDefWidget::paintGuides(QPainter& painter)
 {
+    _guidePen.setColor(palette().color(QPalette::Highlight));
     painter.setPen(_guidePen);
     for (int i = 0; i < _guides.size(); ++i) {
         int x = rtoz(_guides.at(i).x());
@@ -252,6 +253,7 @@ void LvkFrameDefWidget::paintMouseGuides(QPainter& painter)
         }
 
         if (mouseBlueGuideMode()) {
+            _guidePen.setColor(palette().color(QPalette::Highlight));
             painter.setPen(_guidePen);
             if (_hGuide) {
                 painter.drawLine(0, my, width(),my);
@@ -259,6 +261,7 @@ void LvkFrameDefWidget::paintMouseGuides(QPainter& painter)
                 painter.drawLine(mx, 0,  mx, height());
             }
         } else {
+            _mouseGuidePen.setColor(palette().color(QPalette::Mid));
             painter.setPen(_mouseGuidePen);
             painter.drawLine(mx, 0,  mx, height());
             painter.drawLine(0, my, width(),my);
@@ -285,6 +288,7 @@ void LvkFrameDefWidget::paintMouseRect(QPainter& painter)
 
     if (!rect.isEmpty()) {
         paintResizeControls(painter, rect);
+        _mrectPen.setColor(palette().color(QPalette::WindowText));
         painter.setPen(_mrectPen);
         painter.drawRect(rect);
     }
