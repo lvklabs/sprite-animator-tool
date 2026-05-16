@@ -189,7 +189,15 @@ MainWindow::MainWindow(QWidget *parent)
     resize(1204, 768);
     updateGeometry();
 
-    about();
+    // Agent 10: gate the splash About dialog behind a QSettings flag.
+    // Previously this was an unconditional modal `about()` call from the
+    // constructor, which blocked `--version` / `--help` (see UPGRADE_NOTES.md
+    // #9) and made MainWindow non-instantiable in headless contexts (tests,
+    // CI, --export). Default-true preserves legacy behavior for existing
+    // users; flip the key to disable.
+    if (settings.value(QStringLiteral("ui/showAboutOnStartup"), true).toBool()) {
+        about();
+    }
 }
 
 void MainWindow::initSignals()
