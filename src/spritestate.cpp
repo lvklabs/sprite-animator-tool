@@ -597,7 +597,7 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
 
     QTextStream textStream(&textOutput);
     textStream << "### Exported LvkSprite ################################\n";
-    textStream << "Exported LvkSprite version 0.1\n\n";
+    textStream << "Exported " HEADER_VER_04 "\n\n";
 
     textStream << "# Frame Pixmaps\n";
     textStream << "# format: frameId,offset(bytes),length(bytes)\n";
