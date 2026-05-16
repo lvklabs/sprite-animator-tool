@@ -512,7 +512,7 @@ void FrameTabController::blendNone()
 
 void FrameTabController::blendExistentFrame()
 {
-    Id frameId = getFrameDialog("Blend pixmap");
+    Id frameId = getFrameDialog(tr("Blend pixmap"));
     if (frameId != NullId) {
         m_blendFrameId = frameId;
         m_ui->framePreview->setBlendPixmap(m_state->fpixmap(frameId));

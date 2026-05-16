@@ -117,7 +117,16 @@ MainWindow::MainWindow(QWidget *parent)
     showFramesTab();
     _frameCtl->hideFramePreview();
 
-    resize(1204, 768);
+    // Agent 9: replace hardcoded geometry with screen-relative sizing for
+    // hi-DPI awareness; floor at 1204x768 (the legacy default).
+    if (QScreen* scr = screen()) {
+        const QRect avail = scr->availableGeometry();
+        const int w = std::max(1204, static_cast<int>(avail.width() * 0.8));
+        const int h = std::max(768, static_cast<int>(avail.height() * 0.8));
+        resize(w, h);
+    } else {
+        resize(1204, 768);
+    }
     updateGeometry();
 
     // Agent 10: gate the splash About dialog behind a QSettings flag.
@@ -536,7 +545,7 @@ void MainWindow::restoreCustomHeader()
 void MainWindow::showLoadProgress(const QString& progress)
 {
     statusBarRectSize->setFixedWidth(500);
-    statusBarRectSize->setText("Loading " + progress);
+    statusBarRectSize->setText(tr("Loading %1").arg(progress));
     statusBarRectSize->repaint();
 }
 
@@ -568,7 +577,9 @@ void MainWindow::whatsThisMode()
 void MainWindow::about()
 {
     QMessageBox msg;
-    msg.setText(QString(APP_ABOUT));
+    msg.setWindowTitle(tr("About %1").arg(APP_NAME));
+    msg.setText(QString(APP_ABOUT) + "\n\n" +
+                tr("Modernized 2026 — Qt 6 port, 10-agent upgrade."));
     msg.setIconPixmap(QPixmap(":/icons/app-icon-128x128"));
     msg.exec();
 }

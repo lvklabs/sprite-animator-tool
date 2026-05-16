@@ -36,6 +36,7 @@
 #include "mainwindow.h"
 #include "settings.h"
 #include "spritestate.h"
+#include "theme.h"
 
 namespace {
 
@@ -245,6 +246,10 @@ int main(int argc, char* argv[])
     // Interactive GUI path. Only now is it safe to set up the icon and
     // construct MainWindow.
     QApplication::setWindowIcon(QIcon(QStringLiteral(":/icons/app-icon-128x128")));
+
+    // Agent 9: apply the persisted (or auto-detected) theme palette.
+    // QSettings requires org/app names set above, so this must follow them.
+    Theme::apply(&a, Theme::loadFromSettings());
 
     MainWindow w;
     if (!cli.spriteFile.isEmpty()) {

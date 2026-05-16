@@ -49,6 +49,7 @@ set(LVK_SOURCES
     src/dialogs.cpp
     src/statecircularbuffer.cpp
     src/lvkframedefwidget.cpp
+    src/theme.cpp
     # Agent 8: JSON atlas exporter + 5 MainWindow tab controllers split
     # out of the 2,511-line god class.
     src/exporters/JsonAtlasExporter.cpp
@@ -76,6 +77,7 @@ set(LVK_HEADERS
     src/dialogs.h
     src/statecircularbuffer.h
     src/lvkframedefwidget.h
+    src/theme.h
     src/exporters/JsonAtlasExporter.h
     src/controllers/ImageTabController.h
     src/controllers/FrameTabController.h

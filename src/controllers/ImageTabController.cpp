@@ -129,7 +129,7 @@ void ImageTabController::addImageDialog()
 
     QStringList filenames = QFileDialog::getOpenFileNames(
             m_mw, tr("Add Image"), lastDir,
-            "Images(*.png *.jpg *.jpeg *.xpm *.xbm *.bmp *.tif *.tiff);; *.*");
+            tr("Images") + " (*.png *.jpg *.jpeg *.xpm *.xbm *.bmp *.tif *.tiff);; *.*");
 
     if (filenames.size() > 0) {
         lastDir = QFileInfo(filenames[0]).absolutePath();
