@@ -62,9 +62,15 @@ MainWindow::MainWindow(QWidget *parent)
     ui->statusBar->addWidget(statusBarRectSize);
 
     ui->imgPreview->setPixmap(QPixmap());
-    ui->imgPreview->setBackground(QPixmap(":/bg/default-bg"));
+    // Palette-driven background: follows the active color scheme so dark mode
+    // stays dark instead of leaking the burned-in light checker PNG.
+    ui->imgPreview->setBackgroundRole(QPalette::Base);
+    ui->imgPreview->setAutoFillBackground(true);
+    ui->imgPreview->setBackground(QPixmap());
     ui->framePreview->setPixmap(QPixmap());
-    ui->framePreview->setBackground(QPixmap(":/bg/default-bg"));
+    ui->framePreview->setBackgroundRole(QPalette::Base);
+    ui->framePreview->setAutoFillBackground(true);
+    ui->framePreview->setBackground(QPixmap());
     ui->aframePreview->setPixmap(QPixmap());
 
     ui->imgPreview->setScrollArea(ui->imgPreviewScroll);
@@ -183,10 +189,18 @@ void MainWindow::initSignals()
     connect(ui->restoreCustomHeaderButton, &QAbstractButton::clicked, this, &MainWindow::restoreCustomHeader);
 }
 
-// Bottleneck hook (Agent 8): controllers wrap their setText() calls in
-// local disconnect/reconnect pairs (mirrors legacy behavior). Kept for
-// future cross-cutting concerns (e.g. read-only mode).
-void MainWindow::cellChangedSignals(bool /*connected*/) {}
+// Interim fix (Phase 1): the controller split left this function as an
+// empty no-op, so every bulk setItem() recursed into the update slots and
+// wiped the undo stack on file open. Restoring this as blockSignals() on
+// the four table widgets is the minimal correct gate. A later phase will
+// migrate call sites to per-controller QSignalBlocker and remove it.
+void MainWindow::cellChangedSignals(bool connected)
+{
+    ui->imgTableWidget->blockSignals(!connected);
+    ui->framesTableWidget->blockSignals(!connected);
+    ui->aframesTableWidget->blockSignals(!connected);
+    ui->aniTableWidget->blockSignals(!connected);
+}
 
 void MainWindow::initTables()
 {
