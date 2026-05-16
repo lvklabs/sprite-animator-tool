@@ -1,6 +1,7 @@
 #include "spritestate.h"
 
 #include <QFile>
+#include <QFileDevice>
 #include <QFileInfo>
 #include <QDebug>
 #include <QTextStream>
@@ -10,8 +11,62 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QProcess>
+#include <QStandardPaths>
+#include <QTemporaryFile>
 #include <iostream>
 #include <cctype>
+
+// SECURITY (Agent 5): Audit of src/spritestate.cpp - 2026-05-16
+// ---------------------------------------------------------------------------
+// Findings:
+//
+//  [FIXED] Shell injection via --postprocessing-script (HIGH severity)
+//      runPostprocessingScript() used to concatenate the user-supplied
+//      postpScriptCmd with the input/output image paths into one QString and
+//      passed it to QProcess::start(const QString&). The single-string
+//      overload tokenises by whitespace and (in Qt5/early Qt6) is documented
+//      as accepting a "shell-style" command line. A postpScript value
+//      containing shell metacharacters (`;`, `|`, `&&`, `$()`, backticks,
+//      glob `*`) - or a temp path containing whitespace - would have been
+//      interpreted as separate tokens or as additional commands. We now use
+//      QProcess::start(program, args) with QProcess::splitCommand() to split
+//      ONLY the trusted-shape portion supplied by the operator, and append
+//      the temp paths as explicit, opaque positional arguments so they can
+//      never be re-parsed as shell tokens.
+//
+//  [FIXED] Predictable / world-writable temp path (MEDIUM severity)
+//      writeTempImage() used a fixed path of QDir::tempPath()/tmpLvkImg.png
+//      and {that}.ppi. Both are guessable, deterministic, single-user-hostile
+//      (race on /tmp), and the .png + .ppi pair were not unlinked on failure.
+//      Now we use QTemporaryFile, which gives randomised unique names, 0600
+//      POSIX permissions, and RAII cleanup.
+//
+//  [FIXED] Script path validation (LOW severity)
+//      The script command was invoked even if the program path did not exist
+//      or was not executable. We now reject non-executable script paths
+//      before spawning a QProcess and surface a clear error.
+//
+//  [INFO] Other QProcess / system() / popen() sites: NONE.
+//      grep'd the rest of spritestate.cpp - the only process spawn is the
+//      postprocessing script. mainwindow.cpp, dialogs.cpp, etc. contain only
+//      QDialog::exec()/QMessageBox::exec() (modal event loops, not
+//      subprocess exec).
+//
+//  [INFO] QFile::open() return values are checked in save()/load() and the
+//      three exportSprite() outputs; no unchecked file-open bugs found.
+//
+//  [FIXME(agent-5)] exportSprite() writes binFileName/textFileName/headerFileName
+//      derived from a user-supplied filename and outputDir without checking
+//      that the resolved paths stay inside outputDir. A user (or sprite file
+//      with a baseName containing "..") could overwrite arbitrary files the
+//      process has rights to. This is low risk for a trusted-developer tool
+//      but should be hardened in the Phase 3 refactor (Agent 8 / Agent 10).
+//
+//  [FIXME(agent-5)] writeImageWithPostprocessing() does not impose a maximum
+//      output-image size before writePostprocImage() readAll()s it into
+//      memory. A malicious postprocessing script could return a multi-GB
+//      file. Acceptable for a trusted-developer tool, but worth capping.
+// ---------------------------------------------------------------------------
 
 #define HEADER_VER_01 "LvkSprite version 0.1"
 #define HEADER_VER_02 "LvkSprite version 0.2"
@@ -500,53 +555,163 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
     return true;
 }
 
-bool writeTempImage(QString &tmpImgFilename, const QImage &image)
+// SECURITY (Agent 5): write a frame's pixmap to a unique secure tempfile.
+//
+// QTemporaryFile gives us:
+//   - randomised, unpredictable filename (no /tmp race),
+//   - 0600 POSIX permissions by default,
+//   - RAII cleanup if we let the object go out of scope without disowning,
+//   - no need to QFile::remove() leftovers from a previous crashed run.
+//
+// We disable autoRemove only because writeImageWithPostprocessing() needs the
+// file to outlive this helper so that the postprocessing subprocess can read
+// it. The caller MUST remove the file itself; see the RAII guard in
+// writeImageWithPostprocessing().
+static bool writeTempImage(QString &tmpImgFilename, const QImage &image)
 {
     const int IMG_COMPRESSION = 9; // min:0, max:9
 
-    tmpImgFilename = QDir::tempPath() + QDir::separator() + "tmpLvkImg.png";
-
-    if (QFile::exists(tmpImgFilename) && !QFile::remove(tmpImgFilename)) {
-        qDebug() << "Could not remove temp file" << tmpImgFilename;
+    QTemporaryFile tmp(QDir::tempPath() + QDir::separator() + "lvk-frame-XXXXXX.png");
+    tmp.setAutoRemove(false);
+    if (!tmp.open()) {
+        qDebug() << "writeTempImage: could not create secure temp file in"
+                 << QDir::tempPath();
         return false;
     }
+    tmpImgFilename = tmp.fileName();
+    tmp.close(); // QImageWriter wants to own the handle
 
     QImageWriter imgWriter(tmpImgFilename, QByteArray("png"));
     imgWriter.setCompression(IMG_COMPRESSION);
-    imgWriter.write(image);
-
+    if (!imgWriter.write(image)) {
+        qDebug() << "writeTempImage: failed to encode PNG to" << tmpImgFilename
+                 << "-" << imgWriter.errorString();
+        QFile::remove(tmpImgFilename);
+        tmpImgFilename.clear();
+        return false;
+    }
     return true;
 }
 
-bool runPostprocessingScript(const QString &postpScriptCmd, const QString &inputImg, const QString &outputImg)
+// SECURITY (Agent 5): Validate that a script command resolves to an
+// executable file before we let QProcess try to spawn it.
+//
+// Accepts the user-supplied postpScriptCmd, which may include extra args
+// (e.g. "python3 /path/to/script.py --flag"). We only validate the program
+// portion (the first token of the tokenised command). If that token is a
+// relative or absolute path, it must exist and be executable. If it's a bare
+// name (e.g. "convert"), it must resolve via PATH.
+static bool resolvePostprocessingProgram(const QString &postpScriptCmd,
+                                         QString *resolvedProgram,
+                                         QStringList *extraArgs,
+                                         QString *errorOut)
 {
-    const int TIMEOUT_START = 3;
+    const QStringList tokens = QProcess::splitCommand(postpScriptCmd);
+    if (tokens.isEmpty()) {
+        if (errorOut) *errorOut = QStringLiteral("postprocessing script command is empty");
+        return false;
+    }
+
+    const QString program = tokens.first();
+    const QStringList args = tokens.mid(1);
+
+    // Step 1: locate the binary on disk.
+    QString resolved;
+    QFileInfo fi(program);
+    if (program.contains(QDir::separator()) || fi.isAbsolute()) {
+        // Path-like: must exist on disk exactly as given.
+        if (!fi.exists() || !fi.isFile()) {
+            if (errorOut) {
+                *errorOut = QStringLiteral("postprocessing script '%1' does not exist").arg(program);
+            }
+            return false;
+        }
+        resolved = fi.absoluteFilePath();
+    } else {
+        // Bare name: search PATH.
+        resolved = QStandardPaths::findExecutable(program);
+        if (resolved.isEmpty()) {
+            if (errorOut) {
+                *errorOut = QStringLiteral("postprocessing script '%1' not found on PATH").arg(program);
+            }
+            return false;
+        }
+    }
+
+    // Step 2: must be executable (POSIX) - on Windows isExecutable defers to extension.
+    QFileInfo resolvedInfo(resolved);
+    if (!resolvedInfo.isExecutable()) {
+        if (errorOut) {
+            *errorOut = QStringLiteral("postprocessing script '%1' is not executable").arg(resolved);
+        }
+        return false;
+    }
+
+    if (resolvedProgram) *resolvedProgram = resolved;
+    if (extraArgs)       *extraArgs       = args;
+    return true;
+}
+
+// SECURITY (Agent 5): Spawn the postprocessing script with explicit argv,
+// never a shell-style joined string.
+//
+// Returns true iff the script ran AND exited successfully (exit code 0,
+// normal exit).
+static bool runPostprocessingScript(const QString &postpScriptCmd,
+                                    const QString &inputImg,
+                                    const QString &outputImg)
+{
+    const int TIMEOUT_START  = 3;
     const int TIMEOUT_FINISH = 30;
 
     if (QFile::exists(outputImg) && !QFile::remove(outputImg)) {
-        qDebug() << "Could not remove temp file" << outputImg;
+        qDebug() << "runPostprocessingScript: could not remove stale output"
+                 << outputImg;
         return false;
     }
 
-    QString cmdLine =  postpScriptCmd + " " + inputImg + " " + outputImg;
+    QString program;
+    QStringList args;
+    QString validationError;
+    if (!resolvePostprocessingProgram(postpScriptCmd, &program, &args, &validationError)) {
+        qDebug() << "runPostprocessingScript:" << validationError;
+        return false;
+    }
 
-    qDebug() << "Postprocessing script: " << cmdLine;
+    // Append the two image paths as explicit positional arguments. They are
+    // NEVER subjected to shell parsing -- QProcess passes argv straight to
+    // execve() on POSIX (and a CreateProcess()-with-quoting on Windows).
+    args << inputImg << outputImg;
+
+    qDebug() << "runPostprocessingScript: program=" << program
+             << " argc=" << args.size();
 
     QProcess postpScript;
-    postpScript.start(cmdLine);
-    if (!postpScript.waitForStarted(TIMEOUT_START*1000)) {
-        qDebug() << "Could not start postprocessing script" << cmdLine;
+    postpScript.start(program, args);
+    if (!postpScript.waitForStarted(TIMEOUT_START * 1000)) {
+        qDebug() << "Could not start postprocessing script" << program;
         return false;
     }
-    if (!postpScript.waitForFinished(TIMEOUT_FINISH*1000)) {
-        qDebug() << "Postprocessing script took more than" << TIMEOUT_FINISH << " secs to finish. Aborting.";
+    if (!postpScript.waitForFinished(TIMEOUT_FINISH * 1000)) {
+        qDebug() << "Postprocessing script took more than" << TIMEOUT_FINISH
+                 << "secs to finish. Aborting.";
+        postpScript.kill();
+        postpScript.waitForFinished(1000);
+        return false;
+    }
+    if (postpScript.exitStatus() != QProcess::NormalExit
+        || postpScript.exitCode() != 0)
+    {
+        qDebug() << "Postprocessing script exited with status="
+                 << postpScript.exitStatus()
+                 << "code=" << postpScript.exitCode();
         return false;
     }
 
     return true;
 }
 
-bool writePostprocImage(QFile &binOutput, const QString &postprocImgFilename)
+static bool writePostprocImage(QFile &binOutput, const QString &postprocImgFilename)
 {
     QFile postprocImg(postprocImgFilename);
     if (!postprocImg.open(QFile::ReadOnly)) {
@@ -572,9 +737,24 @@ bool SpriteState::writeImageWithPostprocessing(QFile &binOutput, const LvkFrame 
         return false;
     }
 
+    // RAII cleanup of tmp files even on early return / exception paths.
+    // (QTemporaryFile would auto-clean if we'd kept the object alive, but
+    // we need the file to outlive the helper so the postprocessing process
+    // can read it - so we clean explicitly here.)
+    struct TempCleanup {
+        QString a, b;
+        ~TempCleanup() {
+            if (!a.isEmpty()) QFile::remove(a);
+            if (!b.isEmpty()) QFile::remove(b);
+        }
+    };
+    TempCleanup cleanup{tmpImgFilename, QString()};
+
     // run post processing script on temp image
 
     QString postpImgFilename = tmpImgFilename + ".ppi";
+    cleanup.b = postpImgFilename;
+
     if (!postpScript.isEmpty()) {
         qDebug() << "Postprocessing temp image...";
 
