@@ -54,7 +54,7 @@ int runHeadlessExport(const CliOptions& cli, const QString& binName)
     if (cli.spriteFile.isEmpty()) {
         std::cerr << binName.toStdString()
                   << ": Error: --export requires a sprite-file argument\n";
-        return 2;
+        return -1;
     }
 
     QFileInfo info(cli.spriteFile);
@@ -62,7 +62,7 @@ int runHeadlessExport(const CliOptions& cli, const QString& binName)
         std::cerr << binName.toStdString()
                   << ": Error: sprite-file '" << cli.spriteFile.toStdString()
                   << "' does not exist\n";
-        return 2;
+        return -1;
     }
 
     QString outputDir = cli.outputDir;
@@ -72,14 +72,14 @@ int runHeadlessExport(const CliOptions& cli, const QString& binName)
         std::cerr << binName.toStdString()
                   << ": Error: output directory '" << outputDir.toStdString()
                   << "' does not exist\n";
-        return 2;
+        return -1;
     }
 
     if (!cli.postpScript.isEmpty() && !QFileInfo(cli.postpScript).exists()) {
         std::cerr << binName.toStdString()
                   << ": Error: postprocessing script '" << cli.postpScript.toStdString()
                   << "' does not exist\n";
-        return 2;
+        return -1;
     }
 
     // Set CWD to the input file's directory so relative image paths inside
@@ -95,7 +95,7 @@ int runHeadlessExport(const CliOptions& cli, const QString& binName)
         std::cerr << binName.toStdString() << ": Error: Cannot open '"
                   << cli.spriteFile.toStdString() << "' "
                   << SpriteState::errorMessage(err).toStdString() << "\n";
-        return 1;
+        return -1;
     }
 
     const SpriteState::ExportFormat format = SpriteState::parseFormat(cli.format);
@@ -104,10 +104,10 @@ int runHeadlessExport(const CliOptions& cli, const QString& binName)
         std::cerr << binName.toStdString() << ": Error: Cannot export '"
                   << cli.spriteFile.toStdString() << "' "
                   << SpriteState::errorMessage(err).toStdString() << "\n";
-        return 1;
+        return -1;
     }
 
-    std::cout << binName.toStdString() << ": Export '"
+    std::cerr << binName.toStdString() << ": Export '"
               << cli.spriteFile.toStdString() << "' successful!\n";
     return 0;
 }
@@ -184,8 +184,7 @@ bool parseCommandLine(QCoreApplication& app, CliOptions& cli, QString& errorMess
             return false;
         }
         if (cli.outputDir.isEmpty()) {
-            errorMessage = QStringLiteral("--export requires --output-dir.");
-            return false;
+            cli.outputDir = QFileInfo(cli.spriteFile).absolutePath();
         }
     }
 
@@ -223,7 +222,7 @@ int main(int argc, char* argv[])
     if (!parseCommandLine(app, cli, cliError)) {
         std::cerr << binName.toStdString() << ": Error: "
                   << cliError.toStdString() << "\n";
-        return 2;
+        return -1;
     }
 
     if (cli.exportMode) {
@@ -241,7 +240,7 @@ int main(int argc, char* argv[])
     MainWindow w;
     if (!cli.spriteFile.isEmpty()) {
         if (!w.openFile(cli.spriteFile)) {
-            return 1;
+            return -1;
         }
     }
     w.show();
