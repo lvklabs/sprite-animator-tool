@@ -98,22 +98,9 @@ int runHeadlessExport(const CliOptions& cli, const QString& binName)
         return 1;
     }
 
-    // TODO(post-merge): Agent 8 is adding
-    //   SpriteState::ExportFormat { Cocos2d = 1, Json = 2, All = Cocos2d|Json }
-    // plus a SpriteState::parseFormat(const QString&) helper and an extended
-    //   bool exportSprite(filename, outputDir, postpScript, ExportFormat, err)
-    // overload. While that work is in a parallel worktree, we record the
-    // requested format here for diagnostic output but call the legacy
-    // single-format (cocos2d) exporter. After Agent 8's merge, swap the call
-    // below for the new signature and drop the warning.
-    if (cli.format != "cocos2d") {
-        std::cerr << binName.toStdString()
-                  << ": Warning: --format=" << cli.format.toStdString()
-                  << " requested, but JSON/atlas exporter is not yet merged"
-                  << " into this worktree. Falling back to Cocos2d export.\n";
-    }
+    const SpriteState::ExportFormat format = SpriteState::parseFormat(cli.format);
 
-    if (!sprState.exportSprite(inputFile, outputDir, cli.postpScript, &err)) {
+    if (!sprState.exportSprite(inputFile, outputDir, cli.postpScript, format, &err)) {
         std::cerr << binName.toStdString() << ": Error: Cannot export '"
                   << cli.spriteFile.toStdString() << "' "
                   << SpriteState::errorMessage(err).toStdString() << "\n";
@@ -249,7 +236,7 @@ int main(int argc, char* argv[])
 
     // Agent 9: apply the persisted (or auto-detected) theme palette.
     // QSettings requires org/app names set above, so this must follow them.
-    Theme::apply(&a, Theme::loadFromSettings());
+    Theme::apply(&app, Theme::loadFromSettings());
 
     MainWindow w;
     if (!cli.spriteFile.isEmpty()) {
