@@ -256,8 +256,10 @@ void LvkInputImageWidget::mouseReleaseEvent(QMouseEvent */*event*/)
 
 void LvkInputImageWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    _mouseX = event->x();
-    _mouseY = event->y();
+    // Qt6: QMouseEvent::x()/y() are deprecated; use position() (returns QPointF).
+    const QPoint p = event->position().toPoint();
+    _mouseX = p.x();
+    _mouseY = p.y();
 
     emit mousePositionChanged(ztor(_mouseX), ztor(_mouseY));
 }

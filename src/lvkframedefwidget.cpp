@@ -321,8 +321,10 @@ void LvkFrameDefWidget::mousePressEvent(QMouseEvent *event)
 {
     LvkInputImageWidget::mousePressEvent(event);
 
-    _mouseClickX = event->x();
-    _mouseClickY = event->y();
+    // Qt6: QMouseEvent::x()/y() are deprecated; use position() (returns QPointF).
+    const QPoint p = event->position().toPoint();
+    _mouseClickX = p.x();
+    _mouseClickY = p.y();
 
     if (event->buttons() & Qt::LeftButton) {
         mousePressLeftButtonEvent(event);
