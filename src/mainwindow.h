@@ -52,12 +52,6 @@ public:
     // need them. They're kept here (not duplicated on every controller) so
     // there's exactly one definition.
 
-    /// Connect or disconnect the cellChanged() signals on the four data
-    /// tables. Controllers wrap mutations in cellChangedSignals(false) /
-    /// cellChangedSignals(true) so item->setText() doesn't recurse into
-    /// updateXxxTable() slots.
-    void cellChangedSignals(bool connected);
-
     /// Switch tabs (controllers call these when an operation needs the user
     /// to be looking at a specific tab).
     void showFramesTab();

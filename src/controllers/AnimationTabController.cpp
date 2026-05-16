@@ -15,6 +15,7 @@
 
 #include <QInputDialog>
 #include <QListIterator>
+#include <QSignalBlocker>
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QMapIterator>
@@ -90,7 +91,7 @@ void AnimationTabController::refreshTables()
 {
     // refresh ani
     {
-        m_mw->cellChangedSignals(false);
+        QSignalBlocker blocker(m_ui->aniTableWidget);
         int row = m_ui->aniTableWidget->currentRow();
         int col = m_ui->aniTableWidget->currentColumn();
         m_ui->aniTableWidget->clearContents();
@@ -101,12 +102,11 @@ void AnimationTabController::refreshTables()
             addAnimation_ui(ani);
         }
         m_ui->aniTableWidget->setCurrentCell(row, col);
-        m_mw->cellChangedSignals(true);
     }
 
     // refresh aframes
     {
-        m_mw->cellChangedSignals(false);
+        QSignalBlocker blocker(m_ui->aframesTableWidget);
         int row = m_ui->aframesTableWidget->currentRow();
         int col = m_ui->aframesTableWidget->currentColumn();
         m_ui->aframesTableWidget->clearContents();
@@ -121,7 +121,6 @@ void AnimationTabController::refreshTables()
             }
         }
         m_ui->aframesTableWidget->setCurrentCell(row, col);
-        m_mw->cellChangedSignals(true);
     }
 }
 
@@ -175,13 +174,14 @@ void AnimationTabController::addAnimation_ui(const LvkAnimation& ani)
     QTableWidgetItem* item_name  = new QTableWidgetItem(ani.name);
     QTableWidgetItem* item_flags = new QTableWidgetItem(toHexString(ani.flags));
 
-    m_mw->cellChangedSignals(false);
-    m_ui->aniTableWidget->setRowCount(rows + 1);
-    m_ui->aniTableWidget->setItem(rows, ColAniId,    item_id);
-    m_ui->aniTableWidget->setItem(rows, ColAniName,  item_name);
-    m_ui->aniTableWidget->setItem(rows, ColAniFlags, item_flags);
-    m_ui->aniTableWidget->setCurrentItem(item_id);
-    m_mw->cellChangedSignals(true);
+    {
+        QSignalBlocker blocker(m_ui->aniTableWidget);
+        m_ui->aniTableWidget->setRowCount(rows + 1);
+        m_ui->aniTableWidget->setItem(rows, ColAniId,    item_id);
+        m_ui->aniTableWidget->setItem(rows, ColAniName,  item_name);
+        m_ui->aniTableWidget->setItem(rows, ColAniFlags, item_flags);
+        m_ui->aniTableWidget->setCurrentItem(item_id);
+    }
 
     showAframes(rows);
     clearPreviewAnimation();
@@ -207,17 +207,18 @@ void AnimationTabController::addAframe_ui(const LvkAframe& aframe, Id aniId)
 
     int rows = m_ui->aframesTableWidget->rowCount();
 
-    m_mw->cellChangedSignals(false);
-    m_ui->aframesTableWidget->setRowCount(rows + 1);
-    m_ui->aframesTableWidget->setItem(rows, ColAframeId,      item_id);
-    m_ui->aframesTableWidget->setItem(rows, ColAframeFrameId, item_fid);
-    m_ui->aframesTableWidget->setItem(rows, ColAframeDelay,   item_delay);
-    m_ui->aframesTableWidget->setItem(rows, ColAframeSticky,  item_sticky);
-    m_ui->aframesTableWidget->setItem(rows, ColAframeOx,      item_ox);
-    m_ui->aframesTableWidget->setItem(rows, ColAframeOy,      item_oy);
-    m_ui->aframesTableWidget->setItem(rows, ColAframeAniId,   item_aniId);
-    m_ui->aframesTableWidget->setCurrentItem(item_id);
-    m_mw->cellChangedSignals(true);
+    {
+        QSignalBlocker blocker(m_ui->aframesTableWidget);
+        m_ui->aframesTableWidget->setRowCount(rows + 1);
+        m_ui->aframesTableWidget->setItem(rows, ColAframeId,      item_id);
+        m_ui->aframesTableWidget->setItem(rows, ColAframeFrameId, item_fid);
+        m_ui->aframesTableWidget->setItem(rows, ColAframeDelay,   item_delay);
+        m_ui->aframesTableWidget->setItem(rows, ColAframeSticky,  item_sticky);
+        m_ui->aframesTableWidget->setItem(rows, ColAframeOx,      item_ox);
+        m_ui->aframesTableWidget->setItem(rows, ColAframeOy,      item_oy);
+        m_ui->aframesTableWidget->setItem(rows, ColAframeAniId,   item_aniId);
+        m_ui->aframesTableWidget->setCurrentItem(item_id);
+    }
 
     showAframe(aframe.id);
     previewAnimation();
@@ -274,9 +275,10 @@ void AnimationTabController::removeSelAnimation()
 void AnimationTabController::removeAnimation(int row)
 {
     Id aniId = getAnimationId(row);
-    m_mw->cellChangedSignals(false);
-    m_ui->aniTableWidget->removeRow(row);
-    m_mw->cellChangedSignals(true);
+    {
+        QSignalBlocker blocker(m_ui->aniTableWidget);
+        m_ui->aniTableWidget->removeRow(row);
+    }
     clearPreviewAnimation();
     m_state->removeAnimation(aniId);
 }
@@ -301,9 +303,10 @@ void AnimationTabController::removeAframe(int row)
     Id aniId = selectedAniId();
     m_state->removeAframe(aframeId, aniId);
 
-    m_mw->cellChangedSignals(false);
-    m_ui->aframesTableWidget->removeRow(row);
-    m_mw->cellChangedSignals(true);
+    {
+        QSignalBlocker blocker(m_ui->aframesTableWidget);
+        m_ui->aframesTableWidget->removeRow(row);
+    }
 
     m_ui->aframePreview->setPixmap(QPixmap());
 
@@ -332,9 +335,10 @@ void AnimationTabController::moveSelAframe(int offset)
     ani.swapAframes(getAframeId(currentRow), getAframeId(targetRow));
     m_state->updateAnimation(ani);
 
-    m_mw->cellChangedSignals(false);
-    table->swapRows(currentRow, targetRow);
-    m_mw->cellChangedSignals(true);
+    {
+        QSignalBlocker blocker(table);
+        table->swapRows(currentRow, targetRow);
+    }
 
     previewAnimation();
     table->setCurrentCell(targetRow, table->currentColumn());
@@ -346,13 +350,14 @@ void AnimationTabController::invertAframesOrder()
     LvkAnimation ani = m_state->const_animation(selectedAniId());
     int rowCount = table->rowCount();
 
-    m_mw->cellChangedSignals(false);
-    for (int r = 0; r < rowCount / 2; r++) {
-        int r2 = rowCount - r - 1;
-        ani.swapAframes(getAframeId(r), getAframeId(r2));
-        table->swapRows(r, r2);
+    {
+        QSignalBlocker blocker(table);
+        for (int r = 0; r < rowCount / 2; r++) {
+            int r2 = rowCount - r - 1;
+            ani.swapAframes(getAframeId(r), getAframeId(r2));
+            table->swapRows(r, r2);
+        }
     }
-    m_mw->cellChangedSignals(true);
 
     m_state->updateAnimation(ani);
     previewAnimation();
@@ -361,34 +366,34 @@ void AnimationTabController::invertAframesOrder()
 void AnimationTabController::showAframes(int row)
 {
     m_ui->aniPreview->stop();
-    m_mw->cellChangedSignals(false);
 
-    m_ui->aframePreview->setEnabled(false);
-    m_ui->aframesTableWidget->setEnabled(false);
-    m_ui->aframesTableWidget->clearContents();
-    m_ui->aframesTableWidget->setRowCount(0);
+    {
+        QSignalBlocker blocker(m_ui->aframesTableWidget);
 
-    if (row == -1) {
-        m_mw->cellChangedSignals(true);
-        return;
+        m_ui->aframePreview->setEnabled(false);
+        m_ui->aframesTableWidget->setEnabled(false);
+        m_ui->aframesTableWidget->clearContents();
+        m_ui->aframesTableWidget->setRowCount(0);
+
+        if (row == -1) {
+            return;
+        }
+
+        int animationId = getAnimationId(row);
+        LvkAnimation ani = m_state->animations().value(animationId);
+        for (QListIterator<LvkAframe> it(ani._aframes); it.hasNext();) {
+            LvkAframe aFrame = it.next();
+            addAframe_ui(aFrame, animationId);
+        }
+
+        if (m_ui->aframesTableWidget->rowCount() > 0) {
+            m_ui->aframesTableWidget->selectRow(0);
+            showSelAframe(0);
+        }
+
+        m_ui->aframePreview->setEnabled(true);
+        m_ui->aframesTableWidget->setEnabled(true);
     }
-
-    int animationId = getAnimationId(row);
-    LvkAnimation ani = m_state->animations().value(animationId);
-    for (QListIterator<LvkAframe> it(ani._aframes); it.hasNext();) {
-        LvkAframe aFrame = it.next();
-        addAframe_ui(aFrame, animationId);
-    }
-
-    if (m_ui->aframesTableWidget->rowCount() > 0) {
-        m_ui->aframesTableWidget->selectRow(0);
-        showSelAframe(0);
-    }
-
-    m_ui->aframePreview->setEnabled(true);
-    m_ui->aframesTableWidget->setEnabled(true);
-
-    m_mw->cellChangedSignals(true);
 
     previewAnimation();
 }
@@ -509,9 +514,8 @@ void AnimationTabController::updateAframesTable(int row, int col)
     LvkAframe aframe = m_state->const_aframe(aniId, aframeId);
 
     auto setCellInt = [&](int c, int v){
-        m_mw->cellChangedSignals(false);
+        QSignalBlocker blocker(table);
         table->item(row, c)->setText(QString::number(v));
-        m_mw->cellChangedSignals(true);
     };
 
     bool ok = true;
@@ -581,9 +585,8 @@ void AnimationTabController::updateAniTable(int row, int col)
     LvkAnimation ani = m_state->const_animation(aniId);
 
     auto setCellStr = [&](int c, const QString& v){
-        m_mw->cellChangedSignals(false);
+        QSignalBlocker blocker(table);
         table->item(row, c)->setText(v);
-        m_mw->cellChangedSignals(true);
     };
 
     switch (col) {

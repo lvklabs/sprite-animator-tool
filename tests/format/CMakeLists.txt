@@ -86,3 +86,6 @@ lvk_add_format_test(tst_path_traversal)
 # Phase 2: version-preservation regression test (golden v0.1 round-trip
 # and data-driven auto-bump policy).
 lvk_add_format_test(tst_version_preservation)
+# Phase 3 (Item 11): aframes must be sorted by id after load to preserve
+# legacy playback order for hand-edited / post-delete-saves.
+lvk_add_format_test(tst_aframe_order)

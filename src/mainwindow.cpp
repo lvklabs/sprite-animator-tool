@@ -120,6 +120,14 @@ MainWindow::MainWindow(QWidget *parent)
     _transitionCtl->wireSignals();
     _exportCtl->wireSignals();
 
+    // Connect MainWindow's showMouseRect AFTER the controllers wire their
+    // own mouseRectChangeFinished slots. Qt fires slots in connect order;
+    // doing this last keeps FrameTabController::blendFrameRect (preview
+    // repaint) ahead of showMouseRect (status-bar update), matching the
+    // master branch's behavior and avoiding transient flicker.
+    connect(ui->imgPreview, &LvkFrameDefWidget::mouseRectChangeFinished,
+            this, &MainWindow::showMouseRect);
+
     showFramesTab();
     _frameCtl->hideFramePreview();
 
@@ -181,25 +189,16 @@ void MainWindow::initSignals()
     connect(ui->framePreview,  &LvkInputImageWidget::mousePositionChanged, this, &MainWindow::showMousePosition);
     connect(ui->aframePreview, &LvkInputImageWidget::mousePositionChanged, this, &MainWindow::showMousePosition);
     connect(ui->imgPreview,    &LvkFrameDefWidget::mouseRectChanging,      this, &MainWindow::showMouseRect);
-    connect(ui->imgPreview,    &LvkFrameDefWidget::mouseRectChangeFinished,this, &MainWindow::showMouseRect);
+    // showMouseRect/mouseRectChangeFinished is wired in the constructor
+    // AFTER controllers' wireSignals(), so FrameTabController::blendFrameRect
+    // (which repaints the preview) runs before showMouseRect (which only
+    // updates the status bar). Slot-order matches master and avoids
+    // transient preview flicker on rect commit.
 
     // Custom header save/restore lives at the MainWindow level (it's a
     // sprite-state field, not a tab-scoped concern).
     connect(ui->saveCustomHeaderButton,    &QAbstractButton::clicked, this, &MainWindow::saveCustomHeader);
     connect(ui->restoreCustomHeaderButton, &QAbstractButton::clicked, this, &MainWindow::restoreCustomHeader);
-}
-
-// Interim fix (Phase 1): the controller split left this function as an
-// empty no-op, so every bulk setItem() recursed into the update slots and
-// wiped the undo stack on file open. Restoring this as blockSignals() on
-// the four table widgets is the minimal correct gate. A later phase will
-// migrate call sites to per-controller QSignalBlocker and remove it.
-void MainWindow::cellChangedSignals(bool connected)
-{
-    ui->imgTableWidget->blockSignals(!connected);
-    ui->framesTableWidget->blockSignals(!connected);
-    ui->aframesTableWidget->blockSignals(!connected);
-    ui->aniTableWidget->blockSignals(!connected);
 }
 
 void MainWindow::initTables()
@@ -463,7 +462,13 @@ void MainWindow::initRecentFilesMenu()
 void MainWindow::addRecentFileMenu(const QString& filename)
 {
     ui->actionNoRecentFiles->setVisible(false);
-    LvkAction* action = new LvkAction(filename, this);
+    // Parent to the QMenu (actionOpenRecent) rather than MainWindow. The
+    // recent-files list is rebuilt on every setCurrentFile() via
+    // QMenu::clear(), which only deletes actions whose parent is the menu
+    // itself. With MainWindow as the parent, clear() unhooked the actions
+    // from the menu but left them alive on the MainWindow until shutdown,
+    // leaking O(opens) LvkAction instances per session.
+    LvkAction* action = new LvkAction(filename, ui->actionOpenRecent);
     ui->actionOpenRecent->addAction(action);
     connect(action, QOverload<const QString&>::of(&LvkAction::triggered),
             this, [this](const QString& f){ openFile_checkUnsaved(f); });
@@ -509,16 +514,26 @@ void MainWindow::closeFile()
 
 void MainWindow::setCurrentFile(const QString& filename)
 {
+    // Re-opening the same .lvks must NOT clobber the user's export target:
+    // the export filename is a per-document preference, and a no-op
+    // "open" (e.g. from the recent-files menu, or open-while-already-open)
+    // should preserve it. We only reset the export filename when the
+    // identity of the current document actually changes.
     if (filename.isEmpty()) {
+        if (!_filename.isEmpty()) {
+            _exportCtl->setCurrentExportFile("");
+        }
         _filename = "";
-        _exportCtl->setCurrentExportFile("");
         setWindowTitle(QString(APP_NAME));
     } else {
         QFileInfo fileInfo(filename);
-        _filename = fileInfo.absoluteFilePath();
-        _exportCtl->setCurrentExportFile("");
+        const QString newAbs = fileInfo.absoluteFilePath();
+        if (newAbs != _filename) {
+            _exportCtl->setCurrentExportFile("");
+        }
+        _filename = newAbs;
         setWindowTitle(QString(APP_NAME) + " - " + fileInfo.fileName());
-        storeRecentFile(fileInfo.absoluteFilePath());
+        storeRecentFile(newAbs);
         ui->actionOpenRecent->clear();
         initRecentFilesMenu();
         qDebug() << "Info: changing current app dir to" << fileInfo.absolutePath();

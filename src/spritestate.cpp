@@ -15,6 +15,7 @@
 #include <QStandardPaths>
 #include <QTemporaryFile>
 #include <iostream>
+#include <algorithm>
 #include <cctype>
 
 // SECURITY (Agent 5): Audit of src/spritestate.cpp - 2026-05-16
@@ -565,6 +566,17 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
     } while (true);
 
     file.close();
+
+    // Preserve legacy playback order: hand-edited / post-delete-saves can
+    // have non-sequential aframe ids on disk. addAframe() appends in file
+    // order, so we re-sort each animation's aframes by id here. Matches
+    // the historical QList::insert(id, ...) semantics where the key was
+    // used as a sort position (modulo the OOB bug fixed in Bug #4).
+    for (auto it = _animations.begin(); it != _animations.end(); ++it) {
+        QList<LvkAframe>& aframes = it.value()._aframes;
+        std::sort(aframes.begin(), aframes.end(),
+                  [](const LvkAframe& a, const LvkAframe& b) { return a.id < b.id; });
+    }
 
     return (state != StError);
 }

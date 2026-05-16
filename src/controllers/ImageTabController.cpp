@@ -20,6 +20,7 @@
 #include <QDir>
 #include <QImage>
 #include <QInputDialog>
+#include <QSignalBlocker>
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QMapIterator>
@@ -69,7 +70,7 @@ void ImageTabController::wireSignals()
 
 void ImageTabController::refreshTable()
 {
-    m_mw->cellChangedSignals(false);
+    QSignalBlocker blocker(m_ui->imgTableWidget);
 
     int row = m_ui->imgTableWidget->currentRow();
     int col = m_ui->imgTableWidget->currentColumn();
@@ -84,8 +85,6 @@ void ImageTabController::refreshTable()
     }
 
     m_ui->imgTableWidget->setCurrentCell(row, col);
-
-    m_mw->cellChangedSignals(true);
 }
 
 Id ImageTabController::getImageId(int row) const
@@ -176,15 +175,16 @@ void ImageTabController::addImage_ui(const InputImage& image)
 
     item_checkable->setCheckState(Qt::Unchecked);
 
-    m_mw->cellChangedSignals(false);
-    m_ui->imgTableWidget->setRowCount(rows + 1);
-    m_ui->imgTableWidget->setItem(rows, ColImageId,        item_id);
-    m_ui->imgTableWidget->setItem(rows, ColImageCheckable, item_checkable);
-    m_ui->imgTableWidget->setItem(rows, ColImageVisibleId, item_vid);
-    m_ui->imgTableWidget->setItem(rows, ColImageFilename,  item_filename);
-    m_ui->imgTableWidget->setItem(rows, ColImageScale,     item_scale);
-    m_ui->imgTableWidget->setCurrentItem(item_id);
-    m_mw->cellChangedSignals(true);
+    {
+        QSignalBlocker blocker(m_ui->imgTableWidget);
+        m_ui->imgTableWidget->setRowCount(rows + 1);
+        m_ui->imgTableWidget->setItem(rows, ColImageId,        item_id);
+        m_ui->imgTableWidget->setItem(rows, ColImageCheckable, item_checkable);
+        m_ui->imgTableWidget->setItem(rows, ColImageVisibleId, item_vid);
+        m_ui->imgTableWidget->setItem(rows, ColImageFilename,  item_filename);
+        m_ui->imgTableWidget->setItem(rows, ColImageScale,     item_scale);
+        m_ui->imgTableWidget->setCurrentItem(item_id);
+    }
 
     showImage(image.id);
 }
@@ -234,9 +234,10 @@ void ImageTabController::removeImage(int row)
     qDebug() << m_ui->imgTableWidget->item(row, ColImageId)->text();
     qDebug() << m_ui->imgTableWidget->item(row, ColImageId)->text().toInt();
 
-    m_mw->cellChangedSignals(false);
-    m_ui->imgTableWidget->removeRow(row);
-    m_mw->cellChangedSignals(true);
+    {
+        QSignalBlocker blocker(m_ui->imgTableWidget);
+        m_ui->imgTableWidget->removeRow(row);
+    }
 
     m_state->removeImage(imgId);
 
@@ -277,19 +278,16 @@ void ImageTabController::updateImgTable(int row, int col)
     InputImage img  = m_state->const_image(imgId);
 
     auto setCellInt = [&](int c, int v){
-        m_mw->cellChangedSignals(false);
+        QSignalBlocker blocker(table);
         table->item(row, c)->setText(QString::number(v));
-        m_mw->cellChangedSignals(true);
     };
     auto setCellStr = [&](int c, const QString& v){
-        m_mw->cellChangedSignals(false);
+        QSignalBlocker blocker(table);
         table->item(row, c)->setText(v);
-        m_mw->cellChangedSignals(true);
     };
     auto setCellDbl = [&](int c, double v){
-        m_mw->cellChangedSignals(false);
+        QSignalBlocker blocker(table);
         table->item(row, c)->setText(QString::number(v));
-        m_mw->cellChangedSignals(true);
     };
 
     bool ok = true;
@@ -417,9 +415,10 @@ void ImageTabController::scaleCheckedImages()
             img.scale(scale);
             m_state->updateImage(img);
             m_ui->imgPreview->clearPixmapCache(img.id);
-            m_mw->cellChangedSignals(false);
-            m_ui->imgTableWidget->item(row, ColImageScale)->setText(QString::number(scale));
-            m_mw->cellChangedSignals(true);
+            {
+                QSignalBlocker blocker(m_ui->imgTableWidget);
+                m_ui->imgTableWidget->item(row, ColImageScale)->setText(QString::number(scale));
+            }
         }
     }
     m_mw->refreshPreviews();

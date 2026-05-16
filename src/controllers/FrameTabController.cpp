@@ -15,6 +15,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QPixmap>
+#include <QSignalBlocker>
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QMapIterator>
@@ -100,7 +101,7 @@ void FrameTabController::wireSignals()
 
 void FrameTabController::refreshTable()
 {
-    m_mw->cellChangedSignals(false);
+    QSignalBlocker blocker(m_ui->framesTableWidget);
 
     int row = m_ui->framesTableWidget->currentRow();
     int col = m_ui->framesTableWidget->currentColumn();
@@ -115,8 +116,6 @@ void FrameTabController::refreshTable()
     }
 
     m_ui->framesTableWidget->setCurrentCell(row, col);
-
-    m_mw->cellChangedSignals(true);
 }
 
 Id FrameTabController::getFrameId(int row) const
@@ -232,17 +231,18 @@ void FrameTabController::addFrame_ui(const LvkFrame& frame)
 
     int rows = m_ui->framesTableWidget->rowCount();
 
-    m_mw->cellChangedSignals(false);
-    m_ui->framesTableWidget->setRowCount(rows + 1);
-    m_ui->framesTableWidget->setItem(rows, ColFrameId,        item_id);
-    m_ui->framesTableWidget->setItem(rows, ColFrameVisibleId, item_vid);
-    m_ui->framesTableWidget->setItem(rows, ColFrameOx,        item_ox);
-    m_ui->framesTableWidget->setItem(rows, ColFrameOy,        item_oy);
-    m_ui->framesTableWidget->setItem(rows, ColFrameW,         item_w);
-    m_ui->framesTableWidget->setItem(rows, ColFrameH,         item_h);
-    m_ui->framesTableWidget->setItem(rows, ColFrameImgId,     item_iid);
-    m_ui->framesTableWidget->setItem(rows, ColFrameName,      item_name);
-    m_mw->cellChangedSignals(true);
+    {
+        QSignalBlocker blocker(m_ui->framesTableWidget);
+        m_ui->framesTableWidget->setRowCount(rows + 1);
+        m_ui->framesTableWidget->setItem(rows, ColFrameId,        item_id);
+        m_ui->framesTableWidget->setItem(rows, ColFrameVisibleId, item_vid);
+        m_ui->framesTableWidget->setItem(rows, ColFrameOx,        item_ox);
+        m_ui->framesTableWidget->setItem(rows, ColFrameOy,        item_oy);
+        m_ui->framesTableWidget->setItem(rows, ColFrameW,         item_w);
+        m_ui->framesTableWidget->setItem(rows, ColFrameH,         item_h);
+        m_ui->framesTableWidget->setItem(rows, ColFrameImgId,     item_iid);
+        m_ui->framesTableWidget->setItem(rows, ColFrameName,      item_name);
+    }
 
     showFrame(frame.id);
 
@@ -295,9 +295,10 @@ void FrameTabController::removeFrame(int row)
 {
     Id frameId = getFrameId(row);
 
-    m_mw->cellChangedSignals(false);
-    m_ui->framesTableWidget->removeRow(row);
-    m_mw->cellChangedSignals(true);
+    {
+        QSignalBlocker blocker(m_ui->framesTableWidget);
+        m_ui->framesTableWidget->removeRow(row);
+    }
 
     m_ui->framePreview->setPixmap(QPixmap());
 
@@ -322,12 +323,11 @@ void FrameTabController::updateCurrentFrame_ui(const QRect& rect)
     if (currentRow == -1) {
         return;
     }
-    m_mw->cellChangedSignals(false);
+    QSignalBlocker blocker(m_ui->framesTableWidget);
     m_ui->framesTableWidget->item(currentRow, ColFrameOx)->setText(QString::number(rect.x()));
     m_ui->framesTableWidget->item(currentRow, ColFrameOy)->setText(QString::number(rect.y()));
     m_ui->framesTableWidget->item(currentRow, ColFrameW)->setText(QString::number(rect.width()));
     m_ui->framesTableWidget->item(currentRow, ColFrameH)->setText(QString::number(rect.height()));
-    m_mw->cellChangedSignals(true);
 }
 
 void FrameTabController::removeAllUnusedFrames()
@@ -397,14 +397,12 @@ void FrameTabController::updateFramesTable(int row, int col)
     LvkFrame frame = m_state->const_frame(frameId);
 
     auto setCellInt = [&](int c, int v){
-        m_mw->cellChangedSignals(false);
+        QSignalBlocker blocker(table);
         table->item(row, c)->setText(QString::number(v));
-        m_mw->cellChangedSignals(true);
     };
     auto setCellStr = [&](int c, const QString& v){
-        m_mw->cellChangedSignals(false);
+        QSignalBlocker blocker(table);
         table->item(row, c)->setText(v);
-        m_mw->cellChangedSignals(true);
     };
 
     bool ok = true;
