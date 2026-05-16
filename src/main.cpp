@@ -1,153 +1,257 @@
-#include <iostream>
-#include <string>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Entry point for the LVK Sprite Editor.
+//
+// History note (Agent 10, 2026-05-16):
+//   The legacy entry point parsed argv by hand (with a literal
+//   `TODO use getopt` comment), and crucially constructed `MainWindow w;`
+//   *before* parsing CLI flags. The MainWindow constructor pops a modal
+//   About dialog (`about()` -> `QMessageBox::exec()`), so commands like
+//   `--version` and `--help` would hang forever waiting for the user to
+//   dismiss the modal -- they never reached the CLI parser at all.
+//   See UPGRADE_NOTES.md item #9.
+//
+// The new layout below uses QCommandLineParser and parses the command
+// line *first*. `--version` / `--help` exit before the GUI is touched.
+// `--export` runs a headless export and exits. Only the interactive
+// path constructs `MainWindow`.
+//
+//   QApplication app(argc, argv);          // Qt argc/argv plumbing only
+//   parser.process(app);                   //   --version/--help exit here
+//   if (cli.exportMode) return runExport();
+//   MainWindow w;                          // GUI path
+//   w.show();
+//   return app.exec();
+
 #include <QApplication>
-#include <QFileInfo>
+#include <QCommandLineParser>
+#include <QCommandLineOption>
 #include <QDir>
+#include <QFileInfo>
+#include <QIcon>
+#include <QString>
+#include <QStringList>
+#include <iostream>
 
 #include "mainwindow.h"
 #include "settings.h"
 #include "spritestate.h"
 
-void parseCmdLine(int argc, char *argv[], MainWindow& w);
-void showHelp(const std::string& binName);
-void showVersion();
+namespace {
 
-int main(int argc, char *argv[])
+struct CliOptions {
+    bool        exportMode  = false;
+    QString     spriteFile;       // positional
+    QString     outputDir;        // -o
+    QString     postpScript;      // -p
+    QString     format = "cocos2d"; // -f (cocos2d|json|all)
+};
+
+// Run a headless export. Returns process exit code.
+int runHeadlessExport(const CliOptions& cli, const QString& binName)
 {
-    QApplication a(argc, argv);
+    if (cli.spriteFile.isEmpty()) {
+        std::cerr << binName.toStdString()
+                  << ": Error: --export requires a sprite-file argument\n";
+        return 2;
+    }
 
-    QApplication::setWindowIcon(QIcon(":/icons/app-icon-128x128"));
+    QFileInfo info(cli.spriteFile);
+    if (!info.exists()) {
+        std::cerr << binName.toStdString()
+                  << ": Error: sprite-file '" << cli.spriteFile.toStdString()
+                  << "' does not exist\n";
+        return 2;
+    }
 
-    QCoreApplication::setOrganizationName(LVK_NAME);
-    QCoreApplication::setOrganizationDomain(LVK_DOMAIN);
-    QCoreApplication::setApplicationName(APP_NAME);
-    QCoreApplication::setApplicationVersion(APP_VERSION);
+    QString outputDir = cli.outputDir;
+    if (outputDir.isEmpty()) {
+        outputDir = info.absolutePath();
+    } else if (!QDir(outputDir).exists()) {
+        std::cerr << binName.toStdString()
+                  << ": Error: output directory '" << outputDir.toStdString()
+                  << "' does not exist\n";
+        return 2;
+    }
+
+    if (!cli.postpScript.isEmpty() && !QFileInfo(cli.postpScript).exists()) {
+        std::cerr << binName.toStdString()
+                  << ": Error: postprocessing script '" << cli.postpScript.toStdString()
+                  << "' does not exist\n";
+        return 2;
+    }
+
+    // Set CWD to the input file's directory so relative image paths inside
+    // the .lvks resolve correctly, matching the legacy behavior.
+    QDir::setCurrent(info.absolutePath());
+    const QString inputFile = info.fileName();
+
+    SpriteState sprState;
+    SpriteState::SpriteStateError err = SpriteState::ErrNone;
+
+    std::cout << "Loading " << inputFile.toStdString() << "..." << std::endl;
+    if (!sprState.load(inputFile, &err)) {
+        std::cerr << binName.toStdString() << ": Error: Cannot open '"
+                  << cli.spriteFile.toStdString() << "' "
+                  << SpriteState::errorMessage(err).toStdString() << "\n";
+        return 1;
+    }
+
+    // TODO(post-merge): Agent 8 is adding
+    //   SpriteState::ExportFormat { Cocos2d = 1, Json = 2, All = Cocos2d|Json }
+    // plus a SpriteState::parseFormat(const QString&) helper and an extended
+    //   bool exportSprite(filename, outputDir, postpScript, ExportFormat, err)
+    // overload. While that work is in a parallel worktree, we record the
+    // requested format here for diagnostic output but call the legacy
+    // single-format (cocos2d) exporter. After Agent 8's merge, swap the call
+    // below for the new signature and drop the warning.
+    if (cli.format != "cocos2d") {
+        std::cerr << binName.toStdString()
+                  << ": Warning: --format=" << cli.format.toStdString()
+                  << " requested, but JSON/atlas exporter is not yet merged"
+                  << " into this worktree. Falling back to Cocos2d export.\n";
+    }
+
+    if (!sprState.exportSprite(inputFile, outputDir, cli.postpScript, &err)) {
+        std::cerr << binName.toStdString() << ": Error: Cannot export '"
+                  << cli.spriteFile.toStdString() << "' "
+                  << SpriteState::errorMessage(err).toStdString() << "\n";
+        return 1;
+    }
+
+    std::cout << binName.toStdString() << ": Export '"
+              << cli.spriteFile.toStdString() << "' successful!\n";
+    return 0;
+}
+
+// Parse the command line. Calls QCommandLineParser::process() which will
+// handle --version/--help internally (and exit). On a soft parse error
+// (e.g. --format=garbage) returns false and the caller should bail.
+bool parseCommandLine(QCoreApplication& app, CliOptions& cli, QString& errorMessage)
+{
+    QCommandLineParser parser;
+    parser.setApplicationDescription(
+        QStringLiteral("LVK Sprite Animation Tool -- WYSIWYG 2D sprite "
+                       "animator for Cocos2d. With no flags, opens the GUI; "
+                       "with --export, runs a headless export."));
+    parser.addPositionalArgument(
+        QStringLiteral("sprite-file"),
+        QStringLiteral("Optional .lvks file to open (or to export when --export "
+                       "is set)."),
+        QStringLiteral("[sprite-file]"));
+
+    parser.addHelpOption();
+    parser.addVersionOption();
+
+    QCommandLineOption exportOpt(
+        QStringList() << QStringLiteral("e") << QStringLiteral("export"),
+        QStringLiteral("Headless mode: export <sprite-file> instead of "
+                       "launching the GUI."));
+    parser.addOption(exportOpt);
+
+    QCommandLineOption outputDirOpt(
+        QStringList() << QStringLiteral("o") << QStringLiteral("output-dir"),
+        QStringLiteral("Directory to write export artifacts into. Required "
+                       "when --export is set."),
+        QStringLiteral("dir"));
+    parser.addOption(outputDirOpt);
+
+    QCommandLineOption postpOpt(
+        QStringList() << QStringLiteral("p") << QStringLiteral("postprocessing-script"),
+        QStringLiteral("Optional executable run on each exported frame image."),
+        QStringLiteral("script"));
+    parser.addOption(postpOpt);
+
+    QCommandLineOption formatOpt(
+        QStringList() << QStringLiteral("f") << QStringLiteral("format"),
+        QStringLiteral("Export format: cocos2d (default), json, or all."),
+        QStringLiteral("format"),
+        QStringLiteral("cocos2d"));
+    parser.addOption(formatOpt);
+
+    // process() handles --help / --version (prints and exits) and reports
+    // unknown options.
+    parser.process(app);
+
+    cli.exportMode  = parser.isSet(exportOpt);
+    cli.outputDir   = parser.value(outputDirOpt);
+    cli.postpScript = parser.value(postpOpt);
+    cli.format      = parser.value(formatOpt);
+
+    const QStringList positional = parser.positionalArguments();
+    if (positional.size() > 1) {
+        errorMessage = QStringLiteral("At most one positional [sprite-file] "
+                                      "argument is accepted, got %1.")
+                           .arg(positional.size());
+        return false;
+    }
+    if (!positional.isEmpty()) {
+        cli.spriteFile = positional.first();
+    }
+
+    if (cli.exportMode) {
+        if (cli.spriteFile.isEmpty()) {
+            errorMessage = QStringLiteral("--export requires a [sprite-file] "
+                                          "positional argument.");
+            return false;
+        }
+        if (cli.outputDir.isEmpty()) {
+            errorMessage = QStringLiteral("--export requires --output-dir.");
+            return false;
+        }
+    }
+
+    const QString fmt = cli.format.toLower();
+    if (fmt != QStringLiteral("cocos2d") &&
+        fmt != QStringLiteral("json") &&
+        fmt != QStringLiteral("all")) {
+        errorMessage = QStringLiteral("--format must be one of: cocos2d, json, all "
+                                      "(got '%1').").arg(cli.format);
+        return false;
+    }
+    cli.format = fmt;
+    return true;
+}
+
+} // namespace
+
+int main(int argc, char* argv[])
+{
+    QApplication app(argc, argv);
+
+    QCoreApplication::setOrganizationName(QStringLiteral(LVK_NAME));
+    QCoreApplication::setOrganizationDomain(QStringLiteral(LVK_DOMAIN));
+    QCoreApplication::setApplicationName(QStringLiteral(APP_NAME));
+    QCoreApplication::setApplicationVersion(QStringLiteral(APP_VERSION));
+
+    const QString binName = QFileInfo(QString::fromLocal8Bit(argv[0])).fileName();
+
+    // Parse the CLI BEFORE constructing MainWindow. This fixes
+    // UPGRADE_NOTES.md #9: previously `MainWindow w;` ran first, which
+    // popped a modal About dialog from its constructor, so --version
+    // and --help hung instead of printing and exiting.
+    CliOptions cli;
+    QString cliError;
+    if (!parseCommandLine(app, cli, cliError)) {
+        std::cerr << binName.toStdString() << ": Error: "
+                  << cliError.toStdString() << "\n";
+        return 2;
+    }
+
+    if (cli.exportMode) {
+        return runHeadlessExport(cli, binName);
+    }
+
+    // Interactive GUI path. Only now is it safe to set up the icon and
+    // construct MainWindow.
+    QApplication::setWindowIcon(QIcon(QStringLiteral(":/icons/app-icon-128x128")));
 
     MainWindow w;
-
-    parseCmdLine(argc, argv, w);
-
-    w.show();
-    return a.exec();
-}
-
-void parseCmdLine(int argc, char *argv[], MainWindow& w)
-{
-    std::string binName(QFileInfo(argv[0]).fileName().toStdString());
-
-    // TODO use getopt !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    if (argc == 1) {
-        //nothing to do
-    } else if (argc == 2) {
-        /* Valid options:
-         *
-         * LvkSpriteEditor "sprite_file"
-         * LvkSpriteEditor --help
-         * LvkSpriteEditor --version
-         */
-
-        std::string param(argv[1]);
-
-        if (param == "--help") {
-            showHelp(binName);
-            exit(0);
-        } else if (param == "--version") {
-            showVersion();
-            exit(0);
-        } else if (param == "--export") {
-            showHelp(binName);
-            exit(-1);
-        } else if (param[0] == '-') {
-            std::cerr << binName << ": Error: Unknown option " << param << std::endl;
-            exit(-1);
+    if (!cli.spriteFile.isEmpty()) {
+        if (!w.openFile(cli.spriteFile)) {
+            return 1;
         }
-
-        if (!w.openFile(QString(param.c_str()))) {
-            exit(-1);
-        }
-    } else if (argc == 3 || argc == 5 || argc == 7) {
-        /* Valid options:
-         *
-         * LvkSpriteEditor --export "sprite_file" [ --output-dir "dir" [ --postprocessing-script script_file ]  ]
-         */
-
-        std::string param1 = argv[1];
-        std::string param2 = argv[2];
-
-        if (param1 != "--export") {
-            showHelp(binName);
-            exit(-1);
-        }
-
-        QString inputDir  = QFileInfo(param2.c_str()).absolutePath();
-        QString inputFile = QFileInfo(param2.c_str()).fileName();
-        QString outputDir;
-        QString postpScript;
-
-        if (argc >= 5) {
-            if (std::string(argv[3]) == "--output-dir") {
-                outputDir = argv[4];
-                if (!QDir(outputDir).exists()) {
-                    std::cerr << binName << ": Error: Output directory '" << argv[4]
-                              << "' does not exist." << std::endl;
-                    exit(-1);
-                }
-            } else {
-                showHelp(binName);
-                exit(-1);
-            }
-        }
-
-        if (argc >= 7) {
-            if (std::string(argv[5]) == "--postprocessing-script") {
-                postpScript = argv[6];
-                if (!QFile(postpScript).exists()) {
-                    std::cerr << binName << ": Error: postprocessing script '" << argv[6]
-                              << "' does not exist." << std::endl;
-                    exit(-1);
-                }
-            } else {
-                showHelp(binName);
-                exit(-1);
-            }
-        }
-
-        SpriteState sprState;
-        SpriteStateError err;
-
-        QDir::setCurrent(inputDir);
-
-        std::cout << "Loading " << inputFile.toStdString() << "..." << std::endl;
-        if (!sprState.load(inputFile, &err)) {
-            std::cerr << binName << ": Error: Cannot open '" << param2 << "' "
-                      << SpriteState::errorMessage(err).toStdString() << std::endl;
-            exit(-1);
-        }
-        if (!sprState.exportSprite(inputFile, outputDir, postpScript, &err)) {
-            std::cerr << binName << ": Error: Cannot export '" << param2 << "' "
-                      << SpriteState::errorMessage(err).toStdString() << std::endl;
-            exit(-1);
-        } else {
-            std::cerr << binName << ": Export '" << param2 << "' succesful!" << std::endl;
-            exit(0);
-        }
-    } else {
-        std::cerr << binName << ": Error: bad arguments" << std::endl;
-        showHelp(binName);
-        exit(-1);
     }
-}
-
-void showHelp(const  std::string& binName)
-{
-    std::cout << "Usage: " << binName << " [sprite-file]" << std::endl;
-    std::cout << "       " << binName << " --export sprite-file [ --output-dir dir [ --postprocessing-script script_file ]  ]" << std::endl;
-    std::cout << "       " << binName << " --version" << std::endl;
-    std::cout << "       " << binName << " --help" << std::endl;
-}
-
-void showVersion()
-{
-    std::cout << APP_ABOUT << std::endl;
+    w.show();
+    return QApplication::exec();
 }
