@@ -159,6 +159,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Pablo Perez De Angelis <pda@gezie.io>")
     set(CPACK_DEBIAN_PACKAGE_SECTION "graphics")
     set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+    # Fallback explicit Depends so `dpkg -i` resolves even when shlibdeps
+    # under-reports (e.g. when Qt was installed via aqt rather than apt).
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6widgets6, libqt6gui6, libqt6core6")
 elseif(APPLE)
     set(CPACK_GENERATOR "DragNDrop")
     set(CPACK_DMG_VOLUME_NAME "${CPACK_PACKAGE_NAME}")

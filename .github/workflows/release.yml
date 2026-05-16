@@ -1,0 +1,76 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            preset: linux
+          - os: macos-latest
+            preset: macos
+          - os: windows-latest
+            preset: windows
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux Qt6 runtime deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl1-mesa-dev \
+            libxkbcommon-x11-0 \
+            libfontconfig1
+
+      - name: Install Qt 6.8.0
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.0'
+          aqtversion: '==3.1.*'
+          cache: true
+          modules: 'qttools'
+          archives: 'qtbase qtsvg qtimageformats'
+
+      - name: Configure
+        run: cmake --preset=${{ matrix.preset }}
+
+      - name: Build
+        run: cmake --build --preset=${{ matrix.preset }} -j
+
+      - name: Package
+        working-directory: build
+        run: cpack
+
+      - name: List packages
+        if: runner.os != 'Windows'
+        run: ls -la build/
+      - name: List packages (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: dir build
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/*.deb
+            build/*.tar.gz
+            build/*.dmg
+            build/*.exe
+            build/*.zip
+          fail_on_unmatched_files: false

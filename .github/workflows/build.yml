@@ -23,8 +23,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        qt-version: ['6.5.3', '6.8.0']
+        include:
+          - os: ubuntu-latest
+            qt-version: '6.5.3'
+            preset: linux
+          - os: ubuntu-latest
+            qt-version: '6.8.0'
+            preset: linux
+          - os: macos-latest
+            qt-version: '6.5.3'
+            preset: macos
+          - os: macos-latest
+            qt-version: '6.8.0'
+            preset: macos
+          - os: windows-latest
+            qt-version: '6.5.3'
+            preset: windows
+          - os: windows-latest
+            qt-version: '6.8.0'
+            preset: windows
 
     steps:
       - name: Checkout
@@ -47,7 +64,8 @@ jobs:
             libxcb-xinerama0 \
             libxcb-cursor0 \
             libfontconfig1 \
-            libdbus-1-3
+            libdbus-1-3 \
+            xvfb
 
       - name: Install Qt ${{ matrix.qt-version }}
         uses: jurplel/install-qt-action@v4
@@ -59,23 +77,50 @@ jobs:
           archives: 'qtbase qtsvg'
 
       - name: Configure (CMake preset)
-        run: cmake --preset=default
+        run: cmake --preset=${{ matrix.preset }}
 
       - name: Build
-        run: cmake --build build -j
+        run: cmake --build --preset=${{ matrix.preset }} -j
 
       - name: Test
         env:
           QT_QPA_PLATFORM: offscreen
         run: ctest --test-dir build --output-on-failure
 
+      - name: Smoke (binary runs --help) (Linux)
+        if: runner.os == 'Linux'
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: xvfb-run -a ./build/LvkSpriteEditor --help
+
+      - name: Smoke (headless export) (Linux)
+        if: runner.os == 'Linux'
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          xvfb-run -a ./build/LvkSpriteEditor --export examples/mario.lvks
+          ls -la examples/
+          # Accept any cocos2d export artifact next to the input .lvks.
+          test -f examples/mario.lkob -o -f examples/mario.png -o -f examples/mario.plist
+
+      - name: Smoke (binary runs --help) (macOS)
+        if: runner.os == 'macOS'
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ./build/LvkSpriteEditor --help
+
+      - name: Smoke (binary runs --help) (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: build\Release\LvkSpriteEditor.exe --help
+
       - name: Upload binary (Linux)
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
           name: LvkSpriteEditor-linux-qt${{ matrix.qt-version }}
-          path: build/LvkSpriteEditor
-          if-no-files-found: warn
+          path: build/**/LvkSpriteEditor
+          if-no-files-found: error
 
       - name: Upload binary (macOS)
         if: runner.os == 'macOS'
@@ -83,37 +128,76 @@ jobs:
         with:
           name: LvkSpriteEditor-macos-qt${{ matrix.qt-version }}
           path: |
-            build/LvkSpriteEditor
-            build/LvkSpriteEditor.app
-          if-no-files-found: warn
+            build/**/LvkSpriteEditor
+            build/**/LvkSpriteEditor.app
+          if-no-files-found: error
 
       - name: Upload binary (Windows)
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
           name: LvkSpriteEditor-windows-qt${{ matrix.qt-version }}
-          path: build/LvkSpriteEditor.exe
-          if-no-files-found: warn
+          path: build/**/LvkSpriteEditor*.exe
+          if-no-files-found: error
+
+      - name: cpack DEB + install (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cd build && cpack -G DEB
+          ls -la *.deb
+          sudo apt-get install -y --no-install-recommends ./lvksprite*.deb \
+            || sudo dpkg -i ./lvksprite*.deb \
+            || sudo apt-get install -y --no-install-recommends ./LvkSpriteEditor*.deb \
+            || sudo dpkg -i ./LvkSpriteEditor*.deb
+          which LvkSpriteEditor
+          LvkSpriteEditor --help
 
   format-check:
-    name: clang-format (advisory)
+    name: clang-format
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install clang-format
+      - name: Install clang-format-18
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang-format
+          sudo apt-get install -y clang-format-18
 
       - name: Run clang-format --dry-run --Werror on src/
         run: |
-          shopt -s nullglob
-          files=(src/*.cpp src/*.h)
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "No src/*.{cpp,h} files found; skipping."
-            exit 0
-          fi
-          clang-format --dry-run --Werror "${files[@]}"
+          find src -name '*.cpp' -o -name '*.h' | xargs clang-format-18 --dry-run --Werror
+
+  tidy-check:
+    name: clang-tidy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux Qt6 runtime deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl1-mesa-dev \
+            libxkbcommon-x11-0 \
+            libfontconfig1 \
+            clang-tidy-18
+
+      - name: Install Qt 6.8.0
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.0'
+          aqtversion: '==3.1.*'
+          cache: true
+          modules: 'qttools'
+          archives: 'qtbase qtsvg'
+
+      - name: Configure (export compile_commands.json)
+        run: cmake --preset=linux
+
+      # AUTOMOC-generated sources live under build/ and don't need to be
+      # tidied. We restrict the scan to src/*.cpp under tracking.
+      - name: Run clang-tidy
+        run: |
+          find src -name '*.cpp' | xargs clang-tidy-18 -p build --warnings-as-errors='*'
