@@ -28,6 +28,10 @@ struct LvkAnimation
     ///  get aframe with id aframeId
     LvkAframe& aframe(Id aframeId);
 
+    /// @overload - const variant returns a const reference; needed for
+    /// SpriteState::const_aframe() to be const-correct (Agent 7).
+    const LvkAframe& aframe(Id aframeId) const;
+
     /// add aframe
     void addAframe(const LvkAframe& aframe);
 

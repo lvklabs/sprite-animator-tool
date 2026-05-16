@@ -26,6 +26,8 @@ outside Agent 1's "minimum to compile" scope.
 - **Owner:** Agent 6 (Qt6 deeper API migration) or Agent 7 (memory safety)
   — the call is also a likely source of latent UB worth noting in the
   AddressSanitizer pass.
+- **[RESOLVED by Agent 7]** Fixed with the const-iterator + static empty
+  list approach (option b). Warning gone, test reverted.
 
 ### 2. `QMouseEvent::x()` / `QMouseEvent::y()` are deprecated
 
@@ -88,6 +90,9 @@ outside Agent 1's "minimum to compile" scope.
   safety / AddressSanitizer pass). Once fixed, drop the two `QSKIP`s
   in `tests/format/tst_lvks_roundtrip.cpp` so mario/ryu golden tests
   actually run.
+- **[RESOLVED by Agent 7]** Replaced `insert(id, aframe)` with
+  `append(aframe)`. QSKIPs removed; mario / ryu round-trip subtests now
+  PASS.
 
 ### 5. `custom_header` round-trip grows trailing newlines
 
@@ -123,4 +128,42 @@ The test was rewritten to read via `s.animations().value(aniId)._aframes`
 (which goes through `QMap::value`, not `operator[] const`) so the test
 suite does not depend on the latent bug being fixed first. Once Agent 6/7
 land the fix, the test can be simplified back to `s.aframes(aniId)`.
+
+**[RESOLVED by Agent 7]** — `aframes(Id)` now uses a const-iterator lookup
+with a static empty-list fallback, so the returned reference is always
+valid. The test was reverted back to `s.aframes(aniId)`.
+
+## Agent 7 findings (Modern C++ & Memory Safety)
+
+### 1. `SpriteState::const_image/_frame/_animation/_aframe(Id)` had latent UB
+
+When marking these getters `const` we found their previous bodies all used
+`_collection[id]` (i.e. `QMap::operator[]`). On the non-const overload,
+that has the side effect of *creating a default-constructed entry* if the
+key is missing — so a "read-only" const_image(Id) lookup on a missing id
+was actually mutating the map, growing it by one entry every call. The
+fix uses `constFind()` + static null sentinel; no mutation, no dangling
+reference.
+
+### 2. `LvkAction` leaked on every recent-file menu rebuild
+
+`MainWindow::addRecentFileMenu()` did `new LvkAction(filename)` with no
+parent, then `QMenu::addAction(QAction*)` -- which does **not** take
+ownership. The MAX_RECENT_FILES entries leaked one LvkAction each rebuild.
+Now passes `this` as the parent.
+
+### 3. `_pCache[1000][7]` raw owning array → `QCache<QPair<Id,int>,QPixmap>`
+
+The previous LvkInputImageWidget allocated up to 7000 `QPixmap*` slots in
+a stack array, with a hand-coded delete-loop in two places. Replaced
+with QCache keyed by `(cacheId, zoomLevel)`. As a side effect:
+- LRU eviction means we no longer keep cold zoomed pixmaps around forever.
+- `useCacheId >= PCACHE_ROW_SIZE` is no longer a fatal bounds error.
+- Net ~25 LOC removed.
+
+### 4. Bug #4 was real heap corruption, not just an assert
+
+The fix landed (`append` instead of `insert(id,...)`). The two `QSKIP`
+markers in `tests/format/tst_lvks_roundtrip.cpp` were removed and the
+mario / ryu round-trip subtests now PASS rather than skip.
 

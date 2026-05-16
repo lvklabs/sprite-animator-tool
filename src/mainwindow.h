@@ -10,6 +10,8 @@
 #include <QLabel>
 #include <QCloseEvent>
 
+#include <memory>
+
 #include "types.h"
 #include "inputimage.h"
 #include "lvkframe.h"
@@ -30,7 +32,7 @@ class MainWindow : public QMainWindow
 
 public:
     MainWindow(QWidget *parent = 0);
-    ~MainWindow();
+    ~MainWindow() override;
 
 public slots:
     /// Opens an sprite file
@@ -38,13 +40,16 @@ public slots:
     bool openFile(const QString& filename);
 
 protected:
-    virtual void closeEvent(QCloseEvent *event);
-    virtual void keyPressEvent(QKeyEvent *event);
-    virtual void keyReleaseEvent(QKeyEvent *event);
+    void closeEvent(QCloseEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
 
 private:
 
-    Ui::MainWindow *ui;
+    // Agent 7: Ui::MainWindow is a plain struct (not a QObject); the Qt
+    // parent-child tree does not own it. Use unique_ptr to make the
+    // ownership explicit and free the manual `delete ui;` in ~MainWindow.
+    std::unique_ptr<Ui::MainWindow> ui;
 
     /// current file open
     QString  _filename;

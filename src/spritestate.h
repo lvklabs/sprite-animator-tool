@@ -39,40 +39,90 @@ public:
     { return _animations; }
 
     /// get aframes list from animation @param aniId
+    ///
+    /// Agent 7 fix: In Qt6, QMap::operator[](key) const returns the value
+    /// *by value* (a copy), so the previous body
+    ///   `return _animations[aniId]._aframes;`
+    /// produced a dangling reference into a temporary copy — a real
+    /// use-after-free. We now look up via a const iterator (whose
+    /// referenced value lives inside the map) and fall back to a process-
+    /// wide empty list when the animation id is unknown. The empty list
+    /// has static storage duration, so the returned reference is always
+    /// valid for the lifetime of the program.
     const QList<LvkAframe>& aframes(Id aniId) const
-    { return _animations[aniId]._aframes; }
+    {
+        static const QList<LvkAframe> kEmpty;
+        const auto it = _animations.constFind(aniId);
+        if (it == _animations.constEnd()) {
+            return kEmpty;
+        }
+        return it.value()._aframes;
+    }
 
     /// get frame pixmaps hash
     const QMap<Id, QPixmap>& fpixmaps() const
     { return _fpixmaps; }
 
     // pixmap getters ***********************************************************
+    //
+    // Agent 7: these getters are now genuinely `const`. The previous code
+    // commented out `const` because the bodies used `QMap::operator[]`,
+    // which in Qt6 (a) returns by value in the const overload — i.e. a
+    // dangling reference — and (b) is non-const-callable in the mutating
+    // overload. We now look up via const_iterator and fall back to a
+    // static null sentinel when the key is missing, so the returned
+    // reference is always valid.
 
     /// get pixmap data from image @param imgId
-    const QPixmap& ipixmap(Id imgId) /* const */
-    { return (imgId != NullId) ? _images[imgId].pixmap : nullPixmap; }
+    const QPixmap& ipixmap(Id imgId) const
+    {
+        if (imgId == NullId) return nullPixmap;
+        const auto it = _images.constFind(imgId);
+        return (it == _images.constEnd()) ? nullPixmap : it.value().pixmap;
+    }
 
     /// get pixmap data from frame @param frameId
-    const QPixmap& fpixmap(Id frameId) /* const */
-    { return (frameId != NullId) ? _fpixmaps[frameId] : nullPixmap; }
+    const QPixmap& fpixmap(Id frameId) const
+    {
+        if (frameId == NullId) return nullPixmap;
+        const auto it = _fpixmaps.constFind(frameId);
+        return (it == _fpixmaps.constEnd()) ? nullPixmap : it.value();
+    }
 
     // basic const getters ******************************************************
 
     /// get const input image by Id
-    const InputImage& const_image(Id imgId) /* const */
-    { return _images[imgId]; }
+    const InputImage& const_image(Id imgId) const
+    {
+        static const InputImage kEmpty;
+        const auto it = _images.constFind(imgId);
+        return (it == _images.constEnd()) ? kEmpty : it.value();
+    }
 
     /// get const frame by Id
-    const LvkFrame& const_frame(Id frameId) /* const */
-    { return _frames[frameId]; }
+    const LvkFrame& const_frame(Id frameId) const
+    {
+        static const LvkFrame kEmpty;
+        const auto it = _frames.constFind(frameId);
+        return (it == _frames.constEnd()) ? kEmpty : it.value();
+    }
 
     /// get const animation by Id
-    const LvkAnimation& const_animation(Id aniId) /* const */
-    { return _animations[aniId]; }
+    const LvkAnimation& const_animation(Id aniId) const
+    {
+        static const LvkAnimation kEmpty;
+        const auto it = _animations.constFind(aniId);
+        return (it == _animations.constEnd()) ? kEmpty : it.value();
+    }
 
     /// get const aframe by Id
-    const LvkAframe& const_aframe(Id aniId, Id aframeId) /* const */
-    { return _animations[aniId].aframe(aframeId); }
+    const LvkAframe& const_aframe(Id aniId, Id aframeId) const
+    {
+        static const LvkAframe kEmpty;
+        const auto it = _animations.constFind(aniId);
+        return (it == _animations.constEnd()) ? kEmpty
+                                              : it.value().aframe(aframeId);
+    }
 
     // update *******************************************************************
 
@@ -143,7 +193,7 @@ public:
     void setCustomHeader(const QString& header)
     { _customHeader = header; }
 
-    QString getCustomHeader()
+    QString getCustomHeader() const
     { return _customHeader; }
 
     // Load, save, export ******************************************************

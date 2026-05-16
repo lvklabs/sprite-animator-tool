@@ -54,6 +54,21 @@ LvkAframe& LvkAnimation::aframe(Id aframeId)
     return nullAframe;
 }
 
+const LvkAframe& LvkAnimation::aframe(Id aframeId) const
+{
+    // Agent 7: const variant. Use a static empty-aframe sentinel for the
+    // not-found case; the returned reference remains valid for the
+    // lifetime of the program.
+    static const LvkAframe nullAframe;
+
+    for (int i = 0; i < _aframes.size(); ++i) {
+        if (_aframes.at(i).id == aframeId) {
+            return _aframes.at(i);
+        }
+    }
+    return nullAframe;
+}
+
 void LvkAnimation::addAframe(const LvkAframe &aframe)
 {
     _aframes.push_back(aframe);

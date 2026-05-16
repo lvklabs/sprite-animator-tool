@@ -19,7 +19,7 @@ class LvkFrameDefWidget : public LvkInputImageWidget
 
 public:
     LvkFrameDefWidget(QWidget *parent = 0);
-    virtual ~LvkFrameDefWidget();
+    ~LvkFrameDefWidget() override;
 
     /// Return current frame rect
     const QRect frameRect() const;
@@ -49,10 +49,10 @@ signals:
     void frameRectChangeFinished(const QRect& rect);
 
 protected:
-    virtual void paintEvent(QPaintEvent *event);
-    virtual void mouseMoveEvent(QMouseEvent *event);
-    virtual void mousePressEvent(QMouseEvent *event);
-    virtual void mouseReleaseEvent(QMouseEvent *event);
+    void paintEvent(QPaintEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
 
 private:
 

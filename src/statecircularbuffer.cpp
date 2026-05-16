@@ -6,18 +6,14 @@
 
 
 StateCircularBuffer::StateCircularBuffer()
-    : _buf(0)
+    : _buf(std::make_unique<StateChange[]>(BUFF_SIZE))
 {
-    _buf = new StateCircularBuffer::StateChange[BUFF_SIZE];
-
     clear();
 }
 
 StateCircularBuffer::~StateCircularBuffer()
 {
-    if (_buf) {
-        delete[] _buf;
-    }
+    // Agent 7: unique_ptr frees _buf automatically.
 }
 
 void StateCircularBuffer::clear()

@@ -137,7 +137,11 @@ QString convertToMacKeys(const QString& str)
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow),
-      statusBarMousePos(new QLabel()), statusBarRectSize(new QLabel()),
+      // Agent 7: pass an explicit parent so the Qt parent-child tree
+      // owns the lifetime. QStatusBar::addWidget() also reparents, but
+      // an explicit parent at construction makes ownership unambiguous
+      // and lets us drop the manual `delete` in ~MainWindow.
+      statusBarMousePos(new QLabel(this)), statusBarRectSize(new QLabel(this)),
       _blendFrameId(NullId)
 {
     ui->setupUi(this);
@@ -791,7 +795,10 @@ void MainWindow::initRecentFilesMenu()
 void MainWindow::addRecentFileMenu(const QString& filename)
 {
     ui->actionNoRecentFiles->setVisible(false);
-    LvkAction* action = new LvkAction(filename);
+    // Agent 7: pass an explicit parent (this) so the QObject parent-child
+    // tree owns the action -- QMenu::addAction(QAction*) does NOT take
+    // ownership, so previously each menu rebuild leaked a LvkAction.
+    LvkAction* action = new LvkAction(filename, this);
     ui->actionOpenRecent->addAction(action);
     connect(action, SIGNAL(triggered(QString)), this, SLOT(openFile_checkUnsaved(QString)));
 }
@@ -2503,9 +2510,9 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
 
 MainWindow::~MainWindow()
 {
-    delete statusBarRectSize;
-    delete statusBarMousePos;
-    delete ui;
+    // Agent 7: statusBarRectSize and statusBarMousePos are owned by the
+    // Qt parent-child tree (parent=this), and `ui` is now a unique_ptr
+    // — no manual deletes needed.
 }
 
 
