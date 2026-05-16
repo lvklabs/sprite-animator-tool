@@ -59,4 +59,13 @@ outside Agent 1's "minimum to compile" scope.
 
 ## Logged by later agents
 
-(empty — append below as needed)
+### Agent 3 (Test Infrastructure)
+
+The dangling-reference bug Agent 1 logged in `SpriteState::aframes(Id)` was
+reproduced empirically while writing `tests/unit/tst_spritestate_crud.cpp`:
+calling `s.aframes(aniId).size()` segfaulted inside the test process.
+The test was rewritten to read via `s.animations().value(aniId)._aframes`
+(which goes through `QMap::value`, not `operator[] const`) so the test
+suite does not depend on the latent bug being fixed first. Once Agent 6/7
+land the fix, the test can be simplified back to `s.aframes(aniId)`.
+
