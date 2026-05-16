@@ -1,2 +1,21 @@
 LvkSpriteEditor.pro.user
 
+# CMake build artifacts
+build/
+build-*/
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+*_autogen/
+.cmake/
+
+# IDE and editor cruft
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store

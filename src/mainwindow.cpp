@@ -915,8 +915,8 @@ QString MainWindow::toRelativePath(const QString &filePath)
 {
     const QString sep = QDir::separator();
     QFileInfo fileInfo(filePath);
-    QStringList dirs1 = fileInfo.absolutePath().split(sep, QString::SkipEmptyParts);
-    QStringList dirs2 = QDir::currentPath().split(sep, QString::SkipEmptyParts);
+    QStringList dirs1 = fileInfo.absolutePath().split(sep, Qt::SkipEmptyParts);
+    QStringList dirs2 = QDir::currentPath().split(sep, Qt::SkipEmptyParts);
 
     QString relFilePath;
 

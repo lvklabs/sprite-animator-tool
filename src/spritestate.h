@@ -1,6 +1,7 @@
 #ifndef SPRITESTATE_H
 #define SPRITESTATE_H
 
+#include <QObject>
 #include <QString>
 #include <QImage>
 #include <QPixmap>

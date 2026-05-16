@@ -26,16 +26,16 @@ QString getMacroName(const QString& name)
 {
     QString macroName;
 
-    QByteArray a = name.toAscii();
+    QByteArray a = name.toLatin1();
     for (int i = 0; i < a.size(); ++i)
     {
         char c = a[i];
         if (isalpha(c)) {
-            macroName.append(toupper(c));
+            macroName.append(QChar(static_cast<char>(toupper(c))));
         } else if (isdigit(c)) {
-            macroName.append(c);
+            macroName.append(QChar(c));
         } else if (c == ' ' || c == '_' || c == '.') {
-            macroName.append('_');
+            macroName.append(QChar('_'));
         }
     }
 

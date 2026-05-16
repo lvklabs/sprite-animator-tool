@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string>
-#include <QtGui/QApplication>
+#include <QApplication>
 #include <QFileInfo>
 #include <QDir>
 

@@ -265,9 +265,10 @@ void LvkInputImageWidget::mouseMoveEvent(QMouseEvent *event)
 void LvkInputImageWidget::wheelEvent(QWheelEvent *event)
 {
     if (ctrlKey()) {
-        if (event->delta() > 0) {
+        const int dy = event->angleDelta().y();
+        if (dy > 0) {
             zoomIn();
-        } else if (event->delta() < 0) {
+        } else if (dy < 0) {
             zoomOut();
         }
         event->accept();

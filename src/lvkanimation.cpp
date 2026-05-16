@@ -77,7 +77,7 @@ void LvkAnimation::swapAframes(Id aframeId1, Id aframeId2)
             j = k;
         }
         if (i != -1 && j != -1) {
-            _aframes.swap(i, j);
+            _aframes.swapItemsAt(i, j);
             break;
         }
     }
