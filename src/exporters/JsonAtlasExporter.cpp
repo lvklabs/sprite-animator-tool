@@ -124,23 +124,34 @@ bool JsonAtlasExporter::exportAtlas(const QString& baseFilename,
                   return a.height > b.height;
               });
 
+    // SECURITY (Phase 4): Bound atlas allocations.
+    //   - kMaxAtlasDim caps a single axis. 16384 matches the maximum
+    //     texture size GPUs typically advertise, and keeps the ARGB32
+    //     atlas allocation under 1 GB even at the worst-case square.
+    //   - totalArea is qint64; multiplication is widened explicitly to
+    //     avoid int*int -> int overflow at w*h >= 2^31 (e.g. one frame
+    //     of 65536x65536 is enough -- and a malicious .lvks could
+    //     before the lvkframe.cpp bounds check landed).
+    constexpr int kMaxAtlasDim = 16384;
+
     // Pick atlas width: at least as wide as the widest frame, padded to
     // a power of two and clamped to a sensible upper bound. This keeps
     // single-large-frame edge cases from blowing up the width.
     int maxW = 64;
-    int totalArea = 0;
+    qint64 totalArea = 0;
     for (const PackedFrame& pf : pack) {
         if (pf.width > maxW) maxW = pf.width;
-        totalArea += pf.width * pf.height;
+        totalArea += static_cast<qint64>(pf.width) * static_cast<qint64>(pf.height);
     }
     // Square-ish heuristic: target an atlas with width >= sqrt(area).
     int targetW = maxW;
     {
-        int wByArea = 1;
+        qint64 wByArea = 1;
         while (wByArea * wByArea < totalArea) wByArea <<= 1;
-        if (wByArea > targetW) targetW = wByArea;
+        if (wByArea > targetW) targetW = static_cast<int>(qMin<qint64>(wByArea, kMaxAtlasDim));
     }
-    const int atlasW = nextPow2(targetW);
+    int atlasW = nextPow2(targetW);
+    atlasW = qMin(atlasW, kMaxAtlasDim);
 
     int curX = 0;
     int curY = 0;
@@ -161,6 +172,21 @@ bool JsonAtlasExporter::exportAtlas(const QString& baseFilename,
     }
     if (atlasH == 0) atlasH = 64; // empty-state safety
     atlasH = nextPow2(atlasH);
+    atlasH = qMin(atlasH, kMaxAtlasDim);
+
+    // After clamping, if the input frames could not possibly fit inside
+    // the clamped atlas (their combined area exceeds the clamped square),
+    // bail with an error rather than truncating frame data into a
+    // too-small canvas.
+    const qint64 clampedAtlasArea = static_cast<qint64>(atlasW) *
+                                    static_cast<qint64>(atlasH);
+    if (totalArea > clampedAtlasArea) {
+        qDebug() << "JsonAtlasExporter::exportAtlas: refusing to pack frames "
+                 << "totalArea=" << totalArea
+                 << "into atlas of clamped area=" << clampedAtlasArea
+                 << "(dim cap" << kMaxAtlasDim << ")";
+        return false;
+    }
 
     // -- render PNG -------------------------------------------------------
     {

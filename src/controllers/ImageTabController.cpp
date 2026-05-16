@@ -15,11 +15,14 @@
 #include "dialogs.h"
 #include "lvkinputimagewidget.h"
 
+#include <QByteArray>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QDir>
 #include <QImage>
+#include <QImageReader>
 #include <QInputDialog>
+#include <QSet>
 #include <QSignalBlocker>
 #include <QTableWidget>
 #include <QTableWidgetItem>
@@ -161,8 +164,29 @@ void ImageTabController::addImage_ui(const InputImage& image)
     }
     if (!QFileInfo(filename).exists()) {
         infoDialog(tr("File '") + filename + tr("' does not exist"));
-    } else if (QImage(filename).isNull()) {
-        infoDialog(filename + tr(" has an invalid image format"));
+    } else {
+        // SECURITY (Phase 4): Whitelist image formats by sniffing the
+        // file content via QImageReader rather than trusting QImage's
+        // probe-everything fallback. Rejects unusual decoders (e.g. raw
+        // formats or future Qt plugins) that could expand decompression
+        // bombs unchecked.
+        QImageReader reader(filename);
+        const QByteArray fmt = reader.format().toLower();
+        static const QSet<QByteArray> allowed = {
+            QByteArrayLiteral("png"),
+            QByteArrayLiteral("jpg"),
+            QByteArrayLiteral("jpeg"),
+            QByteArrayLiteral("bmp"),
+            QByteArrayLiteral("gif"),
+            QByteArrayLiteral("webp"),
+            QByteArrayLiteral("svg"),
+        };
+        if (!allowed.contains(fmt)) {
+            infoDialog(filename + tr(" has an unsupported image format: ")
+                       + QString::fromUtf8(fmt));
+        } else if (QImage(filename).isNull()) {
+            infoDialog(filename + tr(" has an invalid image format"));
+        }
     }
 
     int rows = m_ui->imgTableWidget->rowCount();

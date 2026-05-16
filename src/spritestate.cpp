@@ -12,6 +12,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QProcess>
+#include <QRegularExpression>
 #include <QStandardPaths>
 #include <QTemporaryFile>
 #include <iostream>
@@ -581,15 +582,30 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
     return (state != StError);
 }
 
-// SECURITY (Agent 8, addresses Agent 5 [FIXME(agent-5)]):
-// Validate that @param filename / outputDir produce output paths inside
-// the canonical outputDir. Rejects:
-//   - baseName containing path separators ('/', '\\') or "..",
-//   - baseName equal to ".." or ".",
-//   - resolved absolute path that escapes the canonical outputDir,
-//   - outputDir that does not exist (cannot canonicalize).
-// Returns true on safe; false on unsafe (with reasonInternal optionally set).
-static bool isSafeExportPath(const QString& baseName,
+// SECURITY (Agent 8 + Phase 4): Validate that @param sourceFilename /
+// outputDir produce output paths inside the canonical outputDir.
+//
+// Phase 4 hardening (vs the original Agent 8 implementation):
+//   - validate the FULL last-segment filename (post cleanPath), not just
+//     QFileInfo::baseName() which is "everything before the first dot".
+//     The legacy baseName check trivially passed
+//     `legit...../../../etc/passwd.lvks` because baseName == "legit".
+//   - use QDir::canonicalPath() to resolve outputDir symlinks before
+//     the containment check; refuse empty canonical (broken symlink or
+//     non-existent dir).
+//   - append a trailing separator to canonOutDir before startsWith() so
+//     that "/tmp/safe-evil/..." cannot prefix-confuse "/tmp/safe".
+//   - reject NUL byte and EITHER slash flavor in the filename (Windows
+//     attackers can smuggle backslashes through a Linux build's QDir
+//     which only treats '/' as a separator).
+//
+// Rejects:
+//   - empty filename, or filename containing '/', '\\', NUL, or "..",
+//   - absolute filename,
+//   - outputDir that does not exist / cannot canonicalize,
+//   - resolved candidate path that escapes canonicalised outputDir.
+// Returns true on safe; false on unsafe (with reasonOut optionally set).
+static bool isSafeExportPath(const QString& sourceFilename,
                              const QString& outputDir,
                              QString*       reasonOut)
 {
@@ -599,38 +615,71 @@ static bool isSafeExportPath(const QString& baseName,
         return false;
     };
 
-    if (baseName.isEmpty()) {
-        return fail(QStringLiteral("baseName is empty"));
+    // 1. Reject the raw input for NUL bytes and ".." or alt-separator
+    // traversal BEFORE QDir::cleanPath rewrites them away. cleanPath
+    // collapses "/tmp/safe/.." to "/tmp", which would then look safe to
+    // a naive last-segment check.
+    if (sourceFilename.contains(QChar('\0'))) {
+        return fail(QStringLiteral("filename contains NUL byte"));
     }
-    if (baseName.contains(QLatin1Char('/')) || baseName.contains(QLatin1Char('\\'))) {
-        return fail(QStringLiteral("baseName contains path separator: ") + baseName);
-    }
-    if (baseName.contains(QStringLiteral(".."))) {
-        return fail(QStringLiteral("baseName contains '..': ") + baseName);
-    }
-    if (baseName == QStringLiteral(".") || baseName == QStringLiteral("..")) {
-        return fail(QStringLiteral("baseName is a directory traversal: ") + baseName);
-    }
-    if (QFileInfo(baseName).isAbsolute()) {
-        return fail(QStringLiteral("baseName is an absolute path: ") + baseName);
+    if (sourceFilename.contains(QStringLiteral(".."))) {
+        return fail(QStringLiteral("filename contains '..' traversal: ") + sourceFilename);
     }
 
-    // Resolve canonical outputDir. We require it to exist so we can compare
-    // it. canonicalPath() returns empty for non-existing dirs.
-    QFileInfo outDirInfo(outputDir);
-    if (!outDirInfo.exists() || !outDirInfo.isDir()) {
-        return fail(QStringLiteral("outputDir does not exist or is not a directory: ") + outputDir);
+    // 2. Extract and validate the final filename component.
+    //
+    // We deliberately do NOT use QFileInfo::baseName() here: it stops at
+    // the first dot, so an attacker filename of
+    //   legit...../../../etc/passwd.lvks
+    // returns baseName == "legit", a name the old check accepted while the
+    // outer "..." segments would still let the operating system traverse.
+    //
+    // The regex below matches BOTH '/' and '\\' so a Windows-flavored
+    // attack ("a\\..\\..\\b") still gets split into its components on a
+    // POSIX build (where QDir::separator is '/').
+    const QString cleaned = QDir::cleanPath(sourceFilename);
+    const QString filenameOnly =
+        cleaned.section(QRegularExpression(QStringLiteral("[\\\\/]")), -1,
+                        -1, QString::SectionSkipEmpty);
+
+    if (filenameOnly.isEmpty()) {
+        return fail(QStringLiteral("filename is empty after cleanPath: ") + sourceFilename);
     }
-    const QString canonicalOutputDir = outDirInfo.canonicalFilePath();
+    if (filenameOnly.contains(QLatin1Char('/')) ||
+        filenameOnly.contains(QLatin1Char('\\'))) {
+        // Belt-and-braces: the section() above should have stripped these,
+        // but a defense-in-depth check is cheap.
+        return fail(QStringLiteral("filename contains a path separator: ") + filenameOnly);
+    }
+    if (filenameOnly == QStringLiteral(".") || filenameOnly == QStringLiteral("..")) {
+        return fail(QStringLiteral("filename is a directory traversal: ") + filenameOnly);
+    }
+    if (QFileInfo(filenameOnly).isAbsolute()) {
+        return fail(QStringLiteral("filename is an absolute path: ") + filenameOnly);
+    }
+
+    // 2. Canonicalise outputDir, resolving any symlinks. This refuses
+    // operator-confusion attacks like "/tmp/safe -> /etc".
+    const QString canonicalOutputDir = QDir(outputDir).canonicalPath();
     if (canonicalOutputDir.isEmpty()) {
-        return fail(QStringLiteral("could not canonicalize outputDir: ") + outputDir);
+        return fail(QStringLiteral("could not canonicalize outputDir (missing or broken symlink): ") + outputDir);
+    }
+    QFileInfo canonOutInfo(canonicalOutputDir);
+    if (!canonOutInfo.exists() || !canonOutInfo.isDir()) {
+        return fail(QStringLiteral("canonical outputDir does not exist or is not a directory: ")
+                    + canonicalOutputDir);
     }
 
-    // Build the candidate path and canonicalize via cleanPath; we cannot
-    // canonicalFilePath() the candidate because the file doesn't exist yet.
-    const QString candidate = QDir::cleanPath(canonicalOutputDir +
-                                              QDir::separator() + baseName);
-    if (!candidate.startsWith(canonicalOutputDir + QDir::separator()) &&
+    // 3. Build the candidate output path and verify it stays inside
+    // canonicalOutputDir. Always compare against the canonical dir WITH
+    // a trailing separator to defeat prefix confusion:
+    //   /tmp/safe         vs.  /tmp/safe-evil/x  -> rejected
+    // Without the trailing separator the second startsWith() would
+    // succeed because "/tmp/safe-evil/x".startsWith("/tmp/safe") is true.
+    const QString sep = QDir::separator();
+    const QString canonOutWithSep = canonicalOutputDir + sep;
+    const QString candidate = QDir::cleanPath(canonicalOutputDir + sep + filenameOnly);
+    if (!candidate.startsWith(canonOutWithSep) &&
         candidate != canonicalOutputDir) {
         return fail(QStringLiteral("resolved path escapes outputDir: ") + candidate);
     }
@@ -652,17 +701,28 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
         outputDir = fileInfo.path();
     }
 
-    const QString baseName = fileInfo.baseName();
-
-    // SECURITY (Agent 8): Reject any baseName / outputDir combo that would
-    // let user input escape outputDir. See isSafeExportPath above.
+    // SECURITY (Phase 4): Validate the FULL filename (post-cleanPath) rather
+    // than the baseName-before-first-dot legacy behavior. The new
+    // isSafeExportPath() does the full-name check; we only fall back to
+    // baseName() AFTER the check passes so that the .lkob/.lkot/.h artifact
+    // basenames remain identical to the pre-Phase-4 output.
     {
         QString reason;
-        if (!isSafeExportPath(baseName, outputDir, &reason)) {
+        if (!isSafeExportPath(filename, outputDir, &reason)) {
             qDebug() << "SpriteState::exportSprite():" << reason;
             setError(err, ErrUnsafeOutputPath);
             return false;
         }
+    }
+    const QString baseName = fileInfo.baseName();
+    if (baseName.isEmpty()) {
+        // A filename like "...lvks" has baseName "" -- still trigger the
+        // safe-path rejection so we don't open(outputDir + "" + ".lkob")
+        // which writes to the directory itself.
+        qDebug() << "SpriteState::exportSprite(): baseName is empty for"
+                 << filename;
+        setError(err, ErrUnsafeOutputPath);
+        return false;
     }
 
     // Dispatch JSON-only exports to the JSON exporter and return early.
@@ -879,6 +939,17 @@ static bool resolvePostprocessingProgram(const QString &postpScriptCmd,
     const QStringList args = tokens.mid(1);
 
     // Step 1: locate the binary on disk.
+    //
+    // SECURITY (Phase 4): use canonicalFilePath() rather than
+    // absoluteFilePath() so the path passed to QProcess::start has
+    // already had its symlinks resolved. Without this, a writable
+    // symlink dir on PATH (or in the user's chosen script path) is a
+    // TOCTOU primitive: between the existence/executable checks below
+    // and the QProcess::start() down in runPostprocessingScript() an
+    // attacker can swap the symlink target. By snapshotting the
+    // canonical path here we pin the file inode (modulo a separate
+    // bind-mount or unlink-replace race, which the OS itself would
+    // have to surface) for the subsequent QProcess::start call.
     QString resolved;
     QFileInfo fi(program);
     if (program.contains(QDir::separator()) || fi.isAbsolute()) {
@@ -889,13 +960,32 @@ static bool resolvePostprocessingProgram(const QString &postpScriptCmd,
             }
             return false;
         }
-        resolved = fi.absoluteFilePath();
-    } else {
-        // Bare name: search PATH.
-        resolved = QStandardPaths::findExecutable(program);
+        resolved = fi.canonicalFilePath();
         if (resolved.isEmpty()) {
+            // canonicalFilePath returns "" if the file doesn't exist or a
+            // symlink in the chain is broken. We already proved existence
+            // above; an empty result here means a broken symlink.
+            if (errorOut) {
+                *errorOut = QStringLiteral("postprocessing script '%1' has a broken symlink chain").arg(program);
+            }
+            return false;
+        }
+    } else {
+        // Bare name: search PATH, then canonicalise.
+        const QString pathResolved = QStandardPaths::findExecutable(program);
+        if (pathResolved.isEmpty()) {
             if (errorOut) {
                 *errorOut = QStringLiteral("postprocessing script '%1' not found on PATH").arg(program);
+            }
+            return false;
+        }
+        resolved = QFileInfo(pathResolved).canonicalFilePath();
+        if (resolved.isEmpty()) {
+            // PATH lookup found something, but it canonicalises to nothing
+            // (broken symlink). Reject rather than execute the dangling
+            // target.
+            if (errorOut) {
+                *errorOut = QStringLiteral("postprocessing script '%1' has a broken symlink chain on PATH").arg(program);
             }
             return false;
         }
@@ -1014,8 +1104,29 @@ bool SpriteState::writeImageWithPostprocessing(QFile &binOutput, const LvkFrame 
     TempCleanup cleanup{tmpImgFilename, QString()};
 
     // run post processing script on temp image
-
-    QString postpImgFilename = tmpImgFilename + ".ppi";
+    //
+    // SECURITY (Phase 4): The legacy code derived the postprocessed-image
+    // path by string-appending ".ppi" to the input tempfile -- which made
+    // it 100% predictable (and trivial for a co-located attacker to
+    // pre-create / symlink). Use QTemporaryFile to get an OS-chosen unique
+    // path with 0600 perms instead. setAutoRemove(false) because the path
+    // has to outlive this QTemporaryFile (the subprocess will write it,
+    // we'll read it back, and the surrounding TempCleanup will unlink it).
+    QString postpImgFilename;
+    {
+        const QString tmplDir = QStandardPaths::writableLocation(
+                                    QStandardPaths::TempLocation);
+        QTemporaryFile postpTmp(tmplDir + QDir::separator()
+                                + QStringLiteral("lvk-export-XXXXXX.ppi"));
+        postpTmp.setAutoRemove(false);
+        if (!postpTmp.open()) {
+            qDebug() << "writeImageWithPostprocessing: could not create secure "
+                     << "postp tempfile in" << tmplDir;
+            return false;
+        }
+        postpImgFilename = postpTmp.fileName();
+        postpTmp.close();
+    }
     cleanup.b = postpImgFilename;
 
     if (!postpScript.isEmpty()) {

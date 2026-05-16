@@ -36,11 +36,13 @@ void TestInputImage::testToStringEmitsThreeFields()
 void TestInputImage::testFromStringThreeFieldsRoundTrip()
 {
     // We can't compare pixmaps reliably without disk fixtures, so compare
-    // the trio of fields that toString writes.
+    // the trio of fields that toString writes. Phase 4 InputImage rejects
+    // absolute / UNC / NUL / ".." filenames, so we use a relative test
+    // path (matches what the real on-disk .lvks fixtures look like).
     InputImage parsed;
-    QVERIFY(parsed.fromString("7,/non/existent/file.png,2"));
+    QVERIFY(parsed.fromString("7,relative/path/file.png,2"));
     QCOMPARE(parsed.id, 7);
-    QCOMPARE(parsed.filename, QString("/non/existent/file.png"));
+    QCOMPARE(parsed.filename, QString("relative/path/file.png"));
     QCOMPARE(parsed.scale(), 2.0);
 
     // round-trip the serialized form back through fromString and re-check
@@ -53,10 +55,12 @@ void TestInputImage::testFromStringThreeFieldsRoundTrip()
 
 void TestInputImage::testFromStringTwoFieldLegacyAcceptedScaleDefaultsToOne()
 {
+    // Phase 4: relative path (matches examples/*.lvks; absolute paths are
+    // now rejected by the security validator).
     InputImage parsed;
-    QVERIFY(parsed.fromString("3,/some/file.png"));
+    QVERIFY(parsed.fromString("3,some/file.png"));
     QCOMPARE(parsed.id, 3);
-    QCOMPARE(parsed.filename, QString("/some/file.png"));
+    QCOMPARE(parsed.filename, QString("some/file.png"));
     QCOMPARE(parsed.scale(), 1.0);
 }
 
@@ -72,8 +76,9 @@ void TestInputImage::testFromStringEmptyFilename()
 void TestInputImage::testFromStringSpecialCharsInFilename()
 {
     // The .lvks contract forbids ',' in filenames but other special chars
-    // (spaces, parentheses, percent signs) are fair game.
-    const QString tricky = "/tmp/path with spaces & (parens)_50%.png";
+    // (spaces, parentheses, percent signs) are fair game. Phase 4: paths
+    // must be relative, so the test path no longer leads with '/'.
+    const QString tricky = "path with spaces & (parens)_50%.png";
     InputImage parsed;
     QVERIFY(parsed.fromString(QString("99,%1,1").arg(tricky)));
     QCOMPARE(parsed.id, 99);

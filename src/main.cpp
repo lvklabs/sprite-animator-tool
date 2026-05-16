@@ -29,6 +29,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QIcon>
+#include <QImageReader>
 #include <QString>
 #include <QStringList>
 #include <iostream>
@@ -205,6 +206,12 @@ bool parseCommandLine(QCoreApplication& app, CliOptions& cli, QString& errorMess
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
+
+    // SECURITY (Phase 4): Conservative cap on per-image decoder allocation.
+    // Defeats decompression-bomb PNG/TIFF inputs that would otherwise expand
+    // to >64MB of raw pixel data when QPixmap/QImage loads them. Qt's own
+    // default is 256MB (Qt6) and unlimited pre-6.0.
+    QImageReader::setAllocationLimit(64);
 
     QCoreApplication::setOrganizationName(QStringLiteral(LVK_NAME));
     QCoreApplication::setOrganizationDomain(QStringLiteral(LVK_DOMAIN));
