@@ -26,3 +26,5 @@ _CPack_Packages/
 *~
 .DS_Store
 
+# Tooling caches
+.claude/
