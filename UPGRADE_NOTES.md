@@ -57,6 +57,61 @@ outside Agent 1's "minimum to compile" scope.
 - **Owner:** Agent 6 (Qt6 deeper API migration — SIGNAL/SLOT to PMF
   conversion of all ~100 connections is the assigned scope).
 
+## Logged by Agent 2 (Format Compatibility & Golden Tests)
+
+### 4. `SpriteState::addAframe` inserts by id-as-index (heap corruption)
+
+- **File:** `src/spritestate.cpp:88`
+- **Symptom:** Loading any `.lvks` whose aframe ids are non-contiguous
+  or do not start at 0 within an animation aborts with
+  `malloc(): unaligned tcache chunk detected` (release) or
+  `ASSERT failure in QList<T>::insert: "index out of range"` (debug).
+  Both `examples/mario.lvks` and `examples/ryu.lvks` trigger this when
+  loaded by the new test binaries — see
+  `tests/format/tst_lvks_roundtrip.cpp::roundtripMario/Ryu`, which are
+  `QSKIP`-ed pending the fix.
+- **Cause:** `addAframe()` calls
+  `_animations[aniId]._aframes.insert(aframe.id, aframe)` where
+  `_aframes` is `QList<LvkAframe>`. `QList::insert(int i, const T&)`
+  treats `i` as a position, not a key, and `i > size()` is undefined
+  behavior. Under Qt5 the array-of-pointers QList sometimes hid the UB;
+  the Qt6 unified `QList` (an array container) corrupts the heap. The
+  bug has existed since the original Qt4 commits.
+- **Suggested fix:** Replace the call with `append(aframe)` (or
+  `push_back`). Aframe order is already determined by the order the
+  parser encounters them in the file, and `save()` iterates the list
+  in insertion order, so `append` preserves on-disk order without
+  needing the id-as-position invariant. Cross-check
+  `LvkAnimation::addAframe` (which already uses `push_back`) for the
+  intended semantics.
+- **Owner:** Agent 6 (Qt6 deeper API migration) or Agent 7 (memory
+  safety / AddressSanitizer pass). Once fixed, drop the two `QSKIP`s
+  in `tests/format/tst_lvks_roundtrip.cpp` so mario/ryu golden tests
+  actually run.
+
+### 5. `custom_header` round-trip grows trailing newlines
+
+- **File:** `src/spritestate.cpp:158-160`
+- **Symptom:** Each save / load cycle of a sprite that has a non-empty
+  `custom_header()` block appends an extra `\n` to
+  `SpriteState::_customHeader`. The canonical on-disk form is therefore
+  not a fixed point — repeated save/load slowly grows the header.
+- **Cause:** `load()` already appends `"\n"` after every header line
+  (`spritestate.cpp:347`), so `_customHeader` always ends in `\n`.
+  `save()` then writes `_customHeader << "\n"` (line 159), adding a
+  second trailing newline. On reload, load() once again appends `\n`
+  per line — including for the now-empty trailing line — so the
+  invariant breaks by one newline per round.
+- **Suggested fix:** In `save()`, write `_customHeader` *without* the
+  extra `"\n"`, or call `_customHeader.trimmed()` before serialisation.
+  The test `tst_lvks_roundtrip::roundtripPreservesCustomHeader` is
+  written to tolerate this until the fix lands (compares with trailing
+  whitespace stripped).
+- **Owner:** Agent 8 (MainWindow refactor + export pipeline) owns
+  `src/spritestate.cpp` export-side edits. Once fixed, tighten the
+  comparison in `roundtripPreservesCustomHeader` back to a strict
+  `QCOMPARE`.
+
 ## Logged by later agents
 
 ### Agent 3 (Test Infrastructure)
