@@ -61,6 +61,16 @@ QString InputImage::toString() const
 
 QString InputImage::toString(LvkVersion v) const
 {
+    // Phase 6b (Item 26): CSV format cannot represent ',' or NUL in the
+    // filename field; reject rather than silently corrupt the saved file.
+    // (isSafeImagePath already rejects NUL on load; reject on save too so
+    // the invariant is symmetric across both directions of the round-trip.)
+    if (filename.contains(QLatin1Char(',')) || filename.contains(QChar('\0'))) {
+        qWarning() << "InputImage::toString refusing to serialize filename containing comma or NUL:"
+                   << filename;
+        return QString();
+    }
+
     // v0.1 schema had no `scale` column; everything else carries it.
     if (v < LvkVersion::V_02) {
         return QStringLiteral("%1,%2").arg(QString::number(id), filename);

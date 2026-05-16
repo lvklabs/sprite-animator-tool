@@ -89,3 +89,6 @@ lvk_add_format_test(tst_version_preservation)
 # Phase 3 (Item 11): aframes must be sorted by id after load to preserve
 # legacy playback order for hand-edited / post-delete-saves.
 lvk_add_format_test(tst_aframe_order)
+# Phase 6b (Item 26): non-ASCII name safety (Unicode -> ASCII macro names,
+# collision disambiguation, comma rejection on save).
+lvk_add_format_test(tst_unicode_names)

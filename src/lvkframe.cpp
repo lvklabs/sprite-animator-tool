@@ -17,6 +17,15 @@ LvkFrame::LvkFrame(const QString& str)
 
 QString LvkFrame::toString() const
 {
+    // Phase 6b (Item 26): see note in LvkAnimation::toString.  CSV format
+    // cannot represent ',' or NUL in a name field; reject rather than
+    // silently corrupt the saved file.
+    if (name.contains(QLatin1Char(',')) || name.contains(QChar('\0'))) {
+        qWarning() << "LvkFrame::toString refusing to serialize name containing comma or NUL:"
+                   << name;
+        return QString();
+    }
+
     QString str("%1,%2,%3,%4,%5,%6,%7");
 
     return str.arg(QString::number(id),

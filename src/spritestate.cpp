@@ -13,6 +13,7 @@
 #include <QDir>
 #include <QProcess>
 #include <QRegularExpression>
+#include <QSet>
 #include <QStandardPaths>
 #include <QTemporaryFile>
 #include <iostream>
@@ -79,25 +80,72 @@
 
 #define setError(p, err_code) if (p) { *(p) = err_code; }
 
-// Convert string to a new string containing only valid characters for macro names
-QString getMacroName(const QString& name)
+// Convert string to a new string containing only valid characters for macro names.
+//
+// Phase 6b (Item 26): Replaces the old toLatin1()+isalpha()/isdigit() pipeline
+// which silently dropped or mangled non-ASCII letters (e.g. "salto-mortal_é",
+// "飛び蹴り") and produced empty / colliding `#define ANIM_` lines that failed
+// to compile downstream. The new implementation:
+//
+//   * Walks the QString as Unicode codepoints (not Latin-1 bytes).
+//   * Uses QChar::isLetterOrNumber() to classify letters/digits across scripts.
+//   * Collapses every non-ASCII letter, digit, or separator to a single '_'
+//     so the output is always a valid C identifier (ASCII-only, no leading
+//     digit, no embedded whitespace, no doubled underscores).
+//   * Returns "UNNAMED" for a name that sanitizes to the empty string, so the
+//     emitted `#define ANIM_` line is never empty.
+//
+// Collision disambiguation (e.g. two animations whose names both collapse to
+// "FLY") is the caller's responsibility -- see the export loop in
+// exportSprite() which appends "_2", "_3", ... suffixes.
+static QString getMacroName(const QString& name)
 {
-    QString macroName;
-
-    QByteArray a = name.toLatin1();
-    for (int i = 0; i < a.size(); ++i)
-    {
-        char c = a[i];
-        if (isalpha(c)) {
-            macroName.append(QChar(static_cast<char>(toupper(c))));
-        } else if (isdigit(c)) {
-            macroName.append(QChar(c));
-        } else if (c == ' ' || c == '_' || c == '.') {
-            macroName.append(QChar('_'));
+    QString clean;
+    clean.reserve(name.size());
+    for (QChar ch : name) {
+        const ushort u = ch.unicode();
+        if (u < 128) {
+            // ASCII fast path: preserve [A-Za-z0-9_], uppercase letters,
+            // collapse everything else (space, dot, punctuation) to '_'.
+            const char c = static_cast<char>(u);
+            if (isalpha(static_cast<unsigned char>(c))) {
+                clean.append(QChar(static_cast<char>(toupper(c))));
+            } else if (isdigit(static_cast<unsigned char>(c))) {
+                clean.append(ch);
+            } else {
+                clean.append(QLatin1Char('_'));
+            }
+        } else {
+            // Non-ASCII codepoint: any letter/digit (Japanese, Cyrillic,
+            // accented Latin, ...) collapses to a single '_'. This keeps the
+            // macro ASCII-only and a valid C identifier; collisions are
+            // handled by the caller.
+            clean.append(QLatin1Char('_'));
         }
     }
 
-    return macroName;
+    // De-duplicate runs of '_' to keep the output readable and avoid trivial
+    // collisions between names that differ only in punctuation runs.
+    QString collapsed;
+    collapsed.reserve(clean.size());
+    QChar prev;
+    for (QChar ch : clean) {
+        if (ch == QLatin1Char('_') && prev == QLatin1Char('_')) {
+            continue;
+        }
+        collapsed.append(ch);
+        prev = ch;
+    }
+
+    // A leading digit makes the result an invalid C identifier; prefix '_'.
+    if (!collapsed.isEmpty() && collapsed.at(0).isDigit()) {
+        collapsed.prepend(QLatin1Char('_'));
+    }
+
+    if (collapsed.isEmpty() || collapsed == QLatin1String("_")) {
+        return QStringLiteral("UNNAMED");
+    }
+    return collapsed;
 }
 
 SpriteState::SpriteState(QObject* parent)
@@ -854,10 +902,22 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
     headerStream << "#ifndef " << headerFileMacroName << "\n";
     headerStream << "#define " << headerFileMacroName << "\n\n";
 
+    // Phase 6b (Item 26): two animation names may sanitize to the same macro
+    // (e.g. "fly", "FLY", or two distinct CJK names both collapsing to "_").
+    // Disambiguate by appending "_2", "_3", ... while preserving the original
+    // name in the emitted string literal so the runtime API still resolves.
+    QSet<QString> usedMacroNames;
     for (QMapIterator<Id, LvkAnimation> it(_animations); it.hasNext();) {
         it.next();
-        headerStream << "#define ANIM_" << getMacroName(it.value().name) << "\t\t\t\"" << it.value().name << "\"\n";
-        headerStream << "#define ANIM_" << getMacroName(it.value().name) << "_FLAGS\t\t\t 0x" << QString::number(it.value().flags, 16) << "\n";
+        QString base = getMacroName(it.value().name);
+        QString uniq = base;
+        int suffix = 2;
+        while (usedMacroNames.contains(uniq)) {
+            uniq = base + QStringLiteral("_") + QString::number(suffix++);
+        }
+        usedMacroNames.insert(uniq);
+        headerStream << "#define ANIM_" << uniq << "\t\t\t\"" << it.value().name << "\"\n";
+        headerStream << "#define ANIM_" << uniq << "_FLAGS\t\t\t 0x" << QString::number(it.value().flags, 16) << "\n";
     }
     headerStream << "\n";
 

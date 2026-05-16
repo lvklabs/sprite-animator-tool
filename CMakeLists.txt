@@ -25,7 +25,14 @@ endif()
 # Find Qt6 ----------------------------------------------------------------
 # The plan targeted 6.8 LTS but the dev environment ships 6.4.2; require
 # 6.4 minimum so this builds on the available system Qt.
+#
+# Phase 6b (Item 27): LinguistTools is required for the lrelease integration
+# below (compiles .ts -> .qm into the binary's :/i18n Qt resource).  We mark
+# it OPTIONAL_COMPONENTS so a stripped-down system Qt without Linguist still
+# builds the editor (without translations); the i18n wiring is gated on
+# Qt6LinguistTools_FOUND below.
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets)
+find_package(Qt6 6.4 QUIET OPTIONAL_COMPONENTS LinguistTools)
 
 # qt_standard_project_setup() exists from Qt 6.3+
 if(COMMAND qt_standard_project_setup)
@@ -118,6 +125,41 @@ target_link_libraries(LvkSpriteEditor PRIVATE
     Qt6::Gui
     Qt6::Widgets
 )
+
+# === i18n (Phase 6b, Item 27) ============================================
+# Compile each translations/lvkspriteeditor_<lang>.ts into a .qm file and
+# embed all the .qm files into the executable under the :/i18n Qt resource
+# prefix.  main.cpp loads from :/i18n at startup via QTranslator::load().
+#
+# We gate on Qt6LinguistTools so a developer build on a system without
+# Linguist still produces a runnable editor (just without translations --
+# QTranslator::load() returns false at startup and tr() returns the source
+# string verbatim, which is the same behavior as today).
+if(Qt6LinguistTools_FOUND)
+    set(LVK_TRANSLATIONS
+        translations/lvkspriteeditor_en.ts
+        translations/lvkspriteeditor_es.ts
+        translations/lvkspriteeditor_fr.ts
+    )
+
+    # qt_add_lrelease is the Qt6 way to drive `lrelease` from CMake.  It
+    # writes the .qm files under ${CMAKE_CURRENT_BINARY_DIR} and exposes
+    # their absolute paths via the named output variable.
+    qt_add_lrelease(LvkSpriteEditor
+        TS_FILES ${LVK_TRANSLATIONS}
+        QM_FILES_OUTPUT_VARIABLE LVK_QM_FILES
+    )
+
+    # qt_add_resources embeds the compiled .qm files under :/i18n so
+    # QTranslator::load(..., ":/i18n") finds them at runtime.  BASE points
+    # at the binary dir so the resource alias is just the filename
+    # (lvkspriteeditor_<lang>.qm), not a full absolute path.
+    qt_add_resources(LvkSpriteEditor "i18n"
+        PREFIX "/i18n"
+        BASE "${CMAKE_CURRENT_BINARY_DIR}"
+        FILES ${LVK_QM_FILES}
+    )
+endif()
 
 # Per-platform compile definitions (preserved from the legacy .pro file)
 if(APPLE)

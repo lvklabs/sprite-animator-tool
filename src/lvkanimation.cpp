@@ -23,6 +23,17 @@ QString LvkAnimation::toString() const
 
 QString LvkAnimation::toString(LvkVersion v) const
 {
+    // Phase 6b (Item 26): CSV format uses ',' as the field separator and has
+    // no escape mechanism. A name containing a literal ',' (or NUL) would
+    // corrupt the on-disk record and re-load as garbage. Refuse to serialize
+    // rather than silently truncate or escape -- the simpler invariant lets
+    // the round-trip stay byte-identical for valid inputs.
+    if (name.contains(QLatin1Char(',')) || name.contains(QChar('\0'))) {
+        qWarning() << "LvkAnimation::toString refusing to serialize name containing comma or NUL:"
+                   << name;
+        return QString();
+    }
+
     // flags column was added in v0.3.
     if (v < LvkVersion::V_03) {
         return QStringLiteral("%1,%2").arg(QString::number(id), name);

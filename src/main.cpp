@@ -26,12 +26,15 @@
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QCommandLineOption>
+#include <QDebug>
 #include <QDir>
 #include <QFileInfo>
 #include <QIcon>
 #include <QImageReader>
+#include <QLocale>
 #include <QString>
 #include <QStringList>
+#include <QTranslator>
 #include <iostream>
 
 #include "mainwindow.h"
@@ -206,6 +209,35 @@ bool parseCommandLine(QCoreApplication& app, CliOptions& cli, QString& errorMess
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
+
+    // Phase 6b (Item 27): Install a QTranslator BEFORE constructing
+    // MainWindow so any tr() calls in the GUI pick up translated strings
+    // for the system locale.  The .ts/.qm assets ship under :/i18n via
+    // qt_add_lrelease + qt_add_resources (see CMakeLists.txt).  We keep
+    // the translator object alive for the lifetime of the process (static
+    // duration) -- installTranslator only borrows the pointer.
+    //
+    // load() returns false when no .qm matches the locale (e.g. when the
+    // user runs under LANG=C or an unsupported locale); that is the
+    // expected steady state and not an error.  installTranslator returns
+    // false when the .qm is empty (skeleton .ts with no translations
+    // yet) -- also a non-fatal "no translations available" state.  In
+    // both cases tr() simply returns the source string verbatim.
+    static QTranslator translator;
+    if (translator.load(QLocale(),
+                        QStringLiteral("lvkspriteeditor"),
+                        QStringLiteral("_"),
+                        QStringLiteral(":/i18n"))) {
+        if (app.installTranslator(&translator)) {
+            qDebug() << "main: installed translator for locale" << QLocale().name();
+        } else {
+            qDebug() << "main: translator loaded but empty for locale"
+                     << QLocale().name() << "-- using source strings";
+        }
+    } else {
+        qDebug() << "main: no translation found for locale" << QLocale().name()
+                 << "-- falling back to source strings";
+    }
 
     // SECURITY (Phase 4): Conservative cap on per-image decoder allocation.
     // Defeats decompression-bomb PNG/TIFF inputs that would otherwise expand
