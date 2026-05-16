@@ -11,6 +11,12 @@ CTestTestfile.cmake
 Testing/
 *_autogen/
 .cmake/
+_CPack_Packages/
+*.tar.gz
+*.deb
+*.dmg
+*.msi
+*.exe.zip
 
 # IDE and editor cruft
 .vscode/
