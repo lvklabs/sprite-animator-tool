@@ -53,10 +53,11 @@ void ExportController::exportAsFile()
     // from the file extension/filter. We avoid a separate format dropdown
     // dialog to keep the UI surface area small and avoid touching
     // mainwindow.ui (which Agent 9 also edits).
-    const QString cocosFilter = QStringLiteral("Cocos2d (*.lkot *.lkob)");
-    const QString jsonFilter  = QStringLiteral("JSON Atlas (*.json)");
-    const QString allFilter   = QStringLiteral("All Formats (*.lvks *.json)");
-    const QString filters = cocosFilter + ";;" + jsonFilter + ";;" + allFilter + ";; *.*";
+    const QString cocosFilter = tr("Cocos2d (*.lkot *.lkob)");
+    const QString jsonFilter  = tr("JSON Atlas (*.json)");
+    const QString allFilter   = tr("All Formats (*.lvks *.json)");
+    const QString allFiles    = tr("All files (*)");
+    const QString filters = cocosFilter + ";;" + jsonFilter + ";;" + allFilter + ";;" + allFiles;
 
     QString selectedFilter = cocosFilter;
     exportFileName = QFileDialog::getSaveFileName(
@@ -79,7 +80,7 @@ void ExportController::exportAsJsonAtlas()
     static QString last = "";
     const QString filename = QFileDialog::getSaveFileName(
             m_mw, tr("Export as JSON Atlas"), QFileInfo(last).absolutePath(),
-            "JSON Atlas (*.json);; *.*");
+            tr("JSON Atlas (*.json);;All files (*)"));
     if (filename.isEmpty()) return;
     last = filename;
     runExport(filename, SpriteState::Json);
@@ -90,7 +91,7 @@ void ExportController::exportAllFormats()
     static QString last = "";
     const QString filename = QFileDialog::getSaveFileName(
             m_mw, tr("Export All Formats"), QFileInfo(last).absolutePath(),
-            "All Formats (*.lvks *.json);; *.*");
+            tr("All Formats (*.lvks *.json);;All files (*)"));
     if (filename.isEmpty()) return;
     last = filename;
     runExport(filename, SpriteState::All);

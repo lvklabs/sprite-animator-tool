@@ -63,10 +63,11 @@
               <height>16777215</height>
              </size>
             </property>
-            <property name="font">
-             <font>
-              <pointsize>8</pointsize>
-             </font>
+            <property name="accessibleName">
+             <string>Input images table</string>
+            </property>
+            <property name="accessibleDescription">
+             <string>List of input PNG images that the sprite uses. Double-click or F2 to edit a row.</string>
             </property>
             <property name="toolTip">
              <string/>
@@ -125,10 +126,11 @@ p, li { white-space: pre-wrap; }
               <height>16777215</height>
              </size>
             </property>
-            <property name="font">
-             <font>
-              <pointsize>8</pointsize>
-             </font>
+            <property name="accessibleName">
+             <string>Frames table</string>
+            </property>
+            <property name="accessibleDescription">
+             <string>Frame definitions (id, offset x, offset y, width, height, name, image id). Double-click or F2 to edit; Ctrl+Up/Down to nudge numeric fields.</string>
             </property>
             <property name="toolTip">
              <string/>
@@ -219,6 +221,12 @@ p, li { white-space: pre-wrap; }
             </property>
             <item>
              <widget class="QToolButton" name="addImageButton">
+              <property name="accessibleName">
+               <string>Add image</string>
+              </property>
+              <property name="accessibleDescription">
+               <string>Add a PNG file to the input images list.</string>
+              </property>
               <property name="toolTip">
                <string>Add input image</string>
               </property>
@@ -238,6 +246,12 @@ p, li { white-space: pre-wrap; }
              <widget class="QToolButton" name="removeImageButton">
               <property name="enabled">
                <bool>true</bool>
+              </property>
+              <property name="accessibleName">
+               <string>Remove image</string>
+              </property>
+              <property name="accessibleDescription">
+               <string>Remove the currently selected input image.</string>
               </property>
               <property name="toolTip">
                <string>Remove input image</string>
@@ -338,6 +352,12 @@ p, li { white-space: pre-wrap; }
               <property name="enabled">
                <bool>true</bool>
               </property>
+              <property name="accessibleName">
+               <string>Add frame</string>
+              </property>
+              <property name="accessibleDescription">
+               <string>Add a new frame from the rectangle drawn on the input image. The whole image is used if no rectangle is defined.</string>
+              </property>
               <property name="toolTip">
                <string>Add frame</string>
               </property>
@@ -360,6 +380,12 @@ p, li { white-space: pre-wrap; }
              <widget class="QToolButton" name="removeFrameButton">
               <property name="enabled">
                <bool>true</bool>
+              </property>
+              <property name="accessibleName">
+               <string>Remove frame</string>
+              </property>
+              <property name="accessibleDescription">
+               <string>Remove the currently selected frame.</string>
               </property>
               <property name="toolTip">
                <string>Remove frame</string>
@@ -458,6 +484,12 @@ p, li { white-space: pre-wrap; }
              </property>
              <property name="focusPolicy">
               <enum>Qt::ClickFocus</enum>
+             </property>
+             <property name="accessibleName">
+              <string>Frame preview</string>
+             </property>
+             <property name="accessibleDescription">
+              <string>Preview of the currently selected frame. Ctrl+wheel to zoom, press 1 to reset zoom to 100%.</string>
              </property>
             </widget>
            </widget>
@@ -651,6 +683,12 @@ p, li { white-space: pre-wrap; }
              <property name="focusPolicy">
               <enum>Qt::ClickFocus</enum>
              </property>
+             <property name="accessibleName">
+              <string>Frame definition canvas</string>
+             </property>
+             <property name="accessibleDescription">
+              <string>Interactive canvas to draw a rectangular frame on the input image. Left click to draw, right click to clear, Ctrl+wheel to zoom.</string>
+             </property>
             </widget>
            </widget>
           </item>
@@ -815,6 +853,12 @@ p, li { white-space: pre-wrap; }
              </property>
              <property name="focusPolicy">
               <enum>Qt::ClickFocus</enum>
+             </property>
+             <property name="accessibleName">
+              <string>Animation frame preview</string>
+             </property>
+             <property name="accessibleDescription">
+              <string>Preview of the currently selected animation frame.</string>
              </property>
             </widget>
            </widget>
@@ -1017,10 +1061,11 @@ p, li { white-space: pre-wrap; }
               <height>16777215</height>
              </size>
             </property>
-            <property name="font">
-             <font>
-              <pointsize>8</pointsize>
-             </font>
+            <property name="accessibleName">
+             <string>Animations table</string>
+            </property>
+            <property name="accessibleDescription">
+             <string>List of animations defined for this sprite. Double-click or F2 to edit a row.</string>
             </property>
             <property name="toolTip">
              <string/>
@@ -1089,10 +1134,11 @@ p, li { white-space: pre-wrap; }
               <height>16777215</height>
              </size>
             </property>
-            <property name="font">
-             <font>
-              <pointsize>8</pointsize>
-             </font>
+            <property name="accessibleName">
+             <string>Animation frames table</string>
+            </property>
+            <property name="accessibleDescription">
+             <string>Frames composing the currently selected animation. Double-click or F2 to edit; Ctrl+Up/Down to nudge numeric fields.</string>
             </property>
             <property name="toolTip">
              <string/>
@@ -1147,6 +1193,12 @@ p, li { white-space: pre-wrap; }
               <property name="enabled">
                <bool>true</bool>
               </property>
+              <property name="accessibleName">
+               <string>Add animation frame</string>
+              </property>
+              <property name="accessibleDescription">
+               <string>Add the selected frame to the current animation.</string>
+              </property>
               <property name="toolTip">
                <string extracomment="Adds a new frame to the current animation">Add frame</string>
               </property>
@@ -1163,6 +1215,12 @@ p, li { white-space: pre-wrap; }
              <widget class="QToolButton" name="removeAframeButton">
               <property name="enabled">
                <bool>true</bool>
+              </property>
+              <property name="accessibleName">
+               <string>Remove animation frame</string>
+              </property>
+              <property name="accessibleDescription">
+               <string>Remove the selected frame from the current animation.</string>
               </property>
               <property name="toolTip">
                <string extracomment="Remove selected frame from current animation">Remove selected frame from current animation</string>
@@ -1280,6 +1338,12 @@ p, li { white-space: pre-wrap; }
               <property name="enabled">
                <bool>false</bool>
               </property>
+              <property name="accessibleName">
+               <string>Play or pause animation</string>
+              </property>
+              <property name="accessibleDescription">
+               <string>Toggle playback of the current animation preview.</string>
+              </property>
               <property name="toolTip">
                <string>Play animation</string>
               </property>
@@ -1342,6 +1406,12 @@ Currently, this button does nothing</string>
            <layout class="QHBoxLayout" name="horizontalLayout_3">
             <item>
              <widget class="QToolButton" name="addAniButton">
+              <property name="accessibleName">
+               <string>Add animation</string>
+              </property>
+              <property name="accessibleDescription">
+               <string>Create a new animation.</string>
+              </property>
               <property name="toolTip">
                <string>Add animation</string>
               </property>
@@ -1361,6 +1431,12 @@ Currently, this button does nothing</string>
              <widget class="QToolButton" name="removeAniButton">
               <property name="enabled">
                <bool>true</bool>
+              </property>
+              <property name="accessibleName">
+               <string>Remove animation</string>
+              </property>
+              <property name="accessibleDescription">
+               <string>Remove the currently selected animation.</string>
               </property>
               <property name="toolTip">
                <string>Remove animation</string>

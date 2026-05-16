@@ -14,6 +14,11 @@
 #include <QPixmap>
 #include <QMessageBox>
 #include <QWhatsThis>
+#include <QKeySequence>
+#include <QShortcut>
+#include <QHeaderView>
+#include <QFontMetrics>
+#include <QCloseEvent>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "lvkaction.h"
@@ -131,15 +136,25 @@ MainWindow::MainWindow(QWidget *parent)
     showFramesTab();
     _frameCtl->hideFramePreview();
 
-    // Agent 9: replace hardcoded geometry with screen-relative sizing for
-    // hi-DPI awareness; floor at 1204x768 (the legacy default).
-    if (QScreen* scr = screen()) {
+    // Phase 6a: persist window geometry / dock state across launches via
+    // QSettings (keys "ui/mainwindow/geometry" + "ui/mainwindow/state").
+    // Fall back to the Agent-9 80%-of-screen heuristic on first launch
+    // (or after QSettings is cleared). Org/app name are set in main.cpp
+    // so the QSettings lookup resolves to a stable per-user store.
+    const QByteArray savedGeo   = settings.value(QStringLiteral("ui/mainwindow/geometry")).toByteArray();
+    const QByteArray savedState = settings.value(QStringLiteral("ui/mainwindow/state")).toByteArray();
+    if (!savedGeo.isEmpty()) {
+        restoreGeometry(savedGeo);
+    } else if (QScreen* scr = screen()) {
         const QRect avail = scr->availableGeometry();
         const int w = std::max(1204, static_cast<int>(avail.width() * 0.8));
         const int h = std::max(768, static_cast<int>(avail.height() * 0.8));
         resize(w, h);
     } else {
         resize(1204, 768);
+    }
+    if (!savedState.isEmpty()) {
+        restoreState(savedState);
     }
     updateGeometry();
 
@@ -175,6 +190,29 @@ void MainWindow::initSignals()
     connect(ui->actionAbout,  &QAction::triggered, this, &MainWindow::about);
     connect(ui->actionWhatsThis, &QAction::triggered, this, &MainWindow::whatsThisMode);
 
+    // Phase 6a: bind the file/edit QActions to Qt's portable StandardKey
+    // sequences so platform conventions (e.g. Cmd+O on macOS) are honored
+    // even though the .ui file pins them to the literal "Ctrl+..." strings.
+    // QKeySequence::Open / Save already correspond to Ctrl+O / Ctrl+S on
+    // X11/Win, so behavior is unchanged on Linux; the win is portability
+    // and a single source of truth for the binding.
+    ui->actionOpen->setShortcut(QKeySequence::Open);
+    ui->actionSave->setShortcut(QKeySequence::Save);
+    ui->actionSaveAs->setShortcut(QKeySequence::SaveAs);
+    ui->actionUndo->setShortcut(QKeySequence::Undo);
+    ui->actionRedo->setShortcut(QKeySequence::Redo);
+    ui->actionClose->setShortcut(QKeySequence::New);
+    ui->actionExit->setShortcut(QKeySequence::Quit);
+    // Ctrl+E for Export has no QKeySequence::StandardKey equivalent; keep
+    // the literal binding (and register a top-level QShortcut as a backup
+    // for contexts where the menu action isn't currently focusable).
+    ui->actionExport->setShortcut(QKeySequence(QStringLiteral("Ctrl+E")));
+    ui->actionExportAs->setShortcut(QKeySequence(QStringLiteral("Ctrl+Shift+E")));
+    auto* exportShortcut = new QShortcut(QKeySequence(QStringLiteral("Ctrl+E")), this);
+    exportShortcut->setContext(Qt::ApplicationShortcut);
+    connect(exportShortcut, &QShortcut::activated,
+            ui->actionExport, &QAction::trigger);
+
     // Zoom buttons: wire directly preview-to-preview.
     connect(ui->imgZoomInButton,    &QAbstractButton::clicked, ui->imgPreview,    &LvkInputImageWidget::zoomIn);
     connect(ui->imgZoomOutButton,   &QAbstractButton::clicked, ui->imgPreview,    &LvkInputImageWidget::zoomOut);
@@ -205,13 +243,25 @@ void MainWindow::initTables()
 {
     QStringList headersList;
 
+    // Phase 6a (HiDPI): Convert the legacy fixed-pixel column widths
+    // (setColumnWidth(col, 30) etc.) into font-metrics-driven widths so
+    // they scale with the system DPI and user font size. The rule of thumb
+    // for narrow numeric columns is "header text + 2 'M's of padding";
+    // wider name columns use ResizeToContents on the stretchable trailing
+    // section. The previous 30/40/50px constants were burned in for the
+    // 96-dpi Qt 4 era and clip badly at 200%+ scaling.
+    const auto colWidthFor = [this](const QString& header) {
+        const QFontMetrics fm = fontMetrics();
+        return fm.horizontalAdvance(header + QStringLiteral("MM"));
+    };
+
     /* input images table */
     ui->imgTableWidget->setRowCount(0);
     ui->imgTableWidget->setColumnCount(ColImageTotal);
-    ui->imgTableWidget->setColumnWidth(0, 30);
-    ui->imgTableWidget->setColumnWidth(1, 30);
-    ui->imgTableWidget->setColumnWidth(2, 30);
-    ui->imgTableWidget->setColumnWidth(3, 40);
+    ui->imgTableWidget->setColumnWidth(0, colWidthFor(tr("Id")));
+    ui->imgTableWidget->setColumnWidth(1, colWidthFor(tr("Ch")));
+    ui->imgTableWidget->setColumnWidth(2, colWidthFor(tr("Id")));
+    ui->imgTableWidget->setColumnWidth(3, colWidthFor(tr("Scale")));
     headersList << tr("Id") << tr("Ch") << tr("Id") << tr("Scale") << tr("Filename");
     ui->imgTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
@@ -223,8 +273,13 @@ void MainWindow::initTables()
     /* frames table */
     ui->framesTableWidget->setRowCount(0);
     ui->framesTableWidget->setColumnCount(ColFrameTotal);
-    for (int i = 0; i < 6; ++i) ui->framesTableWidget->setColumnWidth(i, 30);
-    ui->framesTableWidget->setColumnWidth(6, 50);
+    ui->framesTableWidget->setColumnWidth(0, colWidthFor(tr("Id")));
+    ui->framesTableWidget->setColumnWidth(1, colWidthFor(tr("Id")));
+    ui->framesTableWidget->setColumnWidth(2, colWidthFor(tr("ox")));
+    ui->framesTableWidget->setColumnWidth(3, colWidthFor(tr("oy")));
+    ui->framesTableWidget->setColumnWidth(4, colWidthFor(tr("w")));
+    ui->framesTableWidget->setColumnWidth(5, colWidthFor(tr("h")));
+    ui->framesTableWidget->setColumnWidth(6, colWidthFor(tr("Img Id")));
     ui->framesTableWidget->ignoreColumn(1);
     ui->framesTableWidget->ignoreColumn(6);
     headersList << tr("Id") << tr("Id") << tr("ox") << tr("oy") << tr("w") << tr("h") << tr("Img Id") << tr("Name");
@@ -237,23 +292,25 @@ void MainWindow::initTables()
     /* animations table */
     ui->aniTableWidget->setRowCount(0);
     ui->aniTableWidget->setColumnCount(ColAniTotal);
-    ui->aniTableWidget->setColumnWidth(0, 30);
-    ui->aniTableWidget->setColumnWidth(1, 270);
-    ui->aniTableWidget->setColumnWidth(2, 30);
-    headersList << "Id" << "Name" << "Flags";
+    ui->aniTableWidget->setColumnWidth(0, colWidthFor(tr("Id")));
+    // Name column: stretchable last section handles overflow, so let
+    // ResizeToContents pick a sensible default at construction time.
+    ui->aniTableWidget->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    ui->aniTableWidget->setColumnWidth(2, colWidthFor(tr("Flags")));
+    headersList << tr("Id") << tr("Name") << tr("Flags");
     ui->aniTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
 
     /* animation frames table */
     ui->aframesTableWidget->setRowCount(0);
     ui->aframesTableWidget->setColumnCount(ColAframeTotal);
-    ui->aframesTableWidget->setColumnWidth(0, 30);
-    ui->aframesTableWidget->setColumnWidth(1, 60);
-    ui->aframesTableWidget->setColumnWidth(2, 30);
-    ui->aframesTableWidget->setColumnWidth(3, 30);
-    ui->aframesTableWidget->setColumnWidth(4, 50);
-    ui->aframesTableWidget->setColumnWidth(5, 50);
-    ui->aframesTableWidget->setColumnWidth(6, 30);
+    ui->aframesTableWidget->setColumnWidth(0, colWidthFor(tr("Id")));
+    ui->aframesTableWidget->setColumnWidth(1, colWidthFor(tr("Frame Id")));
+    ui->aframesTableWidget->setColumnWidth(2, colWidthFor(tr("ox")));
+    ui->aframesTableWidget->setColumnWidth(3, colWidthFor(tr("oy")));
+    ui->aframesTableWidget->setColumnWidth(4, colWidthFor(tr("Sticky")));
+    ui->aframesTableWidget->setColumnWidth(5, colWidthFor(tr("Delay")));
+    ui->aframesTableWidget->setColumnWidth(6, colWidthFor(tr("Animation Id")));
     ui->aframesTableWidget->ignoreColumn(1);
     headersList << tr("Id") << tr("Frame Id") << tr("ox") << tr("oy") << tr("Sticky") << tr("Delay") << tr("Animation Id");
     ui->aframesTableWidget->setHorizontalHeaderLabels(headersList);
@@ -266,8 +323,8 @@ void MainWindow::initTables()
     /* transitions table */
     ui->transTableWidget->setRowCount(0);
     ui->transTableWidget->setColumnCount(ColTransTotal);
-    ui->transTableWidget->setColumnWidth(0, 30);
-    ui->transTableWidget->setColumnWidth(1, 30);
+    ui->transTableWidget->setColumnWidth(0, colWidthFor(tr("Animation Id")));
+    ui->transTableWidget->setColumnWidth(1, colWidthFor(tr("Ch")));
     headersList << tr("Animation Id") << tr("Ch") << tr("Animation Name");
     ui->transTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
@@ -291,7 +348,8 @@ bool MainWindow::saveAsFile()
 {
     static QString lastDir = "";
     QString filename = QFileDialog::getSaveFileName(
-            this, tr("Save file"), lastDir, "*.lvks;; *.*");
+            this, tr("Save file"), lastDir,
+            tr("Lvks files (*.lvks);;All files (*)"));
     if (filename.isNull()) return false;
     lastDir = QFileInfo(filename).absolutePath();
 
@@ -327,7 +385,9 @@ void MainWindow::openFileDialog()
         if (saveChangesDialog() == CancelButton) return;
     }
     static QString lastDir = "";
-    QString filename = QFileDialog::getOpenFileName(this, tr("Open file"), lastDir, "*.lvks;; *.*");
+    QString filename = QFileDialog::getOpenFileName(
+            this, tr("Open file"), lastDir,
+            tr("Lvks files (*.lvks);;All files (*)"));
     if (!filename.isNull()) {
         lastDir = QFileInfo(filename).absolutePath();
         openFile(filename);
@@ -623,6 +683,14 @@ void MainWindow::exit()
 
 void MainWindow::closeEvent(QCloseEvent* event)
 {
+    // Phase 6a: snapshot the window placement before consulting the
+    // unsaved-changes dialog. This way, a user who hits Cancel on the
+    // "Save changes?" prompt still gets their final geometry persisted
+    // on the *next* clean close. saveGeometry/saveState are cheap, and
+    // QSettings::setValue is buffered until ~QSettings.
+    settings.setValue(QStringLiteral("ui/mainwindow/geometry"), saveGeometry());
+    settings.setValue(QStringLiteral("ui/mainwindow/state"),    saveState());
+
     event->ignore();
     exit();
 }
