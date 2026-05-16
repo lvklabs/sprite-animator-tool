@@ -49,6 +49,7 @@ set(LVK_SOURCES
     src/dialogs.cpp
     src/statecircularbuffer.cpp
     src/lvkframedefwidget.cpp
+    src/theme.cpp
 )
 
 set(LVK_HEADERS
@@ -68,6 +69,7 @@ set(LVK_HEADERS
     src/dialogs.h
     src/statecircularbuffer.h
     src/lvkframedefwidget.h
+    src/theme.h
 )
 
 set(LVK_FORMS

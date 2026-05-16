@@ -13,6 +13,7 @@
 #include <QList>
 #include <QWhatsThis>
 #include <QMapIterator>
+#include <QScreen>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -186,7 +187,22 @@ MainWindow::MainWindow(QWidget *parent)
     showFramesTab();
     hideFramePreview();
 
-    resize(1204, 768);
+    // Agent 9: replace the legacy hardcoded resize(1204, 768) with a
+    // screen-relative size so the window keeps a sensible footprint on
+    // both 1080p (the original design target) and modern 4K / hi-DPI
+    // displays. We clamp to the original 1204x768 minimum so layouts
+    // that depended on that floor still render without scrollbars, but
+    // grow up to 80% of the available work area on larger monitors.
+    {
+        const QSize legacyMin(1204, 768);
+        QSize target = legacyMin;
+        if (QScreen* scr = screen()) {
+            const QRect avail = scr->availableGeometry();
+            target = QSize(qMax(legacyMin.width(),  int(avail.width()  * 0.8)),
+                           qMax(legacyMin.height(), int(avail.height() * 0.8)));
+        }
+        resize(target);
+    }
     updateGeometry();
 
     about();
@@ -364,7 +380,7 @@ void MainWindow::initTables()
     ui->aniTableWidget->setColumnWidth(ColAniId, 30);
     ui->aniTableWidget->setColumnWidth(ColAniName, 270);
     ui->aniTableWidget->setColumnWidth(ColAniFlags, 30);
-    headersList << "Id" << "Name" << "Flags";
+    headersList << tr("Id") << tr("Name") << tr("Flags");
     ui->aniTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
 
@@ -963,7 +979,7 @@ void MainWindow::addImageDialog()
 
     filenames = QFileDialog::getOpenFileNames(
             this, tr("Add Image"), lastDir,
-            "Images(*.png *.jpg *.jpeg *.xpm *.xbm *.bmp *.tif *.tiff);; *.*");
+            tr("Images") + " (*.png *.jpg *.jpeg *.xpm *.xbm *.bmp *.tif *.tiff);; *.*");
 
     if (filenames.size() > 0) {
         lastDir = QFileInfo(filenames[0]).absolutePath();
@@ -1841,7 +1857,7 @@ void MainWindow::blendNone()
 
 void MainWindow::blendExistentFrame()
 {
-    Id frameId = getFrameDialog("Blend pixmap");
+    Id frameId = getFrameDialog(tr("Blend pixmap"));
     if (frameId != NullId) {
         _blendFrameId = frameId;
         ui->framePreview->setBlendPixmap(_sprState.fpixmap(frameId));
@@ -2450,7 +2466,7 @@ void MainWindow::restoreCustomHeader()
 void MainWindow::showLoadProgress(const QString &progress)
 {
     statusBarRectSize->setFixedWidth(500);
-    statusBarRectSize->setText("Loading " + progress);
+    statusBarRectSize->setText(tr("Loading %1").arg(progress));
     statusBarRectSize->repaint();
 }
 
@@ -2483,8 +2499,15 @@ void MainWindow::about()
 {
     QMessageBox msg;
 
-    msg.setText(QString(APP_ABOUT));
-    msg.setIconPixmap(QPixmap(":/icons/app-icon-128x128"));;
+    // Agent 9: keep the original LVK Labs credit verbatim, and append a
+    // short paragraph crediting the 2026 Qt 6 modernization so users
+    // can tell which build they are looking at.
+    const QString modernizedNote = QStringLiteral("<br/><br/>")
+        + tr("Modernized 2026 — Qt 6 port, 10-agent upgrade.");
+
+    msg.setText(QString(APP_ABOUT) + modernizedNote);
+    msg.setIconPixmap(QPixmap(":/icons/app-icon-128x128"));
+    msg.setWindowTitle(tr("About %1").arg(APP_NAME));
     msg.exec();
 }
 

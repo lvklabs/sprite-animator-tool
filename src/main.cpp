@@ -7,6 +7,7 @@
 #include "mainwindow.h"
 #include "settings.h"
 #include "spritestate.h"
+#include "theme.h"
 
 void parseCmdLine(int argc, char *argv[], MainWindow& w);
 void showHelp(const std::string& binName);
@@ -22,6 +23,10 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationDomain(LVK_DOMAIN);
     QCoreApplication::setApplicationName(APP_NAME);
     QCoreApplication::setApplicationVersion(APP_VERSION);
+
+    // Agent 9: apply the persisted (or auto-detected) theme palette.
+    // QSettings requires org/app names set above, so this must follow them.
+    Theme::apply(&a, Theme::loadFromSettings());
 
     MainWindow w;
 
