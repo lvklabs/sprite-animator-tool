@@ -1,0 +1,25 @@
+---
+# Opt-in modernization checks for the LvkSpriteEditor Qt6 upgrade.
+# Advisory only (WarningsAsErrors empty); intended to run via clang-tidy
+# locally or in a non-blocking CI job. Qt's Q_OBJECT / SIGNAL / SLOT macros
+# trigger noise in *-namespace-comments and a few related checks, which
+# are disabled below.
+Checks: >
+    -*,
+    modernize-*,
+    -modernize-use-trailing-return-type,
+    readability-*,
+    -readability-identifier-length,
+    -readability-magic-numbers,
+    -readability-namespace-comments,
+    bugprone-*,
+    performance-*,
+    cppcoreguidelines-pro-type-member-init,
+    cppcoreguidelines-pro-type-static-cast-downcast,
+    -llvm-namespace-comment,
+    -google-readability-namespace-comments
+
+WarningsAsErrors: ''
+HeaderFilterRegex: 'src/.*\.h$'
+FormatStyle: file
+...
