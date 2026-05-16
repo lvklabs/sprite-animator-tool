@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0] - 2026-05-16
 
 The **2026 modernization**, delivered by a 10-agent upgrade pass on the
-`claude/upgrade-sprite-animator-O2rKz` branch. Read compatibility with
+`upgrade-sprite-animator-O2rKz` branch. Read compatibility with
 every `.lvks` v0.1-v0.4 file produced by the legacy 1.x line is
 preserved. The Cocos2d `.lkob` / `.lkot` / `.h` export pipeline is
 unchanged, and golden-file round-trip tests pin its byte-for-byte
@@ -138,7 +138,7 @@ as `[FIXME(agent-5)]` markers for a future pass.
 ### Contributors
 
 Ten parallel agent passes (Phases 0-3) on
-`claude/upgrade-sprite-animator-O2rKz`. See `UPGRADE_NOTES.md` for the
+`upgrade-sprite-animator-O2rKz`. See `UPGRADE_NOTES.md` for the
 per-agent issue log.
 
 ## [1.2.1] - 2014

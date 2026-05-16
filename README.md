@@ -85,7 +85,7 @@ A short tour of the upgraded codebase:
 
 ### Modernized 2026
 
-Originally Qt 4.5.2 / qmake. This fork (`claude/upgrade-sprite-animator-O2rKz`)
+Originally Qt 4.5.2 / qmake. This fork (`upgrade-sprite-animator-O2rKz`)
 ships the following changes; see [`CHANGELOG.md`](CHANGELOG.md) for the
 per-agent breakdown:
 

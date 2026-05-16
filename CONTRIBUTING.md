@@ -91,10 +91,9 @@ ASAN_OPTIONS=detect_leaks=1 QT_QPA_PLATFORM=offscreen \
 ## Branch policy
 
 - **`master`** -- legacy Qt 4 line. Read-only; receives no new commits.
-- **`claude/upgrade-sprite-animator-O2rKz`** -- the Qt 6 modernization
+- **`upgrade-sprite-animator-O2rKz`** -- the Qt 6 modernization
   trunk. All new work merges here.
-- Feature branches: `claude/<short-topic>` (or `agent-N` worktrees for
-  the multi-agent upgrade).
+- Feature branches: short topic name (e.g. `fix-export-encoding`).
 
 We expect PRs to be:
 
