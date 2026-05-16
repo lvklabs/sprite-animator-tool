@@ -6,6 +6,10 @@
 
 #include "types.h"
 
+// Forward-declared so we don't drag the entire spritestate.h header into
+// every translation unit that just wants InputImage.
+enum class LvkVersion;
+
 /// Input image abstraction
 struct InputImage
 {
@@ -19,8 +23,13 @@ struct InputImage
     QString filename;   /* image filename */
     QPixmap pixmap;     /* image pixmap */
 
-    /// returns the string representation
+    /// returns the latest-version string representation (currently V_04).
+    /// Equivalent to toString(LvkVersion::V_04).
     QString toString() const;
+
+    /// Version-aware string representation. For v0.1 emits "id,filename"
+    /// (no scale column); v0.2+ emits "id,filename,scale".
+    QString toString(LvkVersion v) const;
 
     /// initializes the current instance from the string @param str
     bool fromString(const QString& str);

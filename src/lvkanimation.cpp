@@ -2,6 +2,7 @@
 #include <QDebug>
 
 #include "lvkanimation.h"
+#include "spritestate.h"
 
 LvkAnimation::LvkAnimation(Id id, const QString& name, unsigned flags)
         : id(id), name(name), flags(flags)
@@ -17,9 +18,17 @@ LvkAnimation::LvkAnimation(const QString& str)
 
 QString LvkAnimation::toString() const
 {
-    QString str("%1,%2,%3");
+    return toString(LvkVersion::V_04);
+}
 
-    return str.arg(QString::number(id), name, QString::number(flags));
+QString LvkAnimation::toString(LvkVersion v) const
+{
+    // flags column was added in v0.3.
+    if (v < LvkVersion::V_03) {
+        return QStringLiteral("%1,%2").arg(QString::number(id), name);
+    }
+    return QStringLiteral("%1,%2,%3")
+        .arg(QString::number(id), name, QString::number(flags));
 }
 
 bool LvkAnimation::fromString(const QString& str)

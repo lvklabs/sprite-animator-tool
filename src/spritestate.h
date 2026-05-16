@@ -15,6 +15,20 @@ class QFile;
 #include "lvkanimation.h"
 #include "lvkaframe.h"
 
+/// .lvks on-disk format versions historically supported by SpriteState.
+///
+/// Phase 2 of the upgrade plan added this enum so save() no longer
+/// silently rewrites a v0.1 file into the v0.4 superset; the saver now
+/// preserves the source version unless the data actually uses a feature
+/// only representable in a newer version (image scale != 1.0 -> v0.2,
+/// animation flags != 0 -> v0.3, aframe sticky -> v0.4).
+enum class LvkVersion {
+    V_01 = 1,
+    V_02 = 2,
+    V_03 = 3,
+    V_04 = 4,
+};
+
 /// The SpriteState class contains all the information about
 /// input images, frames and animations
 class SpriteState : public QObject
@@ -23,6 +37,24 @@ class SpriteState : public QObject
 
 public:
     SpriteState(QObject* parent = 0);
+
+    // Version tracking *********************************************************
+
+    /// Version header read by the last successful load(). For a freshly
+    /// constructed (never-loaded) instance this defaults to V_04 so that
+    /// new documents are saved in the latest format.
+    LvkVersion loadedVersion() const { return _loadedVersion; }
+
+    /// Returns the minimum .lvks version required to faithfully represent
+    /// the current in-memory state (scans aframes for sticky, animations
+    /// for flags, and images for non-default scale). save() uses
+    /// max(loadedVersion(), minimumVersion()) as the on-disk version so
+    /// loaded-and-resaved files keep their original header unless the
+    /// user has introduced data that genuinely requires a newer version.
+    LvkVersion minimumVersion() const;
+
+    /// Returns the canonical header literal for @p v (e.g. "LvkSprite version 0.1").
+    static const char* headerLiteral(LvkVersion v);
 
     // hash getters ************************************************************
 
@@ -318,6 +350,11 @@ protected:
 
     /// Custom data appended to the header
     QString                 _customHeader;
+
+    /// On-disk version of the most recently loaded file. Defaults to V_04
+    /// so new (never-loaded) SpriteStates save in the latest format. See
+    /// loadedVersion() / minimumVersion() / save() for the policy.
+    LvkVersion              _loadedVersion = LvkVersion::V_04;
 
     // TODO (?) move this method inside LvkFrame
     /// force reload frame pixmap

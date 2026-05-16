@@ -7,6 +7,8 @@
 #include "types.h"
 #include "lvkaframe.h"
 
+enum class LvkVersion;
+
 /// Animation abstraction. An animation basically consists in a name
 /// and an ordered list of animation frames (aframes for short)
 struct LvkAnimation
@@ -19,8 +21,13 @@ struct LvkAnimation
     QString      name;       /* animation name */
     unsigned     flags;      /* animation flags */
 
-    /// returns the string representation
+    /// returns the latest-version (V_04) string representation.
+    /// Equivalent to toString(LvkVersion::V_04).
     QString toString() const;
+
+    /// Version-aware string representation. v0.1/v0.2 emit "id,name"
+    /// (no flags column); v0.3+ emit "id,name,flags".
+    QString toString(LvkVersion v) const;
 
     /// initializes the current instance from the string @param str
     bool fromString(const QString& str);

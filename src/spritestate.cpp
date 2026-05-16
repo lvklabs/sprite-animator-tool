@@ -103,6 +103,81 @@ SpriteState::SpriteState(QObject* parent)
 {
 }
 
+const char* SpriteState::headerLiteral(LvkVersion v)
+{
+    // Single source of truth mapping LvkVersion -> header literal. Used
+    // by save() to write the chosen version, by the version-preservation
+    // round-trip test to assert on it, and by future consumers.
+    switch (v) {
+    case LvkVersion::V_01: return HEADER_VER_01;
+    case LvkVersion::V_02: return HEADER_VER_02;
+    case LvkVersion::V_03: return HEADER_VER_03;
+    case LvkVersion::V_04: return HEADER_VER_04;
+    }
+    // Defensive: an out-of-range LvkVersion is a programming error; we
+    // pick the latest so a partly-broken caller still emits a parseable
+    // file instead of a corrupted header.
+    return HEADER_LATEST;
+}
+
+LvkVersion SpriteState::minimumVersion() const
+{
+    // Start at v0.1 and ratchet up as we encounter data that the older
+    // versions cannot represent. Order of checks doesn't matter — the
+    // final value is just the max over all data-introduced minimums.
+    LvkVersion v = LvkVersion::V_01;
+
+    // sticky was introduced in v0.4. ox/oy on aframes were introduced
+    // in v0.2; if either is nonzero we have to bump to at least v0.2.
+    for (QMapIterator<Id, LvkAnimation> it(_animations); it.hasNext();) {
+        it.next();
+        const QList<LvkAframe>& aframes = it.value()._aframes;
+        for (int i = 0; i < aframes.size(); ++i) {
+            const LvkAframe& af = aframes.at(i);
+            if (af.sticky) {
+                v = std::max(v, LvkVersion::V_04);
+            } else if ((af.ox != 0 || af.oy != 0) && v < LvkVersion::V_02) {
+                v = std::max(v, LvkVersion::V_02);
+            }
+        }
+        if (v >= LvkVersion::V_04) {
+            break; // No higher version exists; short-circuit.
+        }
+    }
+
+    // animation flags were introduced in v0.3.
+    if (v < LvkVersion::V_03) {
+        for (QMapIterator<Id, LvkAnimation> it(_animations); it.hasNext();) {
+            it.next();
+            if (it.value().flags != 0) {
+                v = std::max(v, LvkVersion::V_03);
+                break;
+            }
+        }
+    }
+
+    // image scale (!= 1.0) was introduced in v0.2.
+    if (v < LvkVersion::V_02) {
+        for (QMapIterator<Id, InputImage> it(_images); it.hasNext();) {
+            it.next();
+            if (it.value().scale() != 1.0) {
+                v = std::max(v, LvkVersion::V_02);
+                break;
+            }
+        }
+    }
+
+    // The custom_header() section was introduced in v0.3. We still emit
+    // it for any version on save (it's an open-ended trailer), but if
+    // the in-memory document carries one then a v0.1/v0.2 reader cannot
+    // parse the resulting file -- so we must bump to v0.3.
+    if (v < LvkVersion::V_03 && !_customHeader.isEmpty()) {
+        v = std::max(v, LvkVersion::V_03);
+    }
+
+    return v;
+}
+
 void SpriteState::addImage(InputImage& img)
 {
     if (img.id == NullId) {
@@ -164,6 +239,12 @@ void SpriteState::clear()
     _fpixmaps.clear();
 
     _customHeader = "";
+
+    // A cleared SpriteState is logically a fresh document. Match the
+    // default-constructed state so a clear()-and-build cycle saves in
+    // the latest format (load() will overwrite this immediately if it
+    // reads a file).
+    _loadedVersion = LvkVersion::V_04;
 }
 
 bool SpriteState::save(const QString& filename, SpriteStateError* err)
@@ -179,16 +260,36 @@ bool SpriteState::save(const QString& filename, SpriteStateError* err)
         return false;
     }
 
+    // Phase 2: preserve the loaded version on save. Only bump if the
+    // in-memory data actually uses a feature that the loaded version
+    // cannot express (see minimumVersion()). When we do bump, emit a
+    // visible note so CLI users / log readers know the file's header
+    // moved forward.
+    const LvkVersion target = std::max(_loadedVersion, minimumVersion());
+    if (target > _loadedVersion) {
+        qWarning().noquote()
+            << "Note:" << filename
+            << "uses features requiring" << headerLiteral(target)
+            << "(was" << headerLiteral(_loadedVersion) << ");"
+            << "auto-bumping the saved header to preserve data fidelity.";
+    }
+
     QTextStream stream(&file);
     stream << "### LvkSprite #########################################\n";
-    stream << HEADER_LATEST "\n\n";
+    stream << headerLiteral(target) << "\n\n";
 
     stream << "# Images\n";
-    stream << "# format: imageId,filename,scale\n";
+    // The schema comment matches what the data actually emits, so a
+    // hand-eyeball of the on-disk file lines up with the column count.
+    if (target < LvkVersion::V_02) {
+        stream << "# format: imageId,filename\n";
+    } else {
+        stream << "# format: imageId,filename,scale\n";
+    }
     stream << "images(\n";
     for (QMapIterator<Id, InputImage> it(_images); it.hasNext();) {
         it.next();
-        stream << "\t" <<  it.value().toString() << "\n";
+        stream << "\t" <<  it.value().toString(target) << "\n";
     }
     stream << ")\n\n";
 
@@ -202,16 +303,26 @@ bool SpriteState::save(const QString& filename, SpriteStateError* err)
     stream << ")\n\n";
 
     stream << "# Animations\n";
-    stream << "# format: animationId,name\n";
+    if (target < LvkVersion::V_03) {
+        stream << "# format: animationId,name\n";
+    } else {
+        stream << "# format: animationId,name,flags\n";
+    }
     stream << "# Animation frames\n";
-    stream << "# format: aframeId,frameId,delay,ox,oy\n";
+    if (target < LvkVersion::V_02) {
+        stream << "# format: aframeId,frameId,delay\n";
+    } else if (target < LvkVersion::V_04) {
+        stream << "# format: aframeId,frameId,delay,ox,oy\n";
+    } else {
+        stream << "# format: aframeId,frameId,delay,ox,oy,sticky\n";
+    }
     stream << "animations(\n";
     for (QMapIterator<Id, LvkAnimation> it(_animations); it.hasNext();) {
         it.next();
-        stream << "\t" << it.value().toString() << "\n";        
+        stream << "\t" << it.value().toString(target) << "\n";
         stream << "\taframes(\n";
         for (QListIterator<LvkAframe> it2(it.value()._aframes); it2.hasNext();) {
-            stream << "\t\t" << it2.next().toString() << "\n";
+            stream << "\t\t" << it2.next().toString(target) << "\n";
         }
         stream << "\t)\n\n";
     }
@@ -313,8 +424,23 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
         }
 
         if (state == StCheckVersion) {
-            if (line == HEADER_VER_01 || line == HEADER_VER_02 ||
-                line == HEADER_VER_03 || line == HEADER_VER_04) {
+            // Phase 2: remember the on-disk version so save() can write
+            // the file back out in the same version (unless the user
+            // introduces newer-only data; see SpriteState::save()).
+            if (line == HEADER_VER_01) {
+                _loadedVersion = LvkVersion::V_01;
+                state = StNoToken;
+                continue;
+            } else if (line == HEADER_VER_02) {
+                _loadedVersion = LvkVersion::V_02;
+                state = StNoToken;
+                continue;
+            } else if (line == HEADER_VER_03) {
+                _loadedVersion = LvkVersion::V_03;
+                state = StNoToken;
+                continue;
+            } else if (line == HEADER_VER_04) {
+                _loadedVersion = LvkVersion::V_04;
                 state = StNoToken;
                 continue;
             } else {

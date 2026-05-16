@@ -83,3 +83,6 @@ lvk_add_format_test(tst_lvks_versions)
 # Agent 8 (Phase 3): JSON atlas + path-traversal hardening tests.
 lvk_add_format_test(tst_json_export)
 lvk_add_format_test(tst_path_traversal)
+# Phase 2: version-preservation regression test (golden v0.1 round-trip
+# and data-driven auto-bump policy).
+lvk_add_format_test(tst_version_preservation)

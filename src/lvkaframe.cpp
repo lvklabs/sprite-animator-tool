@@ -2,6 +2,7 @@
 #include <QDebug>
 
 #include "lvkaframe.h"
+#include "spritestate.h"
 
 LvkAframe::LvkAframe(Id id, Id frameId, int delay, int ox, int oy, bool sticky)
         : id(id), frameId(frameId), delay(delay), ox(ox), oy(oy), sticky(sticky)
@@ -17,14 +18,31 @@ LvkAframe::LvkAframe(const QString& str)
 
 QString LvkAframe::toString() const
 {
-    QString str("%1,%2,%3,%4,%5,%6");
+    return toString(LvkVersion::V_04);
+}
 
-    return str.arg(QString::number(id),
-                   QString::number(frameId),
-                   QString::number(delay),
-                   QString::number(ox),
-                   QString::number(oy),
-                   QString::number(sticky));
+QString LvkAframe::toString(LvkVersion v) const
+{
+    // v0.1: only the 3 original columns. v0.2/v0.3 added ox,oy. v0.4
+    // added the sticky flag.
+    if (v < LvkVersion::V_02) {
+        return QStringLiteral("%1,%2,%3").arg(QString::number(id),
+                                              QString::number(frameId),
+                                              QString::number(delay));
+    }
+    if (v < LvkVersion::V_04) {
+        return QStringLiteral("%1,%2,%3,%4,%5").arg(QString::number(id),
+                                                    QString::number(frameId),
+                                                    QString::number(delay),
+                                                    QString::number(ox),
+                                                    QString::number(oy));
+    }
+    return QStringLiteral("%1,%2,%3,%4,%5,%6").arg(QString::number(id),
+                                                   QString::number(frameId),
+                                                   QString::number(delay),
+                                                   QString::number(ox),
+                                                   QString::number(oy),
+                                                   QString::number(sticky));
 }
 
 bool LvkAframe::fromString(const QString& str)

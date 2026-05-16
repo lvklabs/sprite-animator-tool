@@ -2,6 +2,7 @@
 #include <QDebug>
 
 #include "inputimage.h"
+#include "spritestate.h"
 
 InputImage::InputImage(Id id, const QString& filename, double scale)
         : id(id), filename(filename), pixmap(QPixmap(filename)), _scale(scale)
@@ -17,9 +18,17 @@ InputImage::InputImage(const QString& str)
 
 QString InputImage::toString() const
 {
-    QString str("%1,%2,%3");
+    return toString(LvkVersion::V_04);
+}
 
-    return str.arg(QString::number(id), filename, QString::number(_scale));
+QString InputImage::toString(LvkVersion v) const
+{
+    // v0.1 schema had no `scale` column; everything else carries it.
+    if (v < LvkVersion::V_02) {
+        return QStringLiteral("%1,%2").arg(QString::number(id), filename);
+    }
+    return QStringLiteral("%1,%2,%3")
+        .arg(QString::number(id), filename, QString::number(_scale));
 }
 
 bool InputImage::fromString(const QString& str)

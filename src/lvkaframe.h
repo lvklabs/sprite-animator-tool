@@ -5,6 +5,8 @@
 
 #include "types.h"
 
+enum class LvkVersion;
+
 /// Aframe means Animation frame. Consider an animation frame as an
 /// ordinary frame with a time delay. We do not replicate all the
 /// information that contains a frame (ox, oy, w, h, etc.), instead
@@ -24,8 +26,15 @@ struct LvkAframe
     int    oy;            /* offset y */
     bool   sticky;        /* Sticky, i.e. display always */
 
-    /// returns the string representation
+    /// returns the latest-version (V_04) string representation.
+    /// Equivalent to toString(LvkVersion::V_04).
     QString toString() const;
+
+    /// Version-aware string representation.
+    /// v0.1: id,frameId,delay
+    /// v0.2/v0.3: id,frameId,delay,ox,oy
+    /// v0.4+: id,frameId,delay,ox,oy,sticky
+    QString toString(LvkVersion v) const;
 
     /// initializes the current instance from the string @param str
     bool fromString(const QString& str);
