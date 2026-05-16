@@ -206,7 +206,18 @@ public:
         ErrCantOpenReadMode,
         ErrCantOpenReadWriteMode,
         ErrInvalidFormat,
+        ErrUnsafeOutputPath,
     } SpriteStateError;
+
+    /// Export format flags (bit-mask). All == Cocos2d | Json.
+    /// Default behavior preserves backward compatibility with pre-refactor
+    /// callers: the legacy Cocos2d pipeline (.lkob / .lkot / .h) is emitted
+    /// when no format is specified.
+    enum ExportFormat {
+        Cocos2d = 1,
+        Json    = 2,
+        All     = Cocos2d | Json,
+    };
 
     /// save instance to @param filename
     /// NOTE: Input image filenames cannot contain the charater ',',
@@ -221,8 +232,36 @@ public:
 
     /// export sprite file @param filename.
     /// If @param outputDir is null, the sprite file directory is used.
-    bool exportSprite(const QString& filename, const QString& outputDir = QString(),
-                      const QString& postpScript = "", SpriteStateError* err = 0) const;
+    ///
+    /// When @param format includes Cocos2d, writes .lkob/.lkot/.h files
+    /// (byte-equivalent to the pre-refactor output). When @param format
+    /// includes Json, also writes .png + .json (TexturePacker-compatible
+    /// JSON Array atlas).
+    ///
+    /// Output paths are constrained to @param outputDir: any baseName
+    /// derived from @param filename containing path separators or
+    /// resolving outside the canonical outputDir will be rejected
+    /// (returning false and setting err=ErrUnsafeOutputPath).
+    bool exportSprite(const QString& filename,
+                      const QString& outputDir = QString(),
+                      const QString& postpScript = "",
+                      ExportFormat format = Cocos2d,
+                      SpriteStateError* err = 0) const;
+
+    /// Backwards-compat overload preserving the pre-refactor 4-arg
+    /// signature (filename, outputDir, postpScript, err). Defaults to
+    /// Cocos2d. Kept so the legacy callers in src/main.cpp (Agent 10's
+    /// lane) and any external tooling keep linking after Phase 3 lands.
+    bool exportSprite(const QString& filename,
+                      const QString& outputDir,
+                      const QString& postpScript,
+                      SpriteStateError* err) const
+    { return exportSprite(filename, outputDir, postpScript, Cocos2d, err); }
+
+    /// Map a CLI --format=... string to ExportFormat. Returns Cocos2d on
+    /// unknown values (matches QCommandLineParser default behavior).
+    /// Accepts: "cocos2d", "json", "all" (case-insensitive).
+    static ExportFormat parseFormat(const QString& s);
 
     /// returns the error string of @param err
     static const QString& errorMessage(SpriteStateError err);

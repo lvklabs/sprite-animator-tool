@@ -1,4 +1,5 @@
 #include "spritestate.h"
+#include "exporters/JsonAtlasExporter.h"
 
 #include <QFile>
 #include <QFileDevice>
@@ -218,7 +219,27 @@ bool SpriteState::save(const QString& filename, SpriteStateError* err)
 
     stream << "# Custom data appended to the header\n";
     stream << "custom_header(\n";
-    stream << _customHeader << "\n";
+    // Bug #5 fix (Agent 8): load() appends "\n" after every header line
+    // (see line ~409 in this file), so _customHeader always ends in '\n'
+    // when populated by a previous load. Writing `_customHeader << "\n"`
+    // then adds a SECOND trailing newline; reload re-appends one per line
+    // (including the now-empty trailing line) and the on-disk size of the
+    // header block grew by one '\n' per round-trip. Strip trailing
+    // whitespace and write exactly one terminating '\n' so the canonical
+    // form is a fixed point.
+    {
+        QString headerOut = _customHeader;
+        while (!headerOut.isEmpty() &&
+               (headerOut.endsWith(QLatin1Char('\n')) ||
+                headerOut.endsWith(QLatin1Char('\r')) ||
+                headerOut.endsWith(QLatin1Char(' ')) ||
+                headerOut.endsWith(QLatin1Char('\t')))) {
+            headerOut.chop(1);
+        }
+        if (!headerOut.isEmpty()) {
+            stream << headerOut << "\n";
+        }
+    }
     stream << ")\n\n";
 
     stream << "### End LvkSprite #####################################\n";
@@ -422,8 +443,65 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
     return (state != StError);
 }
 
+// SECURITY (Agent 8, addresses Agent 5 [FIXME(agent-5)]):
+// Validate that @param filename / outputDir produce output paths inside
+// the canonical outputDir. Rejects:
+//   - baseName containing path separators ('/', '\\') or "..",
+//   - baseName equal to ".." or ".",
+//   - resolved absolute path that escapes the canonical outputDir,
+//   - outputDir that does not exist (cannot canonicalize).
+// Returns true on safe; false on unsafe (with reasonInternal optionally set).
+static bool isSafeExportPath(const QString& baseName,
+                             const QString& outputDir,
+                             QString*       reasonOut)
+{
+    auto fail = [&](const QString& reason) {
+        if (reasonOut) *reasonOut = reason;
+        qDebug() << "isSafeExportPath: REJECTED -" << reason;
+        return false;
+    };
+
+    if (baseName.isEmpty()) {
+        return fail(QStringLiteral("baseName is empty"));
+    }
+    if (baseName.contains(QLatin1Char('/')) || baseName.contains(QLatin1Char('\\'))) {
+        return fail(QStringLiteral("baseName contains path separator: ") + baseName);
+    }
+    if (baseName.contains(QStringLiteral(".."))) {
+        return fail(QStringLiteral("baseName contains '..': ") + baseName);
+    }
+    if (baseName == QStringLiteral(".") || baseName == QStringLiteral("..")) {
+        return fail(QStringLiteral("baseName is a directory traversal: ") + baseName);
+    }
+    if (QFileInfo(baseName).isAbsolute()) {
+        return fail(QStringLiteral("baseName is an absolute path: ") + baseName);
+    }
+
+    // Resolve canonical outputDir. We require it to exist so we can compare
+    // it. canonicalPath() returns empty for non-existing dirs.
+    QFileInfo outDirInfo(outputDir);
+    if (!outDirInfo.exists() || !outDirInfo.isDir()) {
+        return fail(QStringLiteral("outputDir does not exist or is not a directory: ") + outputDir);
+    }
+    const QString canonicalOutputDir = outDirInfo.canonicalFilePath();
+    if (canonicalOutputDir.isEmpty()) {
+        return fail(QStringLiteral("could not canonicalize outputDir: ") + outputDir);
+    }
+
+    // Build the candidate path and canonicalize via cleanPath; we cannot
+    // canonicalFilePath() the candidate because the file doesn't exist yet.
+    const QString candidate = QDir::cleanPath(canonicalOutputDir +
+                                              QDir::separator() + baseName);
+    if (!candidate.startsWith(canonicalOutputDir + QDir::separator()) &&
+        candidate != canonicalOutputDir) {
+        return fail(QStringLiteral("resolved path escapes outputDir: ") + candidate);
+    }
+    return true;
+}
+
 bool SpriteState::exportSprite(const QString& filename, const QString& outputDir_,
-                               const QString &postpScript, SpriteStateError* err) const
+                               const QString &postpScript, ExportFormat format,
+                               SpriteStateError* err) const
 {
     setError(err, ErrNone);
 
@@ -436,9 +514,49 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
         outputDir = fileInfo.path();
     }
 
-    QString binFileName  = outputDir + QDir::separator() + fileInfo.baseName() + ".lkob";
-    QString textFileName = outputDir + QDir::separator() + fileInfo.baseName() + ".lkot";
-    QString headerFileName = outputDir + QDir::separator() + "AnimNameDef_" + fileInfo.baseName() + ".h";
+    const QString baseName = fileInfo.baseName();
+
+    // SECURITY (Agent 8): Reject any baseName / outputDir combo that would
+    // let user input escape outputDir. See isSafeExportPath above.
+    {
+        QString reason;
+        if (!isSafeExportPath(baseName, outputDir, &reason)) {
+            qDebug() << "SpriteState::exportSprite():" << reason;
+            setError(err, ErrUnsafeOutputPath);
+            return false;
+        }
+    }
+
+    // Dispatch JSON-only exports to the JSON exporter and return early.
+    // The Cocos2d path below is the original behavior (preserved for
+    // byte-equivalence of the .lkob / .lkot / .h artifacts).
+    const bool wantCocos2d = (format & Cocos2d) != 0;
+    const bool wantJson    = (format & Json)    != 0;
+
+    if (!wantCocos2d && !wantJson) {
+        qDebug() << "SpriteState::exportSprite(): no format flags set";
+        return false;
+    }
+
+    if (wantJson) {
+        JsonAtlasExporter jsonExp;
+        const QString jsonBase =
+            QDir::cleanPath(QFileInfo(outputDir).canonicalFilePath() +
+                            QDir::separator() + baseName);
+        if (!jsonExp.exportAtlas(jsonBase, *this)) {
+            qDebug() << "SpriteState::exportSprite(): JSON atlas export failed for"
+                     << jsonBase;
+            setError(err, ErrCantOpenReadWriteMode);
+            return false;
+        }
+        if (!wantCocos2d) {
+            return true;
+        }
+    }
+
+    QString binFileName  = outputDir + QDir::separator() + baseName + ".lkob";
+    QString textFileName = outputDir + QDir::separator() + baseName + ".lkot";
+    QString headerFileName = outputDir + QDir::separator() + "AnimNameDef_" + baseName + ".h";
 
     QFile binOutput(binFileName);
     QFile textOutput(textFileName);
@@ -847,6 +965,7 @@ const QString& SpriteState::errorMessage(SpriteStateError err)
     static const QString strErrInvalidFormat        = tr("The file has an invalid sprite format");
     static const QString strErrNullFilename         = tr("Empty filename");
     static const QString strErrFileDoesNotExist     = tr("File does not exist");
+    static const QString strErrUnsafeOutputPath     = tr("Output path escapes the destination directory");
     static const QString strErrUnknown              = tr("Unknown error");
 
     switch (err) {
@@ -862,8 +981,19 @@ const QString& SpriteState::errorMessage(SpriteStateError err)
         return strErrNullFilename;
     case ErrFileDoesNotExist:
         return strErrFileDoesNotExist;
+    case ErrUnsafeOutputPath:
+        return strErrUnsafeOutputPath;
     default:
         return strErrUnknown;
     }
+}
+
+SpriteState::ExportFormat SpriteState::parseFormat(const QString& s)
+{
+    const QString v = s.trimmed().toLower();
+    if (v == QStringLiteral("json"))    return Json;
+    if (v == QStringLiteral("all"))     return All;
+    // "cocos2d" or unknown -> Cocos2d (legacy default).
+    return Cocos2d;
 }
 

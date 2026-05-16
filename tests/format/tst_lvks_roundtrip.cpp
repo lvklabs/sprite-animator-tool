@@ -374,25 +374,21 @@ void TstLvksRoundtrip::roundtripPreservesCustomHeader()
 
     assertStructurallyEqual(original, reloaded, QStringLiteral("custom_header"));
 
-    // FIXME(agent-2): SpriteState::save() writes
-    //     `_customHeader << "\n"` inside the custom_header() block, but
-    // load() already appends a "\n" after each header line. So a
-    // round-trip strictly grows the custom header by one trailing
-    // newline. This is a latent bug — the canonical form is not a
-    // fixed point. Compare with trailing whitespace stripped until
-    // someone fixes save() (Agent 8 owns spritestate.cpp export work).
-    // See UPGRADE_NOTES.md entry 'custom_header round-trip grows
-    // trailing newlines'.
-    auto stripTrailingWs = [](QString s) {
-        while (!s.isEmpty() &&
-               (s.endsWith(QChar('\n')) || s.endsWith(QChar(' ')) ||
-                s.endsWith(QChar('\t')) || s.endsWith(QChar('\r')))) {
-            s.chop(1);
-        }
-        return s;
-    };
-    QCOMPARE(stripTrailingWs(reloaded.getCustomHeader()),
-             stripTrailingWs(original.getCustomHeader()));
+    // Bug #5 FIXED by Agent 8 (May 2026): save() now writes a single
+    // terminating '\n' after the trimmed header so the canonical form
+    // is a fixed point. Compare strictly.
+    QCOMPARE(reloaded.getCustomHeader(), original.getCustomHeader());
+
+    // Re-save+re-load must also be a fixed point (the strongest form of
+    // the assertion -- if there's *any* additive drift in save(), the
+    // second round-trip will diverge from the first).
+    const QString out2 = tmpDir.path() + QDir::separator() + QStringLiteral("with_header.out2.lvks");
+    QVERIFY(reloaded.save(out2, &err));
+    QCOMPARE(err, SpriteState::ErrNone);
+    SpriteState reloaded2;
+    QVERIFY(reloaded2.load(out2, &err));
+    QCOMPARE(err, SpriteState::ErrNone);
+    QCOMPARE(reloaded2.getCustomHeader(), reloaded.getCustomHeader());
 }
 
 QTEST_MAIN(TstLvksRoundtrip)
