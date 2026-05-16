@@ -140,7 +140,14 @@ void SpriteState::addAframe(LvkAframe& aframe, Id aniId)
     } else {
         _aframeId = std::max(_aframeId, aframe.id + 1);
     }
-    _animations[aniId]._aframes.insert(aframe.id, aframe);
+    // Bug #4 (Agent 7): the previous implementation called
+    // QList::insert(aframe.id, aframe). QList::insert(int index, T) treats
+    // the first argument as a *position*, not a key. With non-dense ids
+    // (e.g. mario.lvks uses id 2 in animation 0, then ids 1,5,6,7 in
+    // animation 1) the call was OOB / heap-corrupting. Aframe order is
+    // already determined by parser/save iteration order, so append is the
+    // correct semantics — matches LvkAnimation::addAframe (push_back).
+    _animations[aniId]._aframes.append(aframe);
 }
 
 void SpriteState::clear()

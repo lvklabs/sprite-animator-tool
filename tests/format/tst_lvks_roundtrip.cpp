@@ -158,30 +158,11 @@ void TstLvksRoundtrip::assertStructurallyEqual(SpriteState& a, SpriteState& b,
 
 void TstLvksRoundtrip::roundtripMario()
 {
-    // FIXME(agent-2): mario.lvks triggers a real latent bug in
-    // SpriteState::addAframe() — see src/spritestate.cpp:88, which does
-    //
-    //     _animations[aniId]._aframes.insert(aframe.id, aframe);
-    //
-    // QList::insert(int index, const T&) treats `aframe.id` as a
-    // *list index*, not a key. When an aframe's id exceeds the current
-    // list size (mario.lvks first uses id 2 in animation 0 then ids
-    // 1,5,6,7 in animation 1) the call has been undefined behavior since
-    // 2010. In Qt6 QList is the unified array container, so the OOB
-    // insert manifests as a debug-mode assert / release-mode malloc
-    // corruption ("malloc(): unaligned tcache chunk detected").
-    //
-    // Correct fix (deferred — outside Agent 2's scope, which is read-only
-    // wrt src/ apart from the optional iteration-sort patch): change
-    // addAframe to call `append(aframe)` (or `push_back`), matching the
-    // order already produced by save() / fromString() and matching
-    // LvkAnimation::addAframe()'s semantics.
-    //
-    // Owner: Agent 6 (Qt6 deeper API migration) or Agent 7 (memory
-    // safety + AddressSanitizer pass) — see UPGRADE_NOTES.md.
-    QSKIP("known bug in SpriteState::addAframe — see UPGRADE_NOTES.md "
-          "entry 'addAframe inserts by id-as-index'", SkipAll);
-
+    // Agent 7 fix: SpriteState::addAframe() previously called
+    // QList::insert(aframe.id, aframe) which treats aframe.id as an index
+    // and was undefined behavior for non-dense ids (mario.lvks uses ids
+    // 1,5,6,7 across animations). The fix changes addAframe() to append,
+    // unblocking this round-trip test.
     const QString src = examplePath(QStringLiteral("mario.lvks"));
     QVERIFY(!src.isEmpty());
 
@@ -231,14 +212,8 @@ void TstLvksRoundtrip::roundtripMario()
 
 void TstLvksRoundtrip::roundtripRyu()
 {
-    // FIXME(agent-2): ryu.lvks also exposes the addAframe id-as-index
-    // bug — its first animation uses aframe ids 0..3 which happen to be
-    // valid, but its second animation jumps from list-size 0 to
-    // insert(4, ...) which is OOB. Same root cause and same deferred
-    // owner as roundtripMario above.
-    QSKIP("known bug in SpriteState::addAframe — see UPGRADE_NOTES.md "
-          "entry 'addAframe inserts by id-as-index'", SkipAll);
-
+    // Agent 7 fix: same root cause as roundtripMario — SpriteState::
+    // addAframe() now appends instead of QList::insert(id, …).
     const QString src = examplePath(QStringLiteral("ryu.lvks"));
     QVERIFY(!src.isEmpty());
 

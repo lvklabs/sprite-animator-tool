@@ -103,11 +103,9 @@ void TestSpriteStateCrud::testAddAframeAutoIdSequential()
     QCOMPARE(af0.id, 0);
     QCOMPARE(af1.id, 1);
     QCOMPARE(af2.id, 2);
-    // NOTE: avoid SpriteState::aframes(Id) -- in Qt6 it returns a
-    // reference into a temporary QMap entry copy (see UPGRADE_NOTES.md
-    // entry "Agent 1, issue 1"). Read via animations() instead, which
-    // returns a const reference to the map itself.
-    QCOMPARE(s.animations().value(aniId)._aframes.size(), 3);
+    // Agent 7 fix: aframes(Id) is now safe (returns a reference into the
+    // map via const_iterator, with a static fallback for unknown ids).
+    QCOMPARE(s.aframes(aniId).size(), 3);
 }
 
 void TestSpriteStateCrud::testRemoveFrameClearsPixmapCacheEntry()

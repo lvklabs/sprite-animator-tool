@@ -18,8 +18,8 @@ public:
     void swapRows(int row1, int row2);
 
 protected:
-    virtual void keyPressEvent(QKeyEvent *event);
-    virtual void keyReleaseEvent(QKeyEvent *event);
+    void keyPressEvent(QKeyEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
 
 private:
     QSet<int> ignoredRows;

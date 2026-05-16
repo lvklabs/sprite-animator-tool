@@ -4,6 +4,7 @@
 #include <QScrollBar>
 #include <QDebug>
 #include <cmath>
+#include <memory>
 
 #include "lvkinputimagewidget.h"
 
@@ -29,16 +30,10 @@ QRect operator/(const QRect& rect, int c)
 
 LvkInputImageWidget::LvkInputImageWidget(QWidget *parent)
         : QWidget(parent),
-        _mouseX(-1), _mouseY(-1), _zoom(0), _scroll(0), _cacheId(NullId)
+        _mouseX(-1), _mouseY(-1), _zoom(0), _scroll(0), _cacheId(NullId),
+        _pCache(PCACHE_CAPACITY)
 {
     _c = pow(ZOOM_FACTOR, _zoom);
-
-    for (int i = 0; i < PCACHE_ROW_SIZE; ++i) {
-        for (int j = 0; j < PCACHE_COL_SIZE; ++j) {
-            _pCache[i][j] = 0;
-        }
-    }
-
     setMouseTracking(true);
 }
 
@@ -53,27 +48,24 @@ void LvkInputImageWidget::clear()
 
 void LvkInputImageWidget::clearPixmapCache()
 {
-    for (int i = 0; i < PCACHE_ROW_SIZE; ++i) {
-        clearPixmapCache(i);
-    }
+    _pCache.clear();
     _cacheId = NullId;
 }
 
 void LvkInputImageWidget::clearPixmapCache(Id cacheId)
 {
-    for (int j = 0; j < PCACHE_COL_SIZE; ++j) {
-        if (_pCache[cacheId][j]) {
-            delete _pCache[cacheId][j];
-            _pCache[cacheId][j] = 0;
-        }
+    // Drop every entry whose key.first matches cacheId. We iterate the
+    // small set of zoom levels rather than scanning the whole cache.
+    for (int z = 0; z < PCACHE_COL_SIZE; ++z) {
+        _pCache.remove(qMakePair(cacheId, z));
     }
 }
 
 void LvkInputImageWidget::setPixmap(const QPixmap &pixmap, Id useCacheId)
 {
     if (useCacheId != NullId) {
-        if (useCacheId < 0 || useCacheId >= PCACHE_ROW_SIZE) {
-            qDebug() << "WARNING: LvkInputImageWidget::setPixmap() useCacheId out of bunds, using 0" ;
+        if (useCacheId < 0) {
+            qDebug() << "WARNING: LvkInputImageWidget::setPixmap() useCacheId negative, using 0";
             useCacheId = 0;
         }
         _cacheId = useCacheId;
@@ -225,11 +217,30 @@ void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
         }
 
         if (_cacheId != NullId) {
-            if (!_pCache[_cacheId][z]) {
-                _pCache[_cacheId][z] = new QPixmap();
-                *_pCache[_cacheId][z] = _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c);
+            const auto key = qMakePair(_cacheId, z);
+            QPixmap *cached = _pCache.object(key);
+            if (!cached) {
+                // QCache takes ownership; if insertion fails (cost > cache
+                // capacity) it deletes the pixmap immediately, returns
+                // false, and object() will be null next look-up — we just
+                // fall through to the un-cached scaled draw below.
+                auto fresh = std::make_unique<QPixmap>(
+                    _pixmap.scaled(_pixmap.width() * _c, _pixmap.height() * _c));
+                QPixmap *raw = fresh.get();
+                if (_pCache.insert(key, fresh.release())) {
+                    cached = _pCache.object(key);
+                    Q_UNUSED(raw);
+                } else {
+                    // Insert failed — `raw` was already deleted by QCache.
+                    // Fall back to a single-shot scaled draw.
+                    painter.drawPixmap(hval, vval, w, h,
+                                       _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c),
+                                       hval, vval, w, h);
+                }
             }
-            painter.drawPixmap(hval, vval, w, h, *_pCache[_cacheId][z], hval, vval, w, h);
+            if (cached) {
+                painter.drawPixmap(hval, vval, w, h, *cached, hval, vval, w, h);
+            }
         } else {
             painter.drawPixmap(hval, vval, w, h,
                                _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c),
@@ -299,5 +310,6 @@ void LvkInputImageWidget::resize(int w, int h)
 
 LvkInputImageWidget::~LvkInputImageWidget()
 {
-    clearPixmapCache();
+    // QCache owns its entries and clears them on destruction; no manual
+    // delete loop needed.
 }

@@ -3,6 +3,8 @@
 
 #include <QString>
 
+#include <memory>
+
 #include "inputimage.h"
 #include "lvkframe.h"
 #include "lvkanimation.h"
@@ -92,7 +94,10 @@ public:
 
 private:
 
-    StateChange *_buf;    /* buffer */
+    // Agent 7: was `StateChange *_buf;` with manual new[]/delete[].
+    // Switched to std::unique_ptr<StateChange[]> so the BUFF_SIZE-element
+    // ring buffer is freed automatically and we lose the manual dtor.
+    std::unique_ptr<StateChange[]> _buf;
     int          _i;      /* index to implement a circular buffer */
     int          _first;  /* first position in the buffer */
     int          _saved;  /* saved position in the buffer, -1 if not saved */
