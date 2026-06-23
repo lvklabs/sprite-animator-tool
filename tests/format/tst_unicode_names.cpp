@@ -341,15 +341,32 @@ void TstUnicodeNames::saveReturnsFalseOnAnimationNameWithComma()
                  "failed save() must not clobber pre-existing good content");
     }
 
-    // Also verify there's no orphaned .tmp / .save-tmp file lingering
-    // next to the target. The atomic save writes to a sibling tmp file
-    // and renames into place on success; on the failure path it must
-    // clean the tmp up rather than leaving stale partial bytes around.
-    QVERIFY2(QDir(QFileInfo(out).path())
-                 .entryList(QStringList{QStringLiteral("*.tmp"),
-                                        QStringLiteral("*.save-tmp")},
-                            QDir::Files).isEmpty(),
-             "no orphan tmp files");
+    // Also verify there's no orphaned tmp file lingering next to the
+    // target. The atomic save writes to a sibling tmp file and renames
+    // into place on success; on the failure path it must clean the tmp
+    // up rather than leaving stale partial bytes around.
+    //
+    // H4.5: the previous glob `{*.tmp, *.save-tmp}` matched NEITHER of
+    // the patterns Qt's QSaveFile actually uses: QSaveFile creates a
+    // sibling tmp named `<filename>.XXXXXX` (six random chars, no
+    // extension), so the orphan check passed vacuously. We now list
+    // ALL files in the directory and assert that nothing other than
+    // the expected output file is left behind, which catches any
+    // QSaveFile / legacy `.save-tmp` / `.tmp` leftover.
+    {
+        const QStringList contents =
+            QDir(QFileInfo(out).path())
+                .entryList(QDir::Files | QDir::Hidden | QDir::NoDotAndDotDot);
+        QStringList unexpected;
+        for (const QString &name : contents) {
+            if (name != QStringLiteral("bad_animation.lvks")) {
+                unexpected << name;
+            }
+        }
+        QVERIFY2(unexpected.isEmpty(),
+                 qPrintable(QStringLiteral("Unexpected files: %1")
+                                .arg(unexpected.join(QStringLiteral(", ")))));
+    }
 
     // The bad animation MUST NOT have round-tripped: reloading the
     // file we kept on disk must yield the pre-written sprite (one
@@ -431,11 +448,26 @@ void TstUnicodeNames::saveReturnsFalseOnImageFilenameWithComma()
     }
 
     // No orphan tmp files left behind by the failed atomic save.
-    QVERIFY2(QDir(QFileInfo(out).path())
-                 .entryList(QStringList{QStringLiteral("*.tmp"),
-                                        QStringLiteral("*.save-tmp")},
-                            QDir::Files).isEmpty(),
-             "no orphan tmp files");
+    //
+    // H4.5: see the comment in saveReturnsFalseOnAnimationNameWithComma
+    // for why the previous `{*.tmp, *.save-tmp}` glob passed vacuously
+    // (QSaveFile's tmp suffix is `.XXXXXX`, not `.tmp`). We now list
+    // every file in the directory and reject anything other than the
+    // expected output file.
+    {
+        const QStringList contents =
+            QDir(QFileInfo(out).path())
+                .entryList(QDir::Files | QDir::Hidden | QDir::NoDotAndDotDot);
+        QStringList unexpected;
+        for (const QString &name : contents) {
+            if (name != QStringLiteral("bad_image.lvks")) {
+                unexpected << name;
+            }
+        }
+        QVERIFY2(unexpected.isEmpty(),
+                 qPrintable(QStringLiteral("Unexpected files: %1")
+                                .arg(unexpected.join(QStringLiteral(", ")))));
+    }
 }
 
 QTEST_MAIN(TstUnicodeNames)

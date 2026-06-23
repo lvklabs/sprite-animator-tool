@@ -349,6 +349,14 @@ protected:
     /// loadedVersion() / minimumVersion() / save() for the policy.
     LvkVersion _loadedVersion = LvkVersion::V_04;
 
+    /// True when load() encountered a `transitions(...)` block in the
+    /// source file. The block payload is currently dropped (see
+    /// StTokenTransitions in load()), but save() emits a visible
+    /// "intentionally dropped" comment only when this flag is set, so a
+    /// round-trip of a file that did NOT contain the block stays clean
+    /// (no spurious comment line is gained).
+    bool _loadedTransitions = false;
+
     // TODO (?) move this method inside LvkFrame
     /// force reload frame pixmap
     void reloadFramePixmap(const LvkFrame &frame);

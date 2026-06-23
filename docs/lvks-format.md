@@ -60,7 +60,8 @@ Whitespace is significant only to the extent that records are
 **one-per-line**. Leading tabs/spaces inside a section are stripped by
 `line.trimmed()` (`src/spritestate.cpp:281`). Empty lines and lines
 starting with `#` are skipped, except inside `custom_header(...)` where
-both are preserved verbatim.
+they are preserved (subject to the leading-whitespace caveat documented
+in the `custom_header(...)` section below).
 
 ## Version header
 
@@ -180,11 +181,40 @@ Any other count is rejected.
 Source: `src/spritestate.cpp:405-411`. Introduced in v0.3.
 
 Free-form lines, one per input line. Whatever is between the opening
-`custom_header(` and the closing `)` is captured **verbatim** into
+`custom_header(` and the closing `)` is captured into
 `SpriteState::_customHeader` (with `\n` appended per line). At export
-time the captured text is emitted unchanged into the generated `.h`
-header above the macro definitions, so games can stick `#include` lines,
-copyright notices, or `#define` macros there.
+time the captured text is emitted into the generated `.h` header above
+the macro definitions, so games can stick `#include` lines, copyright
+notices, or `#define` macros there.
+
+**Leading-whitespace caveat.** The loader reads each line via
+`stream.readLine().trimmed()` (`src/spritestate.cpp:608`), which strips
+**both** leading and trailing whitespace before the line reaches the
+`custom_header(...)` branch. As a result, indentation inside the block
+is **not** preserved across a load/save cycle. For example, given an
+input of:
+
+```
+custom_header(
+    #include <foo.h>
+        // indented comment
+#define BAR 1
+)
+```
+
+what is captured (and re-emitted) is:
+
+```
+custom_header(
+#include <foo.h>
+// indented comment
+#define BAR 1
+)
+```
+
+This is benign for the intended use case (C preprocessor directives,
+which do not depend on leading whitespace). Trailing newlines and
+non-leading whitespace inside a line are preserved.
 
 Known bug: each save/load cycle currently appends one extra trailing
 newline (`UPGRADE_NOTES.md` #5). Tracked for Agent 8's
@@ -228,8 +258,13 @@ preserves the block.
 Per Phase-1 Agent 2's work:
 
 - `examples/mario.lvks` and `examples/ryu.lvks` are loaded, saved, and
-  the saved text is compared byte-for-byte to the input in
-  `tests/format/tst_lvks_roundtrip.cpp`.
+  reloaded; the result is asserted to be **structurally equivalent** to
+  the input -- same header version, same set of images / frames /
+  animations, same per-record key fields and ordering -- in
+  `tests/format/tst_lvks_roundtrip.cpp`. Byte-level equivalence is
+  **not** guaranteed (the loader is lenient -- e.g. it accepts comma
+  counts of 2/3/5/6 for `LvkAframe::fromString` -- and `save()`
+  rewrites in a canonical form).
 - `tests/format/tst_lvks_versions.cpp` enumerates every accepted version
   header.
 
@@ -248,3 +283,10 @@ the new version. Do not delete or reorder the existing version branches
   - `LvkFrame::fromString` -- `src/lvkframe.cpp:31-48`.
   - `LvkAnimation::fromString` -- `src/lvkanimation.cpp:25-43`.
   - `LvkAframe::fromString` -- `src/lvkaframe.cpp:30-62`.
+
+## See also
+
+- [`cocos2d-export.md`](cocos2d-export.md) -- schema for the runtime
+  Cocos2d export (`.lkob` / `.lkot` / `AnimNameDef_<base>.h`)
+  produced by `SpriteState::exportSprite()`. The `.lvks` file is the
+  authoring format; the Cocos2d trio is the artifact the game loads.

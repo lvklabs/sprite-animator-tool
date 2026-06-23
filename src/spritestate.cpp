@@ -303,6 +303,12 @@ void SpriteState::clear() {
     // the latest format (load() will overwrite this immediately if it
     // reads a file).
     _loadedVersion = LvkVersion::V_04;
+
+    // H4.3: a fresh document has never seen a `transitions(...)` block,
+    // so save() must NOT emit the "intentionally dropped" comment.
+    // load() will set this back to true if the source file contained
+    // one.
+    _loadedTransitions = false;
 }
 
 bool SpriteState::save(const QString &filename, SpriteStateError *err) {
@@ -490,13 +496,18 @@ bool SpriteState::save(const QString &filename, SpriteStateError *err) {
     }
     stream << ")\n\n";
 
-    // F5.2: emit a visible breadcrumb explaining that the `transitions()`
-    // block reserved in the format spec is not yet implemented. If the
-    // loaded file contained one, the warning emitted at load-time told
-    // the operator on stderr; this comment ensures someone inspecting
-    // the saved file in a text editor (or diff'ing two round-trips)
-    // also sees why the transitions data is missing.
-    stream << "# transitions intentionally dropped -- feature not implemented\n\n";
+    // F5.2 + H4.3: emit a visible breadcrumb explaining that the
+    // `transitions()` block reserved in the format spec is not yet
+    // implemented -- BUT only when the loaded file actually contained
+    // such a block (the load() path sets _loadedTransitions in that
+    // case). Without the gate, the comment was emitted on every save(),
+    // so a v0.1 file (e.g. mario.lvks) that never had transitions grew
+    // a noise line per round-trip cycle. The user-visible value of the
+    // breadcrumb is "where did the transitions data go?" -- there's no
+    // payoff in stamping that on files that never had any.
+    if (_loadedTransitions) {
+        stream << "# transitions intentionally dropped -- feature not implemented\n\n";
+    }
 
     stream << "### End LvkSprite #####################################\n";
 
@@ -663,10 +674,18 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err, int *reje
                 // block (StTokenTransitions consumes lines until ')').
                 // save() emits a comment so the user sees the drop in the
                 // round-tripped file as well.
+                //
+                // H4.3: record that we saw a transitions block so save()
+                // gates the "intentionally dropped" breadcrumb on it.
+                // Without the gate the comment was emitted on every
+                // save() -- including round-trips of files that never
+                // had the block -- and grew the on-disk text by a noise
+                // line each cycle.
                 qWarning() << "SpriteState::load(): transitions() block found in" << filename
                            << "at line" << lineNumber
                            << "but transitions are not yet implemented; "
                               "block contents will be dropped on save.";
+                _loadedTransitions = true;
                 state = StTokenTransitions;
             } else if (line == "aframes(") {
                 qDebug() << "Error: SpriteState::load(): Unspected token" << line << "at line"
