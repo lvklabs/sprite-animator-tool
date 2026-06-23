@@ -6,6 +6,152 @@ All notable changes to the LVK Sprite Animator Tool are recorded here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-06-23
+
+A 6-phase remediation pass triggered by a multi-agent premortem on the
+2.0.0 work. The premortem surfaced 15 issues across compatibility,
+build/CI fragility, refactor blast radius, security, and UX regression;
+this release closes all of them.
+
+### Added
+
+- **Format-version tracking.** New `LvkVersion` enum on `SpriteState`
+  with `loadedVersion()` and `minimumVersion()`. The save header is
+  now `max(loaded, minimum)` so legacy `.lvks` files round-trip
+  without being silently rewritten to v0.4.
+- **i18n infrastructure.** `QTranslator` installed at startup;
+  skeleton `.ts` files for `en` / `es` / `fr` under `translations/`;
+  CMake wired through `qt_add_lrelease` + `qt_add_resources` (gated
+  on `Qt6LinguistTools_FOUND` so builds without LinguistTools still
+  succeed).
+- **Window geometry persistence.** `MainWindow` saves/restores
+  geometry + state via `QSettings` (`ui/mainwindow/geometry`,
+  `ui/mainwindow/state`).
+- **Accessibility.** `accessibleName` / `accessibleDescription` on
+  the four table widgets, frame canvas, previews, and primary toolbar
+  buttons. Keyboard shortcuts via `QKeySequence::{Open,Save,SaveAs,Undo,Redo,New,Quit}`.
+- **10 new test executables** (21 total, up from 11):
+  - `tst_version_preservation` — v0.1 round-trip + bump-on-edit
+  - `tst_aframe_order` — legacy id-order on load
+  - `tst_unicode_names` — kanji macro round-trip + comma rejection
+  - `tst_image_path_injection` — UNC / absolute / `..` / NUL rejection
+  - `tst_atlas_size_bomb` — overflow guard on JSON atlas exporter
+  - `tst_path_traversal_hard` — NUL byte / alt-separator / prefix confusion
+  - `tst_script_toctou` — canonical-path symlink defeat
+  - `tst_image_tab_controller`, `tst_export_controller`,
+    `tst_mainwindow_construction` — refactor-target coverage
+- **CI hardening**: Windows uses Visual Studio 17 2022 (not the
+  previously-hardcoded `Unix Makefiles`); per-OS CMake presets;
+  binary smoke step (`--help` + headless export) on Linux/macOS/Windows;
+  `cpack -G DEB` + `dpkg -i` install + invoke on every Linux push;
+  tag-triggered `release.yml` workflow.
+
+### Fixed
+
+- **CRITICAL: CLI break.** `--export` hard-required `--output-dir` in
+  2.0.0; restored to the legacy behavior (defaults to input file's
+  directory). Success message moved stderr -> stdout in 2.0.0;
+  restored to stderr. Exit code changed from -1 to 1/2; restored to
+  -1.
+- **CRITICAL: `.lkot` export header lied.** Wrote
+  `LvkSprite version 0.1` while emitting v0.4 field counts (6-field
+  aframes with sticky). Downstream Cocos2d parsers rejected or
+  truncated. Header now matches schema.
+- **CRITICAL: undo stack wiped on every file open.**
+  `MainWindow::cellChangedSignals(bool)` was an empty no-op after the
+  controller split; every cellChanged fired through the update slots
+  and polluted `StateCircularBuffer`. Replaced with per-controller
+  `QSignalBlocker` (RAII).
+- **CRITICAL: dark-mode frame-drawing cursor invisible.** Hard-coded
+  `Qt::black` / `Qt::gray` / `Qt::blue` pens in `LvkFrameDefWidget`
+  replaced with `QPalette::{WindowText,Mid,Highlight}`. Burned-in
+  light-checker background dropped in favor of palette-driven fill.
+- **Aframe playback order** changed silently in 2.0.0 (Bug #4 fix
+  switched `insert(id,…)` to `append(…)`). Now load-time
+  `std::sort` by id; user `append` semantics preserved.
+- **Recent-files menu leaked `LvkAction` instances** on every
+  `setCurrentFile`. Reparented from `MainWindow` to
+  `ui->actionOpenRecent` so `QMenu::clear()` actually frees them.
+- **ExportController forgot the export target** when re-opening the
+  same file; `setCurrentFile` now compares against the previous path.
+- **Slot-connection order on `mouseRectChangeFinished`** flipped vs.
+  master; moved the `showMouseRect` connect to after controller
+  `wireSignals()` so `blendFrameRect` repaint fires first.
+
+### Security
+
+- **Image-path injection** in `InputImage::fromString`. Rejects
+  absolute paths, UNC (`\\…`), `..`, and embedded NUL bytes. Image
+  format whitelisted (png/jpg/jpeg/bmp/gif/webp/svg) via
+  `QImageReader::format()`. `QImageReader::setAllocationLimit(64MB)`
+  applied at startup.
+- **Frame dimension overflow** in the JSON atlas exporter.
+  `LvkFrame::fromString` rejects `w/h` outside `(0, 8192]`;
+  exporter widens `totalArea` to `qint64` and clamps atlas
+  dimensions to 16384px, bailing cleanly on overflow.
+- **Path-traversal "fix" was incomplete.** The original check used
+  `QFileInfo::baseName()` (segment before first dot), which missed
+  NUL bytes, Windows alt-separator on Linux, and prefix confusion
+  (`/tmp/safe` vs `/tmp/safe-evil`). Replaced with full-filename
+  validation + `canonicalPath` + trailing-separator `startsWith`.
+- **TOCTOU in postprocessing-script resolver.** Switched from
+  `absoluteFilePath()` to `canonicalFilePath()`; predictable
+  `*.ppi` tempfile path replaced with `QTemporaryFile` in
+  `QStandardPaths::TempLocation`.
+
+### Changed
+
+- **Qt 6 file-dialog filter strings** corrected from the malformed
+  `"*.lvks;; *.*"` to the canonical `tr("Lvks files (*.lvks);;All files (*)")`
+  form across 5 call sites.
+- **`getMacroName`** is Unicode-aware: non-ASCII letters collapse to
+  `_`; consecutive underscores deduplicate; leading-digit prefixed;
+  call-site disambiguation appends `_2`, `_3` on collision. Empty
+  result falls back to `UNNAMED`.
+- **Column widths** in `MainWindow::initTables` computed via
+  `fontMetrics().horizontalAdvance()` rather than fixed pixel
+  constants (HiDPI fix). Hard-coded `<pointsize>8</pointsize>`
+  overrides removed from `mainwindow.ui`.
+- **Source tree reformatted** with `clang-format-18` per
+  `.clang-format` (LLVM base, 4-space indent, 100-col limit).
+  No semantic changes; +1688/-2016 lines across 45 files.
+
+### CI
+
+- `CMakePresets.json` now has per-OS presets (`linux`, `macos`,
+  `windows`). Windows uses `Visual Studio 17 2022` instead of the
+  previously-hardcoded `Unix Makefiles` (which silently failed on
+  `windows-latest`).
+- `build.yml` matrix per-OS preset; artifact upload path globs
+  `build/**/LvkSpriteEditor*` to catch MSVC's `build/Release/`;
+  `if-no-files-found: error`.
+- `clang-format` dropped `continue-on-error: true`, pinned
+  `clang-format-18`, recurses `find src -name '*.cpp' -o -name '*.h'`.
+- New `clang-tidy` job with `compile_commands.json`.
+- `CPACK_DEBIAN_PACKAGE_DEPENDS` set so `dpkg -i` resolves.
+- `release.yml` (new) on tag push: cpack + `softprops/action-gh-release`.
+
+### Migration notes
+
+- **CLI behaviour** restored to legacy semantics. Existing build
+  scripts that used `LvkSpriteEditor --export foo.lvks` without
+  `--output-dir` now work again.
+- **Format compatibility.** A `.lvks` opened from a v0.1 file is
+  saved as v0.1 by default. The header bumps to v0.2/0.3/0.4 only
+  when the corresponding feature (image scale, animation flags,
+  aframe sticky) is actually used. CLI auto-bumps with a stderr
+  warning; GUI bump prompt is planned.
+- **Local translations.** If you build with `qt6-tools-dev`
+  installed, `lrelease` compiles the `.ts` skeletons and embeds
+  them under `:/i18n`. Without it, the binary still works (English
+  only).
+
+### Contributors
+
+A 5-agent premortem (compatibility, build/CI fragility, refactor
+blast radius, security, UX) followed by 11 commits across 6 phases.
+See the git log for per-phase detail.
+
 ## [2.0.0] - 2026-05-16
 
 The **2026 modernization**, delivered by a 10-agent upgrade pass on the
@@ -132,8 +278,11 @@ as `[FIXME(agent-5)]` markers for a future pass.
 - **CLI:** the legacy `--export sprite.lvks --output-dir DIR` style
   still works (positional + named option). Add `--format=json` or
   `--format=all` to opt into the new exporter.
-- **Format:** existing v0.1-v0.4 `.lvks` files load unchanged. The
-  saver always emits v0.4.
+- **Format:** existing v0.1-v0.4 `.lvks` files load unchanged. Since
+  2.0.1, the saver preserves the loaded version unless newer-only
+  features (sticky, flags, scale) are actually used; on bump, a
+  warning is emitted on stderr (CLI) or a confirmation dialog is
+  raised (GUI; planned).
 
 ### Contributors
 
