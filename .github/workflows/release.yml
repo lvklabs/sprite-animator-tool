@@ -43,7 +43,6 @@ jobs:
           version: '6.8.0'
           aqtversion: '==3.1.*'
           cache: true
-          modules: 'qttools'
           archives: 'qtbase qtsvg qtimageformats'
 
       - name: Configure

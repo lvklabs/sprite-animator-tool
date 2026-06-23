@@ -73,7 +73,6 @@ jobs:
           version: ${{ matrix.qt-version }}
           aqtversion: '==3.1.*'
           cache: true
-          modules: 'qttools'
           archives: 'qtbase qtsvg'
 
       - name: Configure (CMake preset)
@@ -190,7 +189,6 @@ jobs:
           version: '6.8.0'
           aqtversion: '==3.1.*'
           cache: true
-          modules: 'qttools'
           archives: 'qtbase qtsvg'
 
       - name: Configure (export compile_commands.json)
