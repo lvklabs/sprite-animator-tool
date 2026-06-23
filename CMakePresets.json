@@ -51,10 +51,10 @@
         },
         {
             "name": "windows",
-            "displayName": "Windows (Release, Ninja Multi-Config)",
-            "description": "Release build for windows runners using Ninja. Caller must set up MSVC env first (e.g. ilammy/msvc-dev-cmd in CI).",
+            "displayName": "Windows (Release, Ninja)",
+            "description": "Release build for windows runners using Ninja (single-config). Ninja Multi-Config fails on this project because per-target AUTOUIC produces duplicate ui_mainwindow.h generation rules across test executables; the single-config Ninja generator tolerates this the same way Unix Makefiles does. Caller must set up MSVC env first (e.g. ilammy/msvc-dev-cmd in CI).",
             "binaryDir": "${sourceDir}/build",
-            "generator": "Ninja Multi-Config",
+            "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
@@ -110,8 +110,7 @@
         },
         {
             "name": "windows",
-            "configurePreset": "windows",
-            "configuration": "Release"
+            "configurePreset": "windows"
         },
         {
             "name": "debug",

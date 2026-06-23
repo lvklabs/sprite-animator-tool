@@ -24,11 +24,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Linux: stay on Qt 6.5.3 LTS for CI. Qt 6.8.0's uic needs
+          # libicui18n.so.73 which Ubuntu 24.04 doesn't ship (it has
+          # ICU 74). macOS handles 6.8 fine because Qt ships its own
+          # ICU on that platform.
           - os: ubuntu-latest
             qt-version: '6.5.3'
-            preset: linux
-          - os: ubuntu-latest
-            qt-version: '6.8.0'
             preset: linux
           - os: macos-latest
             qt-version: '6.5.3'
