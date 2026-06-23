@@ -6,6 +6,11 @@ on:
       - 'v*'
   workflow_dispatch:
 
+concurrency:
+  group: release-${{ github.ref }}
+  # Tag releases should always complete; never cancel a release run in flight.
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -87,13 +92,45 @@ jobs:
       - name: List packages
         run: ls -la build/
 
-      - name: Upload to GitHub Release
+      - name: Install + smoke DEB (Linux)
+        # Mirror build.yml's verification: a tag-time CPack regression that
+        # produces a broken DEB must fail the release run, not ship to users.
+        # Install the freshly-built .deb and re-run --help against the
+        # system-installed binary to prove the package is usable.
+        if: runner.os == 'Linux'
+        env:
+          # The installed binary is launched headless; without this it
+          # tries to load the xcb plugin and aborts (no DISPLAY).
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          cd build
+          ls -la *.deb
+          sudo apt-get install -y --no-install-recommends ./lvksprite*.deb \
+            || sudo dpkg -i ./lvksprite*.deb \
+            || sudo apt-get install -y --no-install-recommends ./LvkSpriteEditor*.deb \
+            || sudo dpkg -i ./LvkSpriteEditor*.deb
+          which LvkSpriteEditor
+          LvkSpriteEditor --help
+
+      - name: Upload to GitHub Release (Linux)
+        if: runner.os == 'Linux'
         uses: softprops/action-gh-release@v2
         with:
           files: |
             build/*.deb
             build/*.tar.gz
+          # Fail the workflow if any expected glob matches zero files: an
+          # empty release on Linux means cpack silently broke and we'd be
+          # shipping a tag with no artifacts. CPack generators here are
+          # DEB+TGZ, so both globs must produce at least one file.
+          fail_on_unmatched_files: true
+
+      - name: Upload to GitHub Release (macOS)
+        if: runner.os == 'macOS'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
             build/*.dmg
-            build/*.exe
-            build/*.zip
-          fail_on_unmatched_files: false
+          # See Linux notes; on macOS CPack runs DragNDrop, so a .dmg must
+          # exist or this release run was a no-op and the tag is empty.
+          fail_on_unmatched_files: true

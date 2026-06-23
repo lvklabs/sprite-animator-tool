@@ -207,6 +207,15 @@ set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "WYSIWYG 2D sprite animation tool")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "${CPACK_PACKAGE_NAME}")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/COPYING")
 
+# Build the Qt version into the package name so users can match it to
+# their system Qt (Linux DEB binds to specific libqt6*.so symver, so a
+# package built against 6.4.2 won't satisfy a system on 6.2.x). Without
+# this the default file name is just "LvkSpriteEditor-2.0.1-Linux.deb"
+# and there's no way to tell what Qt it expects.
+set(_LVK_QT_VER "${Qt6_VERSION}")
+set(CPACK_PACKAGE_FILE_NAME
+    "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_NAME}-qt${_LVK_QT_VER}")
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(CPACK_GENERATOR "DEB;TGZ")
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Pablo Perez De Angelis <pda@gezie.io>")
