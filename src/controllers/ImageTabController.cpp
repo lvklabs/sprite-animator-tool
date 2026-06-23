@@ -148,11 +148,71 @@ void ImageTabController::addImageDialog() {
 
 Id ImageTabController::addImage(const InputImage &image) {
     InputImage image_ = image;
+
+    // SECURITY (Team B3 / Phase 6c): the file-format whitelist used to be
+    // advisory only -- addImage_ui showed an "unsupported format" dialog
+    // and then added the row anyway, so a rejected format was still
+    // attached to the sprite. Validate BEFORE state mutation so a
+    // rejection means "nothing added to state, nothing added to UI".
+    //
+    // We skip the validation for empty filenames (legacy "blank slot"
+    // construction is allowed; the dialog warns about it from
+    // addImage_ui) and pass non-empty paths through validateImageFile.
     if (!image_.filename.isEmpty()) {
+        QString errMsg;
+        if (!validateImageFile(image_.filename, &errMsg)) {
+            infoDialog(errMsg);
+            return NullId; // gate: reject => no state, no UI
+        }
         m_state->addImage(image_);
     }
     addImage_ui(image_);
     return image_.id;
+}
+
+bool ImageTabController::validateImageFile(const QString &filename, QString *errMsg) const {
+    // Centralised file-existence + format check used by addImage as the
+    // hard rejection gate. addImage_ui no longer duplicates this work
+    // because refreshTable() repopulates the UI from already-validated
+    // SpriteState entries; running file checks every redraw produced
+    // spurious dialogs on legitimate reloads of sprites with missing
+    // assets.
+    if (!QFileInfo(filename).exists()) {
+        if (errMsg) {
+            *errMsg = tr("File '") + filename + tr("' does not exist");
+        }
+        return false;
+    }
+
+    // SECURITY (Phase 4 + B3.1 expansion): Whitelist image formats by
+    // sniffing file content via QImageReader. We expand the whitelist to
+    // cover EVERY extension the open-file dialog advertises (png/jpg/
+    // jpeg/xpm/xbm/bmp/tif/tiff) plus the additional formats Qt6 ships
+    // image plugins for (gif/webp/svg). Mismatch between dialog filter
+    // and validator was confusing UX -- users were allowed to pick a
+    // .xpm and then told it was "unsupported".
+    QImageReader reader(filename);
+    const QByteArray fmt = reader.format().toLower();
+    static const QSet<QByteArray> allowed = {
+        QByteArrayLiteral("png"),  QByteArrayLiteral("jpg"),  QByteArrayLiteral("jpeg"),
+        QByteArrayLiteral("bmp"),  QByteArrayLiteral("gif"),  QByteArrayLiteral("webp"),
+        QByteArrayLiteral("svg"),  QByteArrayLiteral("xpm"),  QByteArrayLiteral("xbm"),
+        QByteArrayLiteral("tif"),  QByteArrayLiteral("tiff"),
+    };
+    if (!allowed.contains(fmt)) {
+        if (errMsg) {
+            *errMsg = filename + tr(" has an unsupported image format: ") +
+                      QString::fromUtf8(fmt);
+        }
+        return false;
+    }
+    if (QImage(filename).isNull()) {
+        if (errMsg) {
+            *errMsg = filename + tr(" has an invalid image format");
+        }
+        return false;
+    }
+    return true;
 }
 
 void ImageTabController::addImage_ui(const InputImage &image) {
@@ -162,28 +222,11 @@ void ImageTabController::addImage_ui(const InputImage &image) {
         infoDialog(tr("Empty Filename"));
         return;
     }
-    if (!QFileInfo(filename).exists()) {
-        infoDialog(tr("File '") + filename + tr("' does not exist"));
-    } else {
-        // SECURITY (Phase 4): Whitelist image formats by sniffing the
-        // file content via QImageReader rather than trusting QImage's
-        // probe-everything fallback. Rejects unusual decoders (e.g. raw
-        // formats or future Qt plugins) that could expand decompression
-        // bombs unchecked.
-        QImageReader reader(filename);
-        const QByteArray fmt = reader.format().toLower();
-        static const QSet<QByteArray> allowed = {
-            QByteArrayLiteral("png"), QByteArrayLiteral("jpg"), QByteArrayLiteral("jpeg"),
-            QByteArrayLiteral("bmp"), QByteArrayLiteral("gif"), QByteArrayLiteral("webp"),
-            QByteArrayLiteral("svg"),
-        };
-        if (!allowed.contains(fmt)) {
-            infoDialog(filename + tr(" has an unsupported image format: ") +
-                       QString::fromUtf8(fmt));
-        } else if (QImage(filename).isNull()) {
-            infoDialog(filename + tr(" has an invalid image format"));
-        }
-    }
+    // NOTE (Team B3): file-existence / format checks moved into
+    // validateImageFile(), called from addImage() BEFORE state mutation.
+    // This function is reused by refreshTable() to redraw rows from
+    // already-validated state; running file IO here on every refresh
+    // produced UX noise when assets were moved on disk.
 
     int rows = m_ui->imgTableWidget->rowCount();
 

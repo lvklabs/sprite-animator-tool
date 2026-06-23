@@ -33,6 +33,23 @@ bool isSafeImagePath(const QString &path) {
     if (path.startsWith(QStringLiteral("\\\\"))) {
         return false; // Windows UNC \\host\share -- SMB credential exfil
     }
+    if (path.startsWith(QChar('~'))) {
+        // Team B3: ~-prefixed paths are not expanded by Qt's QPixmap on
+        // Linux, but the on-disk .lvks format only ever ships clean
+        // relative paths (see examples/*.lvks). A leading '~' is either
+        // shell-expansion bait (if the operator pastes the path into a
+        // terminal) or simply ambiguous; reject both for portability.
+        return false;
+    }
+    if (path.size() >= 2 && path.at(0).isLetter() && path.at(1) == QChar(':')) {
+        // Team B3: Windows drive-absolute path (e.g. "C:\foo" or
+        // "C:/foo"). QFileInfo::isAbsolute() on Linux returns false for
+        // these, so the existing absolute check above lets them through
+        // -- which breaks cross-platform .lvks portability and gives a
+        // Windows operator an arbitrary-read primitive when they load a
+        // Linux-built sprite.
+        return false;
+    }
     if (QFileInfo(path).isAbsolute()) {
         return false; // absolute paths are an arbitrary-read primitive
     }
@@ -84,8 +101,18 @@ bool InputImage::fromString(const QString &str) {
         // invalid InputImage and the rest of the load pipeline (which
         // checks fromString's return) bails on this entry.
         if (!isSafeImagePath(candidateFilename)) {
-            qDebug() << "Warning InputImage::fromString(const QString&) rejected unsafe image path"
-                     << candidateFilename;
+            // Team B3 (Phase 6c): use qWarning rather than qDebug so the
+            // message reaches the default Qt logging stream and is
+            // visible to CLI users running headless (release builds
+            // strip qDebug). The data is silently dropped from the
+            // sprite otherwise, which is confusing to users opening a
+            // sanitised .lvks that came from a malicious source.
+            //
+            // TODO (out of scope for B3): also surface a rejection count
+            // to the GUI loader so the user sees an aggregated "N image
+            // entries were rejected for unsafe filename" banner.
+            qWarning() << "InputImage::fromString: rejected unsafe image path:"
+                       << candidateFilename;
             id = NullId;
             filename = QString();
             _scale = 1.0;
@@ -104,13 +131,14 @@ bool InputImage::fromString(const QString &str) {
         }
 
         if (pixmap.isNull()) {
-            qDebug()
-                << "Warning InputImage::fromString(const QString&) null pixmap created from file"
-                << filename;
+            // Team B3: qWarning so a missing-on-disk asset reaches the
+            // CLI user; this is the "silent data loss" half of B3.3.
+            qWarning() << "InputImage::fromString: null pixmap loaded for file:"
+                       << filename;
         }
         return true;
     } else {
-        qDebug() << "Warning InputImage::fromString(const QString&) invalid string format";
+        qWarning() << "InputImage::fromString: invalid string format:" << str;
         return false;
     }
 }

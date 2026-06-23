@@ -81,6 +81,13 @@ public slots:
 private:
     bool hasImagesChecked() const;
 
+    // SECURITY (Team B3 / Phase 6c): the rejection gate for
+    // user-selected image files. Returns false on missing file,
+    // disallowed format (xpm/xbm/png/jpg/jpeg/bmp/gif/webp/svg/tif/tiff
+    // whitelist) or QImage-null. On false the optional `errMsg` is
+    // populated with a user-facing reason string.
+    bool validateImageFile(const QString &filename, QString *errMsg = nullptr) const;
+
     MainWindow *m_mw = nullptr;
     Ui::MainWindow *m_ui = nullptr;
     SpriteState2 *m_state = nullptr;

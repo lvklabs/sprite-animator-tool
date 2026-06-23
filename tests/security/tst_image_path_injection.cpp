@@ -30,6 +30,8 @@ private slots:
     void rejectsUncPath();
     void rejectsDotDotTraversal();
     void rejectsEmbeddedNulByte();
+    void rejectsTildePrefix();
+    void rejectsWindowsDriveAbsolute();
 
     void acceptsRelativePathToFixture();
 
@@ -114,6 +116,48 @@ void TstImagePathInjection::rejectsEmbeddedNulByte()
     QVERIFY2(!ok, "NUL-byte-embedded filename was accepted");
     QCOMPARE(img.id, static_cast<Id>(NullId));
     QVERIFY(img.filename.isEmpty());
+}
+
+
+void TstImagePathInjection::rejectsTildePrefix()
+{
+    // Team B3: leading '~' is shell-expansion bait. Qt's QPixmap does
+    // not expand it on Linux, so the read goes nowhere, but a Windows or
+    // mac operator may have a shell that does. The .lvks format only
+    // ever ships clean relative paths -- reject '~/...' up front.
+    InputImage img;
+    const bool ok = img.fromString(QStringLiteral("21,~/.ssh/id_rsa,1"));
+    QVERIFY2(!ok, "Tilde-prefixed filename was accepted");
+    QCOMPARE(img.id, static_cast<Id>(NullId));
+    QVERIFY(img.filename.isEmpty());
+}
+
+
+void TstImagePathInjection::rejectsWindowsDriveAbsolute()
+{
+    // Team B3: Windows-drive-absolute paths like "C:\Windows\..." are
+    // NOT detected as absolute by QFileInfo on a Linux runner, so the
+    // pre-B3 validator let them slip through. A cross-platform .lvks
+    // file shipped from Linux to Windows would then dereference an
+    // attacker-supplied absolute path on the Windows host. Reject on
+    // any platform.
+    {
+        InputImage img;
+        const bool ok = img.fromString(
+            QStringLiteral("22,C:\\Windows\\System32\\config\\SAM,1"));
+        QVERIFY2(!ok, "Windows drive-absolute (back-slash) filename was accepted");
+        QCOMPARE(img.id, static_cast<Id>(NullId));
+        QVERIFY(img.filename.isEmpty());
+    }
+    // Also reject the forward-slash variant ("C:/foo") which some
+    // Windows tools emit and Qt accepts as a path separator.
+    {
+        InputImage img;
+        const bool ok = img.fromString(QStringLiteral("23,D:/secret/data.png,1"));
+        QVERIFY2(!ok, "Windows drive-absolute (forward-slash) filename was accepted");
+        QCOMPARE(img.id, static_cast<Id>(NullId));
+        QVERIFY(img.filename.isEmpty());
+    }
 }
 
 

@@ -41,8 +41,17 @@ bool LvkFrame::fromString(const QString &str) {
         // largest texture dim shipping GPUs reliably support, so anything
         // above it is presumed malicious or corrupt.
         if (parsedW <= 0 || parsedH <= 0 || parsedW > 8192 || parsedH > 8192) {
-            qDebug() << "Warning LvkFrame::fromString rejected out-of-range frame dimensions"
-                     << "w=" << parsedW << " h=" << parsedH;
+            // Team B3 (Phase 6c): qWarning rather than qDebug so the
+            // rejected frame name is visible to CLI users (release
+            // builds strip qDebug). The record is dropped silently
+            // otherwise.
+            //
+            // TODO (out of scope for B3): aggregate rejection count and
+            // surface it to the GUI loader as a banner so users see
+            // partial-load results.
+            qWarning() << "LvkFrame::fromString: rejected out-of-range frame dimensions"
+                       << "w=" << parsedW << "h=" << parsedH
+                       << "(name was:" << list.at(1) << ")";
             id = NullId;
             imgId = NullId;
             ox = oy = w = h = 0;
@@ -59,7 +68,7 @@ bool LvkFrame::fromString(const QString &str) {
         h = parsedH;
         return true;
     } else {
-        qDebug() << "Warning LvkFrame::LvkFrame(const QString&) invalid string format";
+        qWarning() << "LvkFrame::fromString: invalid string format:" << str;
         return false;
     }
 }
