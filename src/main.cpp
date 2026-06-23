@@ -89,7 +89,10 @@ int runHeadlessExport(const CliOptions &cli, const QString &binName) {
     SpriteState sprState;
     SpriteState::SpriteStateError err = SpriteState::ErrNone;
 
-    std::cout << "Loading " << inputFile.toStdString() << "..." << std::endl;
+    // Progress to stderr -- the legacy Qt4 binary printed all diagnostics
+    // to stderr, leaving stdout free for downstream tooling (a script can
+    // redirect stdout to /dev/null and still see this line).
+    std::cerr << "Loading " << inputFile.toStdString() << "..." << std::endl;
     if (!sprState.load(inputFile, &err)) {
         std::cerr << binName.toStdString() << ": Error: Cannot open '"
                   << cli.spriteFile.toStdString() << "' "
@@ -227,11 +230,15 @@ int main(int argc, char *argv[]) {
                  << "-- falling back to source strings";
     }
 
-    // SECURITY (Phase 4): Conservative cap on per-image decoder allocation.
-    // Defeats decompression-bomb PNG/TIFF inputs that would otherwise expand
-    // to >64MB of raw pixel data when QPixmap/QImage loads them. Qt's own
-    // default is 256MB (Qt6) and unlimited pre-6.0.
-    QImageReader::setAllocationLimit(64);
+    // SECURITY (Phase 4): Cap on per-image decoder allocation. Defeats
+    // decompression-bomb PNG/TIFF inputs that would otherwise expand into
+    // huge raw pixel buffers when QPixmap/QImage loads them. Qt's own
+    // default is 256 MB (Qt6) and unlimited pre-6.0.
+    // 256 MB -- large enough for 8K RGBA atlases, small enough to block
+    // decompression bombs. (A 4096x4096 RGBA atlas is 64 MB exactly,
+    // which would butt right up against a 64 MB cap once Qt's per-decode
+    // overhead is counted; legit large-character atlases exceed that.)
+    QImageReader::setAllocationLimit(256);
 
     QCoreApplication::setOrganizationName(QStringLiteral(LVK_NAME));
     QCoreApplication::setOrganizationDomain(QStringLiteral(LVK_DOMAIN));

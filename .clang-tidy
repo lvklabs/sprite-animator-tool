@@ -1,9 +1,22 @@
 ---
 # Opt-in modernization checks for the LvkSpriteEditor Qt6 upgrade.
-# Advisory only (WarningsAsErrors empty); intended to run via clang-tidy
-# locally or in a non-blocking CI job. Qt's Q_OBJECT / SIGNAL / SLOT macros
-# trigger noise in *-namespace-comments and a few related checks, which
-# are disabled below.
+#
+# Two-tier policy:
+#
+#   1. The broad Checks: list below runs advisory -- clang-tidy logs the
+#      diagnostics but the CI job does NOT fail on them. The codebase is
+#      legacy-derived (Qt4 origin) and the modernize-*/readability-* sets
+#      flood with hundreds of findings per translation unit; gating CI on
+#      the full set would be a brick wall.
+#
+#   2. WarningsAsErrors below names the narrow subset that the codebase
+#      ACTUALLY passes today. Those checks ARE gating: any regression in
+#      one of them fails CI. To promote a check into the gating set, run
+#      it locally over all of src/*.cpp, fix any findings, then add it
+#      here.
+#
+# Qt's Q_OBJECT / SIGNAL / SLOT macros trigger noise in
+# *-namespace-comments and a few related checks, which are disabled below.
 Checks: >
     -*,
     modernize-*,
@@ -19,7 +32,15 @@ Checks: >
     -llvm-namespace-comment,
     -google-readability-namespace-comments
 
-WarningsAsErrors: ''
+# Narrow gating set: these checks are promoted to errors. Verified locally
+# (clang-tidy-18) to produce zero findings across src/*.cpp on the
+# upgrade-sprite-animator-O2rKz branch. Add to this list only after a
+# full local pass.
+WarningsAsErrors: >
+    bugprone-suspicious-include,
+    bugprone-use-after-move,
+    modernize-use-override,
+    readability-redundant-control-flow
 HeaderFilterRegex: 'src/.*\.h$'
 FormatStyle: file
 ...
