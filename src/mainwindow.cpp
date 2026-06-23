@@ -27,7 +27,6 @@
 #include <QKeySequence>
 #include <QMessageBox>
 #include <QPixmap>
-#include <QShortcut>
 #include <QString>
 #include <QStringList>
 #include <QWhatsThis>
@@ -201,13 +200,13 @@ void MainWindow::initSignals() {
     ui->actionClose->setShortcut(QKeySequence::New);
     ui->actionExit->setShortcut(QKeySequence::Quit);
     // Ctrl+E for Export has no QKeySequence::StandardKey equivalent; keep
-    // the literal binding (and register a top-level QShortcut as a backup
-    // for contexts where the menu action isn't currently focusable).
+    // the literal binding via the QAction itself. A previous version also
+    // registered a parallel QShortcut with Qt::ApplicationShortcut context
+    // as a "backup", but that just triggered Qt's "ambiguous shortcut
+    // overload" warning and could dead-key the binding -- the action's own
+    // shortcut already fires from menu, toolbar, and application context.
     ui->actionExport->setShortcut(QKeySequence(QStringLiteral("Ctrl+E")));
     ui->actionExportAs->setShortcut(QKeySequence(QStringLiteral("Ctrl+Shift+E")));
-    auto *exportShortcut = new QShortcut(QKeySequence(QStringLiteral("Ctrl+E")), this);
-    exportShortcut->setContext(Qt::ApplicationShortcut);
-    connect(exportShortcut, &QShortcut::activated, ui->actionExport, &QAction::trigger);
 
     // Zoom buttons: wire directly preview-to-preview.
     connect(ui->imgZoomInButton, &QAbstractButton::clicked, ui->imgPreview,
@@ -426,8 +425,24 @@ bool MainWindow::openFile_(const QString &filename_, SpriteStateError *err) {
     }
     QString filename = QFileInfo(filename_).absoluteFilePath();
 
+    // Phase 6b: closeFile() unconditionally clears the export target via
+    // setCurrentFile(""). If the user is re-opening the *same* .lvks (e.g.
+    // from the recent-files menu after touching it on disk) the same-file
+    // guard in setCurrentFile cannot engage because _filename has already
+    // been wiped to "". Capture the previous identity + export target up
+    // front so we can restore the export filename when this is a same-file
+    // reopen, preserving the user's per-document Export-As selection.
+    const QString previousFile = _filename;
+    const QString savedExportFile =
+        _exportCtl ? _exportCtl->currentExportFile() : QString();
+
     closeFile();
     setCurrentFile(filename);
+
+    if (!previousFile.isEmpty() && filename == previousFile && _exportCtl &&
+        !savedExportFile.isEmpty()) {
+        _exportCtl->setCurrentExportFile(savedExportFile);
+    }
 
     setCursor(QCursor(Qt::BusyCursor));
     bool success = _sprState.load(filename, err);
@@ -522,6 +537,17 @@ void MainWindow::storeRecentFile(const QString &filename) {
 }
 
 void MainWindow::initRecentFilesMenu() {
+    // Phase 6b: every rebuild of the recent-files list starts by re-adding
+    // the "<no recent files>" placeholder. setCurrentFile() runs
+    // QMenu::clear() on actionOpenRecent which removes the placeholder
+    // (parented to MainWindow via the .ui file, so it survives the clear
+    // but is no longer in the menu). If the loop below adds any real
+    // entries, addRecentFileMenu() will hide the placeholder; if not, the
+    // user still sees the disabled placeholder rather than an empty submenu
+    // that looks broken.
+    ui->actionOpenRecent->addAction(ui->actionNoRecentFiles);
+    ui->actionNoRecentFiles->setVisible(true);
+
     QString baseKey(KEY_RECENT_FILE);
     for (int i = 0; i < MAX_RECENT_FILES; ++i) {
         QString key = baseKey;
@@ -686,16 +712,24 @@ void MainWindow::exit() {
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
-    // Phase 6a: snapshot the window placement before consulting the
-    // unsaved-changes dialog. This way, a user who hits Cancel on the
-    // "Save changes?" prompt still gets their final geometry persisted
-    // on the *next* clean close. saveGeometry/saveState are cheap, and
-    // QSettings::setValue is buffered until ~QSettings.
+    // Phase 6b: only persist geometry/state when the user actually accepts
+    // the close. If they hit Cancel on the unsaved-changes prompt we leave
+    // the previously stored placement untouched -- otherwise a mid-resize
+    // window state (potentially partially off-screen) would clobber the
+    // last good layout. Mirrors the gating logic in exit() so the two
+    // paths agree on what counts as "closing".
+    if (_sprState.hasUnsavedChanges()) {
+        if (saveChangesDialog() == CancelButton) {
+            event->ignore();
+            return;
+        }
+    }
+
     settings.setValue(QStringLiteral("ui/mainwindow/geometry"), saveGeometry());
     settings.setValue(QStringLiteral("ui/mainwindow/state"), saveState());
 
-    event->ignore();
-    exit();
+    event->accept();
+    QCoreApplication::exit(0);
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event) {

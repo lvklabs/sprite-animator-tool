@@ -67,6 +67,26 @@ void ExportController::exportAsFile() {
     else if (selectedFilter == allFilter)
         fmt = SpriteState::All;
 
+    // Phase 6b: QFileDialog::getSaveFileName auto-appends a filter's
+    // extension only when the filter has a single "*.ext" pattern. The
+    // Cocos2d filter has two ("*.lkot *.lkob") so users who typed a bare
+    // basename would walk away with an extensionless file. Append a
+    // sensible default based on the chosen filter when no extension was
+    // typed: ".lkob" (the binary plist Cocos2d's runtime loads -- .lkot
+    // is the human-readable companion the exporter writes alongside it)
+    // for Cocos2d, ".json" for JSON Atlas, ".lvks" for All Formats.
+    if (QFileInfo(exportFileName).suffix().isEmpty()) {
+        QString defaultSuffix;
+        if (fmt == SpriteState::Json)
+            defaultSuffix = QStringLiteral("json");
+        else if (fmt == SpriteState::All)
+            defaultSuffix = QStringLiteral("lvks");
+        else if (fmt == SpriteState::Cocos2d)
+            defaultSuffix = QStringLiteral("lkob");
+        if (!defaultSuffix.isEmpty())
+            exportFileName.append(QLatin1Char('.') + defaultSuffix);
+    }
+
     runExport(exportFileName, fmt);
     setCurrentExportFile(exportFileName);
 }
@@ -84,11 +104,16 @@ void ExportController::exportAsJsonAtlas() {
 
 void ExportController::exportAllFormats() {
     static QString last = "";
-    const QString filename =
+    QString filename =
         QFileDialog::getSaveFileName(m_mw, tr("Export All Formats"), QFileInfo(last).absolutePath(),
                                      tr("All Formats (*.lvks *.json);;All files (*)"));
     if (filename.isEmpty())
         return;
+    // Multi-pattern filter -> getSaveFileName won't auto-append; do it
+    // manually so users who typed a bare basename get the canonical .lvks
+    // master rather than an extensionless artifact.
+    if (QFileInfo(filename).suffix().isEmpty())
+        filename.append(QStringLiteral(".lvks"));
     last = filename;
     runExport(filename, SpriteState::All);
 }
