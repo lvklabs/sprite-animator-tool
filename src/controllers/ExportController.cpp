@@ -18,6 +18,7 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QSet>
 
 ExportController::ExportController(MainWindow *mw, Ui::MainWindow *ui, SpriteState2 *state,
                                    QObject *parent)
@@ -71,11 +72,28 @@ void ExportController::exportAsFile() {
     // extension only when the filter has a single "*.ext" pattern. The
     // Cocos2d filter has two ("*.lkot *.lkob") so users who typed a bare
     // basename would walk away with an extensionless file. Append a
-    // sensible default based on the chosen filter when no extension was
-    // typed: ".lkob" (the binary plist Cocos2d's runtime loads -- .lkot
-    // is the human-readable companion the exporter writes alongside it)
-    // for Cocos2d, ".json" for JSON Atlas, ".lvks" for All Formats.
-    if (QFileInfo(exportFileName).suffix().isEmpty()) {
+    // sensible default based on the chosen filter: ".lkob" (the binary
+    // plist Cocos2d's runtime loads -- .lkot is the human-readable
+    // companion the exporter writes alongside it) for Cocos2d, ".json"
+    // for JSON Atlas, ".lvks" for All Formats.
+    //
+    // D4.2: if the user explicitly picked the "All files (*)" filter
+    // they are asking for raw control over the filename -- do not append
+    // anything. The auto-suffix is only sensible when the user picked a
+    // format-specific filter.
+    //
+    // D4.3: QFileInfo::suffix() is greedy after the last '.', so a
+    // basename like "hero.v2" yields a "v2" suffix and the old
+    // isEmpty() guard wrongly skipped the append, leaving the user with
+    // a misclassified Cocos2d artifact. Whitelist the known export
+    // extensions and append a default whenever the actual suffix is not
+    // one of them.
+    static const QSet<QString> knownExt = {
+        QStringLiteral("lkob"), QStringLiteral("lkot"), QStringLiteral("h"),
+        QStringLiteral("json"), QStringLiteral("lvks"),
+    };
+    const QString suffix = QFileInfo(exportFileName).suffix().toLower();
+    if (selectedFilter != allFiles && !knownExt.contains(suffix)) {
         QString defaultSuffix;
         if (fmt == SpriteState::Json)
             defaultSuffix = QStringLiteral("json");

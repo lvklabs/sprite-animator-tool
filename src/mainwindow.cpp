@@ -703,11 +703,21 @@ void MainWindow::about() {
 }
 
 void MainWindow::exit() {
-    if (_sprState.hasUnsavedChanges()) {
-        if (saveChangesDialog() == CancelButton)
-            return;
-    }
-    QCoreApplication::exit(0);
+    // Route through close() so the QCloseEvent dispatched by Qt triggers
+    // closeEvent(), which (since Phase 6b) persists the window geometry
+    // and state to QSettings. Previously this slot called
+    // QCoreApplication::exit(0) directly, so users who quit via File ->
+    // Exit or Ctrl+Q would lose their window placement even though users
+    // who clicked the window's X retained it. Note that the
+    // unsaved-changes prompt has been pushed into closeEvent itself --
+    // duplicating it here would surface the dialog twice.
+    //
+    // close() returns true if the close was accepted; we don't need to
+    // do anything special on rejection because closeEvent() already
+    // calls event->ignore() in that case and the user simply stays in
+    // the editor. quitOnLastWindowClosed is true by default so closing
+    // the main window will terminate the application's event loop.
+    close();
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {

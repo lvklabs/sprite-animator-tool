@@ -40,6 +40,18 @@ void TransitionTabController::wireSignals() {
             &TransitionTabController::removeSelTrans);
     connect(m_ui->removeAllAniTransButton, &QAbstractButton::clicked, this,
             &TransitionTabController::removeAllTrans);
+
+    // D4.4: SpriteState has no addAniTrans() yet -- additions to the
+    // transitions table are preview-only and do not survive a save/load
+    // round-trip. Disable the "Add" button at construction so the user
+    // isn't misled into thinking their transitions are being persisted.
+    // The addTrans() slot below also surfaces an info dialog so any
+    // alternative trigger (keyboard, programmatic) still gets the same
+    // message rather than silently dropping the mutation on the floor.
+    m_ui->addAniTransButton->setEnabled(false);
+    m_ui->addAniTransButton->setToolTip(
+        tr("Coming soon: adding animation transitions is preview-only and is "
+           "not yet persisted to the sprite state."));
 }
 
 Id TransitionTabController::getTransAniId(int row) const {
@@ -77,7 +89,18 @@ void TransitionTabController::addTransDialog() {
 }
 
 void TransitionTabController::addTrans(Id aniId) {
-    // TODO: m_state->addAniTrans(aniId);
+    // D4.4: SpriteState (and SpriteState2) do not yet expose an
+    // addAniTrans(Id) method, so adding a transition only populates the
+    // UI table -- the model layer never sees the change, and the
+    // transition does not survive a save/reopen. Until the model API
+    // exists, surface a "Coming soon" notice so users understand the
+    // limitation rather than silently losing their work. We still
+    // populate the preview table so that the existing playback path on
+    // the same screen remains useful for ad-hoc experimentation.
+    infoDialog(tr("Coming soon: adding animation transitions is preview-only "
+                  "in this build and is not yet persisted to the sprite "
+                  "state. Your selection will play in the preview pane below, "
+                  "but it will not be saved with the project."));
     addTrans_ui(aniId);
 }
 
