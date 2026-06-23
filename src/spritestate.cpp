@@ -178,8 +178,20 @@ LvkVersion SpriteState::minimumVersion() const {
     // final value is just the max over all data-introduced minimums.
     LvkVersion v = LvkVersion::V_01;
 
-    // sticky was introduced in v0.4. ox/oy on aframes were introduced
-    // in v0.2; if either is nonzero we have to bump to at least v0.2.
+    // sticky was introduced in v0.4.
+    //
+    // Phase 2 revisited: ox/oy on aframes are NOT a v0.2-distinguishing
+    // feature. The on-disk parser accepts 5-field aframes under any
+    // header (LvkAframe::fromString does not gate on version), and
+    // examples/mario.lvks ships as "LvkSprite version 0.1" with three
+    // aframes carrying nonzero ox/oy values. The "v0.2 added ox/oy"
+    // story was inferred from a misleading row in docs/lvks-format.md's
+    // field-count table; the format-header summary at lvks-format.md:68
+    // is authoritative ("no on-disk field change" for v0.2). Treating
+    // nonzero ox/oy as a v0.2 marker would silently rewrite every v0.1
+    // file containing offsets to a v0.2 header on save — exactly the
+    // headline regression Phase 2 promised to stop. So we only bump
+    // for sticky (a true v0.4-only field).
     for (QMapIterator<Id, LvkAnimation> it(_animations); it.hasNext();) {
         it.next();
         const QList<LvkAframe> &aframes = it.value()._aframes;
@@ -187,8 +199,6 @@ LvkVersion SpriteState::minimumVersion() const {
             const LvkAframe &af = aframes.at(i);
             if (af.sticky) {
                 v = std::max(v, LvkVersion::V_04);
-            } else if ((af.ox != 0 || af.oy != 0) && v < LvkVersion::V_02) {
-                v = std::max(v, LvkVersion::V_02);
             }
         }
         if (v >= LvkVersion::V_04) {
@@ -316,6 +326,22 @@ bool SpriteState::save(const QString &filename, SpriteStateError *err) {
                              << ");" << "auto-bumping the saved header to preserve data fidelity.";
     }
 
+    // Phase 6b follow-up: LvkAnimation/LvkFrame/InputImage::toString()
+    // refuse to serialize a name containing ',' or NUL by returning an
+    // empty QString. The legacy save loop then wrote a bare "\t\n" line
+    // where the record should be, the reload step's fromString("") then
+    // failed and skipped the record, save() still returned true, and the
+    // user got silent data loss. Detect the empty-record case BEFORE
+    // committing anything to disk, surface a qWarning, and return false
+    // from save() with ErrInvalidFormat so the caller can prompt the
+    // user. Note: we still write any records that came BEFORE the bad
+    // one (the QTextStream has already flushed them), but the resulting
+    // file will be left truncated and save() returns false -- the
+    // caller's standard "save failed" UX (overwrite-on-retry) handles
+    // cleanup. The key invariant is that save() NEVER returns true on
+    // a file that drops records.
+    bool sawInvalidRecord = false;
+
     QTextStream stream(&file);
     stream << "### LvkSprite #########################################\n";
     stream << headerLiteral(target) << "\n\n";
@@ -331,7 +357,15 @@ bool SpriteState::save(const QString &filename, SpriteStateError *err) {
     stream << "images(\n";
     for (QMapIterator<Id, InputImage> it(_images); it.hasNext();) {
         it.next();
-        stream << "\t" << it.value().toString(target) << "\n";
+        const QString rec = it.value().toString(target);
+        if (rec.isEmpty()) {
+            qWarning() << "SpriteState::save(): refusing to save image record with invalid"
+                       << "filename (comma or NUL):" << it.value().filename
+                       << "id=" << it.value().id;
+            sawInvalidRecord = true;
+            continue;
+        }
+        stream << "\t" << rec << "\n";
     }
     stream << ")\n\n";
 
@@ -340,7 +374,14 @@ bool SpriteState::save(const QString &filename, SpriteStateError *err) {
     stream << "frames(\n";
     for (QMapIterator<Id, LvkFrame> it(_frames); it.hasNext();) {
         it.next();
-        stream << "\t" << it.value().toString() << "\n";
+        const QString rec = it.value().toString();
+        if (rec.isEmpty()) {
+            qWarning() << "SpriteState::save(): refusing to save frame record with invalid"
+                       << "name (comma or NUL):" << it.value().name << "id=" << it.value().id;
+            sawInvalidRecord = true;
+            continue;
+        }
+        stream << "\t" << rec << "\n";
     }
     stream << ")\n\n";
 
@@ -359,12 +400,42 @@ bool SpriteState::save(const QString &filename, SpriteStateError *err) {
         stream << "# format: aframeId,frameId,delay,ox,oy,sticky\n";
     }
     stream << "animations(\n";
+    // Phase B1.3: sort aframes by id at SAVE time (instead of LOAD time)
+    // so the on-disk file is byte-equivalent on round-trip for arbitrary
+    // input orderings. User-added aframes get normalized into id-order on
+    // save; in-memory order during a session matches the order the user
+    // built them (append semantics).
     for (QMapIterator<Id, LvkAnimation> it(_animations); it.hasNext();) {
         it.next();
-        stream << "\t" << it.value().toString(target) << "\n";
+        const QString rec = it.value().toString(target);
+        if (rec.isEmpty()) {
+            qWarning() << "SpriteState::save(): refusing to save animation record with invalid"
+                       << "name (comma or NUL):" << it.value().name << "id=" << it.value().id;
+            sawInvalidRecord = true;
+            // We still need to emit the aframes block for this animation,
+            // but doing so without a header line would corrupt the parser
+            // state. Skip both the animation and its aframes; save() will
+            // return false so the file is treated as invalid anyway.
+            continue;
+        }
+        stream << "\t" << rec << "\n";
         stream << "\taframes(\n";
-        for (QListIterator<LvkAframe> it2(it.value()._aframes); it2.hasNext();) {
-            stream << "\t\t" << it2.next().toString(target) << "\n";
+        QList<LvkAframe> sortedAframes = it.value()._aframes;
+        std::sort(sortedAframes.begin(), sortedAframes.end(),
+                  [](const LvkAframe &a, const LvkAframe &b) { return a.id < b.id; });
+        for (QListIterator<LvkAframe> it2(sortedAframes); it2.hasNext();) {
+            // Aframes have no name field, so toString never returns
+            // empty for valid data -- but keep the defensive check
+            // symmetric with the other records.
+            const LvkAframe &af = it2.next();
+            const QString arec = af.toString(target);
+            if (arec.isEmpty()) {
+                qWarning() << "SpriteState::save(): refusing to save aframe record"
+                           << "id=" << af.id;
+                sawInvalidRecord = true;
+                continue;
+            }
+            stream << "\t\t" << arec << "\n";
         }
         stream << "\t)\n\n";
     }
@@ -397,6 +468,10 @@ bool SpriteState::save(const QString &filename, SpriteStateError *err) {
 
     file.close();
 
+    if (sawInvalidRecord) {
+        setError(err, ErrInvalidFormat);
+        return false;
+    }
     return true;
 }
 
@@ -604,16 +679,21 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err) {
 
     file.close();
 
-    // Preserve legacy playback order: hand-edited / post-delete-saves can
-    // have non-sequential aframe ids on disk. addAframe() appends in file
-    // order, so we re-sort each animation's aframes by id here. Matches
-    // the historical QList::insert(id, ...) semantics where the key was
-    // used as a sort position (modulo the OOB bug fixed in Bug #4).
-    for (auto it = _animations.begin(); it != _animations.end(); ++it) {
-        QList<LvkAframe> &aframes = it.value()._aframes;
-        std::sort(aframes.begin(), aframes.end(),
-                  [](const LvkAframe &a, const LvkAframe &b) { return a.id < b.id; });
-    }
+    // Phase B1.3: aframes are now sorted by id at SAVE time, not LOAD
+    // time. The previous post-load sort here caused round-trip byte
+    // changes for files where on-disk aframe order was not sequential by
+    // id (since save() iterates the in-memory list as-is). Moving the
+    // sort to save() means:
+    //   - In-memory order during a session reflects the file order (or
+    //     the user's append order for newly created aframes), which is
+    //     intuitive for the editor.
+    //   - The on-disk form is canonical: a load->save cycle is a fixed
+    //     point because save normalizes to id-order before writing.
+    //   - The legacy playback ordering claim (id-as-position) is
+    //     preserved: the file written by save() is in id-order, and the
+    //     loader appends in file order, so a freshly-loaded sprite has
+    //     id-ordered aframes -- exactly what the legacy code achieved
+    //     by sorting on load.
 
     return (state != StError);
 }
@@ -711,7 +791,16 @@ static bool isSafeExportPath(const QString &sourceFilename, const QString &outpu
     //   /tmp/safe         vs.  /tmp/safe-evil/x  -> rejected
     // Without the trailing separator the second startsWith() would
     // succeed because "/tmp/safe-evil/x".startsWith("/tmp/safe") is true.
-    const QString sep = QDir::separator();
+    //
+    // Phase B1.4: use '/' as the separator regardless of platform.
+    // QDir::canonicalPath() always returns '/'-delimited paths on every
+    // platform (including Windows, where Qt normalizes backslashes to
+    // forward slashes in canonical paths). Concatenating QDir::separator()
+    // -- which IS '\' on Windows -- to canonicalOutputDir produced a
+    // canonOutWithSep like "C:/safe\" which never matched the all-'/' form
+    // of `candidate`, so every legitimate Windows export was rejected.
+    // Using '/' here keeps the containment check correct on every host.
+    const QChar sep = QLatin1Char('/');
     const QString canonOutWithSep = canonicalOutputDir + sep;
     const QString candidate = QDir::cleanPath(canonicalOutputDir + sep + filenameOnly);
     if (!candidate.startsWith(canonOutWithSep) && candidate != canonicalOutputDir) {
@@ -770,8 +859,13 @@ bool SpriteState::exportSprite(const QString &filename, const QString &outputDir
 
     if (wantJson) {
         JsonAtlasExporter jsonExp;
+        // Phase B1.4: see isSafeExportPath. canonicalFilePath() returns
+        // '/'-delimited paths on every platform; QDir::separator() is '\'
+        // on Windows. Mixing them produced a path like "C:/safe\base"
+        // that QFile::write would still open but that broke any consumer
+        // doing prefix comparisons against the canonical form. Use '/'.
         const QString jsonBase = QDir::cleanPath(QFileInfo(outputDir).canonicalFilePath() +
-                                                 QDir::separator() + baseName);
+                                                 QLatin1Char('/') + baseName);
         if (!jsonExp.exportAtlas(jsonBase, *this)) {
             qDebug() << "SpriteState::exportSprite(): JSON atlas export failed for" << jsonBase;
             setError(err, ErrCantOpenReadWriteMode);
@@ -782,6 +876,15 @@ bool SpriteState::exportSprite(const QString &filename, const QString &outputDir
         }
     }
 
+    // Phase B1.4: the Cocos2d output filenames here are derived directly
+    // from `outputDir` (caller-supplied, not canonicalised), not from
+    // canonicalPath(). QFile::open accepts either '/' or '\\' on Windows
+    // so this site does NOT actually break; we leave QDir::separator()
+    // here to preserve byte-equivalence of pre-Phase-2 export output.
+    // The canonical-vs-platform-separator mismatch only matters for the
+    // containment / prefix-comparison sites (isSafeExportPath above and
+    // the JSON exporter base path that gets passed to canonicalising
+    // consumers).
     QString binFileName = outputDir + QDir::separator() + baseName + ".lkob";
     QString textFileName = outputDir + QDir::separator() + baseName + ".lkot";
     QString headerFileName = outputDir + QDir::separator() + "AnimNameDef_" + baseName + ".h";

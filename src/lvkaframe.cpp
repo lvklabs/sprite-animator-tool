@@ -18,16 +18,37 @@ QString LvkAframe::toString() const {
 }
 
 QString LvkAframe::toString(LvkVersion v) const {
-    // v0.1: only the 3 original columns. v0.2/v0.3 added ox,oy. v0.4
-    // added the sticky flag.
-    if (v < LvkVersion::V_02) {
+    // Phase B1.1: The aframe on-disk format actually has THREE valid
+    // shapes that the parser has always accepted:
+    //   3-field (id,frameId,delay)            -- the original v0.1 record
+    //   5-field (id,frameId,delay,ox,oy)      -- ox/oy were always
+    //                                            accepted under any
+    //                                            header (per the parser
+    //                                            in fromString below),
+    //                                            and mario.lvks ships as
+    //                                            v0.1 with 5-field
+    //                                            records carrying
+    //                                            nonzero ox/oy.
+    //   6-field (id,frameId,delay,ox,oy,sticky) -- v0.4 only.
+    //
+    // The legacy gate "v0.1 -> 3-field only" silently DROPPED ox/oy on
+    // any save of a v0.1 file with nonzero offsets -- exactly the
+    // headline data-loss regression. Emit the 5-field form whenever
+    // ox/oy is nonzero, regardless of version: the v0.1/v0.2/v0.3
+    // readers all accept it (see fromString's branches below), and v0.4
+    // adds the sixth column for sticky.
+    if (v < LvkVersion::V_04) {
+        if (ox != 0 || oy != 0) {
+            return QStringLiteral("%1,%2,%3,%4,%5")
+                .arg(QString::number(id), QString::number(frameId), QString::number(delay),
+                     QString::number(ox), QString::number(oy));
+        }
+        // No ox/oy data -> emit the minimal 3-field form. This keeps
+        // truly pristine v0.1 files (writePristineV01 in the
+        // version-preservation test, for example) byte-equivalent
+        // through round-trip.
         return QStringLiteral("%1,%2,%3")
             .arg(QString::number(id), QString::number(frameId), QString::number(delay));
-    }
-    if (v < LvkVersion::V_04) {
-        return QStringLiteral("%1,%2,%3,%4,%5")
-            .arg(QString::number(id), QString::number(frameId), QString::number(delay),
-                 QString::number(ox), QString::number(oy));
     }
     return QStringLiteral("%1,%2,%3,%4,%5,%6")
         .arg(QString::number(id), QString::number(frameId), QString::number(delay),

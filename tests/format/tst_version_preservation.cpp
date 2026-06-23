@@ -12,13 +12,18 @@
 //      reports V_01 both before and after.
 //   2. Loading the same v0.1 fixture and mutating one aframe's `sticky` to
 //      true auto-bumps the saved header to v0.4 (minimumVersion()=V_04).
-//   3. The committed examples/mario.lvks fixture has a v0.1 header but its
-//      aframes carry nonzero ox/oy (v0.2 features). Saving must therefore
-//      bump to v0.2 -- not silently bury the data, not silently downgrade,
-//      not jump straight to v0.4.
+//   3. The committed examples/mario.lvks fixture has a v0.1 header and
+//      aframes with nonzero ox/oy. Per the format spec (lvks-format.md:68
+//      "no on-disk field change" for v0.2) ox/oy are NOT a v0.2 marker --
+//      the parser accepts 5-field aframes under any header. Saving must
+//      therefore PRESERVE the v0.1 header, not silently bump to v0.2 on
+//      every round-trip.
 //   4. Loading a true v0.4 file with sticky=true survives round-trip with
 //      the v0.4 header preserved (i.e. the policy works in both directions
 //      and isn't accidentally tied to "older-or-equal-only").
+//   5. A genuine v0.2-only marker (image scale != 1.0) DOES bump a v0.1
+//      file to v0.2 -- so the V_02 minimum is reachable when the data
+//      really requires it.
 
 #include <QtTest/QtTest>
 #include <QCoreApplication>
@@ -47,10 +52,18 @@ private slots:
     void pristineV01PreservesHeader();
     // v0.1 + flip sticky=true -> save -> v0.4 header (data-driven bump).
     void stickyMutationBumpsToV04();
-    // mario.lvks has a v0.1 header but v0.2 data; save must bump to v0.2.
-    void marioBumpsToV02();
+    // mario.lvks (header v0.1, aframes with nonzero ox/oy) -> save -> v0.1
+    // header preserved. ox/oy are NOT a v0.2 marker; only sticky/flags/
+    // scale/custom_header are. Also verifies a source-level check that the
+    // saved header literal is "LvkSprite version 0.1".
+    void marioPreservesV01();
     // True v0.4 file with sticky -> v0.4 header preserved.
     void v04WithStickyPreservesHeader();
+    // A real v0.2-only marker (image scale != 1.0) still bumps v0.1->v0.2.
+    void scaleMutationBumpsToV02();
+    // Load+save round-trip of mario.lvks is byte-equivalent (after the
+    // header is preserved at v0.1 and aframes are sorted at save-time).
+    void marioRoundtripIsByteEquivalent();
 
 private:
     // Read the first non-empty, non-comment line of @p path -- that's the
@@ -194,13 +207,16 @@ void TstVersionPreservation::stickyMutationBumpsToV04()
     QCOMPARE(reloaded.const_aframe(0, 0).sticky, true);
 }
 
-void TstVersionPreservation::marioBumpsToV02()
+void TstVersionPreservation::marioPreservesV01()
 {
-    // examples/mario.lvks declares "LvkSprite version 0.1" but its
-    // aframes carry nonzero ox/oy values (a v0.2 column). The old saver
-    // silently rewrote the header as v0.4; the new saver must bump to
-    // exactly v0.2 -- the smallest version that can hold the data --
-    // not all the way to v0.4.
+    // Phase B1.1: examples/mario.lvks declares "LvkSprite version 0.1" and
+    // its aframes carry nonzero ox/oy values. The pre-Phase-B1 saver
+    // silently rewrote the header as v0.2 on every save -- the headline
+    // regression Phase 2 promised to stop. ox/oy is NOT a v0.2 marker
+    // (the parser accepts 5-field aframes under any header; see
+    // lvks-format.md:68 "no on-disk field change" for v0.2 and
+    // src/lvkaframe.cpp:48-55). The new saver must PRESERVE the v0.1
+    // header.
     const QString marioPath = QString::fromUtf8(LVK_EXAMPLES_DIR)
         + QDir::separator() + QStringLiteral("mario.lvks");
     QVERIFY2(QFile::exists(marioPath),
@@ -213,9 +229,11 @@ void TstVersionPreservation::marioBumpsToV02()
                             .arg(SpriteState::errorMessage(err))));
     QCOMPARE(err, SpriteState::ErrNone);
 
-    // mario.lvks: header v0.1, but data has nonzero ox/oy -> minimum v0.2.
+    // mario.lvks: header v0.1, no scale/flags/sticky/custom_header data
+    // (only ox/oy on aframes, which is no longer a v0.2 marker) -> the
+    // minimum-required version stays at v0.1.
     QVERIFY(st.loadedVersion() == LvkVersion::V_01);
-    QVERIFY(st.minimumVersion() == LvkVersion::V_02);
+    QVERIFY(st.minimumVersion() == LvkVersion::V_01);
 
     QTemporaryDir tmpDir;
     QVERIFY(tmpDir.isValid());
@@ -224,8 +242,100 @@ void TstVersionPreservation::marioBumpsToV02()
     QVERIFY(st.save(out, &err));
     QCOMPARE(err, SpriteState::ErrNone);
 
+    // Source-level header check: the saved file's header literal MUST be
+    // exactly "LvkSprite version 0.1". This is the smoke check called
+    // out in the B1.1+B1.3 verification step: load mario -> save to temp
+    // -> read the temp file header line -> must be v0.1.
+    const QString header = readVersionHeader(out);
+    QCOMPARE(header, QStringLiteral("LvkSprite version 0.1"));
+}
+
+void TstVersionPreservation::scaleMutationBumpsToV02()
+{
+    // The V_02 minimum is still reachable -- just not from the wrong
+    // signal. A v0.1 file with scale != 1.0 on an image IS a real v0.2
+    // marker (the v0.1 image schema had no scale column). Build a
+    // pristine v0.1 fixture, flip scale on its single image, and verify
+    // save bumps the header to v0.2.
+    QTemporaryDir tmpDir;
+    QVERIFY(tmpDir.isValid());
+
+    const QString src = writePristineV01(tmpDir);
+    QVERIFY(!src.isEmpty());
+
+    SpriteState st;
+    SpriteStateError err = SpriteState::ErrNone;
+    QVERIFY(st.load(src, &err));
+    QCOMPARE(err, SpriteState::ErrNone);
+    QVERIFY(st.loadedVersion() == LvkVersion::V_01);
+    QVERIFY(st.minimumVersion() == LvkVersion::V_01);
+
+    // Mutate the single image's scale to something other than 1.0.
+    InputImage modified = st.const_image(0);
+    modified.scale(0.5);
+    st.updateImage(modified);
+
+    QVERIFY(st.minimumVersion() == LvkVersion::V_02);
+
+    const QString out = tmpDir.path() + QDir::separator()
+        + QStringLiteral("pristine_v01.scaled.lvks");
+    QVERIFY(st.save(out, &err));
+    QCOMPARE(err, SpriteState::ErrNone);
+
     const QString header = readVersionHeader(out);
     QCOMPARE(header, QStringLiteral("LvkSprite version 0.2"));
+}
+
+void TstVersionPreservation::marioRoundtripIsByteEquivalent()
+{
+    // Phase B1.3: save() now sorts aframes by id (instead of load()
+    // sorting them) so a load->save round-trip is byte-equivalent for
+    // arbitrary input orderings. Verify on mario.lvks -- the canonical
+    // multi-animation fixture with non-contiguous aframe ids
+    // (animation 1 uses ids 1, 5, 6, 7 which are listed in id-order on
+    // disk).
+    //
+    // This test depends on B1.1: if the header is silently bumped to
+    // v0.2, the file headers differ and round-trip fails.
+    const QString marioPath = QString::fromUtf8(LVK_EXAMPLES_DIR)
+        + QDir::separator() + QStringLiteral("mario.lvks");
+    QVERIFY2(QFile::exists(marioPath),
+             qPrintable(QString("Could not locate %1").arg(marioPath)));
+
+    SpriteState st;
+    SpriteStateError err = SpriteState::ErrNone;
+    QVERIFY(st.load(marioPath, &err));
+    QCOMPARE(err, SpriteState::ErrNone);
+
+    QTemporaryDir tmpDir;
+    QVERIFY(tmpDir.isValid());
+    const QString out = tmpDir.path() + QDir::separator()
+        + QStringLiteral("mario.out.lvks");
+    QVERIFY(st.save(out, &err));
+    QCOMPARE(err, SpriteState::ErrNone);
+
+    // After the first save, every subsequent save must produce the same
+    // bytes -- the canonical form is a fixed point. We don't compare
+    // against the original mario.lvks bytes (it has decorative comments
+    // and whitespace that save() does not preserve verbatim), only that
+    // a second save matches the first. Together with the v0.1 header
+    // assertion in marioPreservesV01() this guards against future
+    // header-drift bugs.
+    SpriteState reloaded;
+    QVERIFY(reloaded.load(out, &err));
+    QCOMPARE(err, SpriteState::ErrNone);
+
+    const QString out2 = tmpDir.path() + QDir::separator()
+        + QStringLiteral("mario.out2.lvks");
+    QVERIFY(reloaded.save(out2, &err));
+    QCOMPARE(err, SpriteState::ErrNone);
+
+    QFile f1(out), f2(out2);
+    QVERIFY(f1.open(QFile::ReadOnly));
+    QVERIFY(f2.open(QFile::ReadOnly));
+    const QByteArray b1 = f1.readAll();
+    const QByteArray b2 = f2.readAll();
+    QCOMPARE(b1, b2);
 }
 
 void TstVersionPreservation::v04WithStickyPreservesHeader()

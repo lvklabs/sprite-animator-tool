@@ -41,6 +41,11 @@ private slots:
     void toStringRejectsAnimationNameWithComma();
     void toStringRejectsFrameNameWithComma();
     void toStringRejectsImageFilenameWithComma();
+    // Phase B1.2: save() must propagate the toString rejection as a
+    // false return value rather than silently emitting a blank record
+    // and pretending the save succeeded.
+    void saveReturnsFalseOnAnimationNameWithComma();
+    void saveReturnsFalseOnImageFilenameWithComma();
 
 private:
     // Load the header file written by exportSprite and return its full text.
@@ -256,6 +261,83 @@ void TstUnicodeNames::toStringRejectsImageFilenameWithComma()
 
     InputImage ok(5, QStringLiteral("good_name.png"), /*scale=*/1.0);
     QVERIFY(!ok.toString().isEmpty());
+}
+
+void TstUnicodeNames::saveReturnsFalseOnAnimationNameWithComma()
+{
+    // B1.2: A SpriteState that contains one animation named "a,b"
+    // (literal comma in the name) cannot be losslessly serialized in the
+    // CSV-based on-disk format. The toString() rejection (returning an
+    // empty QString) used to be silently consumed by save(), which would
+    // then emit "\t\n" where the record should be -- a bare blank line.
+    // Reload's fromString("") failed and the loader silently dropped the
+    // record while save() still reported success. The fix is to detect
+    // the empty record at save time and return false with an error code
+    // the caller can surface.
+    QTemporaryDir tmpDir;
+    QVERIFY(tmpDir.isValid());
+
+    SpriteState st;
+    fillMinimalStateWithAnimationName(st, QStringLiteral("a,b"));
+
+    const QString out = tmpDir.path() + QDir::separator()
+        + QStringLiteral("bad_animation.lvks");
+
+    SpriteStateError err = SpriteState::ErrNone;
+    const bool ok = st.save(out, &err);
+    QVERIFY2(!ok, "save() must return false when an animation name contains a comma");
+    QCOMPARE(err, SpriteState::ErrInvalidFormat);
+
+    // Reloading the (partial) saved file should not silently produce a
+    // SpriteState that drops the bad animation while reporting success.
+    // We allow either: (a) load fails with a non-OK error, or (b) load
+    // succeeds but the animation is missing. The strongest guarantee is
+    // (a); we encode the weaker disjunction so the test stays green
+    // even if a future loader becomes more lenient, as long as the data
+    // loss is visible to the user via save()'s false return.
+    if (QFile::exists(out)) {
+        SpriteState reloaded;
+        SpriteStateError loadErr = SpriteState::ErrNone;
+        const bool loadedOk = reloaded.load(out, &loadErr);
+        if (loadedOk) {
+            // Loader was lenient -- but the animation must NOT have
+            // been silently round-tripped. (It can't have been: the
+            // record was never written.)
+            QCOMPARE(reloaded.animations().size(), 0);
+        }
+        // (else: load failed, which is also acceptable.)
+    }
+}
+
+void TstUnicodeNames::saveReturnsFalseOnImageFilenameWithComma()
+{
+    // Same invariant as saveReturnsFalseOnAnimationNameWithComma but for
+    // the images section: an image filename with a comma cannot be
+    // serialized; save() must signal failure rather than silently
+    // emitting a blank image record.
+    QTemporaryDir tmpDir;
+    QVERIFY(tmpDir.isValid());
+
+    SpriteState st;
+    InputImage img;
+    img.id = 0;
+    img.filename = QStringLiteral("evil,name.png");
+    st.addImage(img);
+
+    LvkFrame frame(0, 0, 0, 0, 16, 16, QStringLiteral("solo"));
+    st.addFrame(frame);
+
+    LvkAnimation ani(0, QStringLiteral("clean"), 0);
+    ani.addAframe(LvkAframe(0, 0, 100, 0, 0, false));
+    st.addAnimation(ani);
+
+    const QString out = tmpDir.path() + QDir::separator()
+        + QStringLiteral("bad_image.lvks");
+
+    SpriteStateError err = SpriteState::ErrNone;
+    const bool ok = st.save(out, &err);
+    QVERIFY2(!ok, "save() must return false when an image filename contains a comma");
+    QCOMPARE(err, SpriteState::ErrInvalidFormat);
 }
 
 QTEST_MAIN(TstUnicodeNames)
