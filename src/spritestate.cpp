@@ -490,6 +490,14 @@ bool SpriteState::save(const QString &filename, SpriteStateError *err) {
     }
     stream << ")\n\n";
 
+    // F5.2: emit a visible breadcrumb explaining that the `transitions()`
+    // block reserved in the format spec is not yet implemented. If the
+    // loaded file contained one, the warning emitted at load-time told
+    // the operator on stderr; this comment ensures someone inspecting
+    // the saved file in a text editor (or diff'ing two round-trips)
+    // also sees why the transitions data is missing.
+    stream << "# transitions intentionally dropped -- feature not implemented\n\n";
+
     stream << "### End LvkSprite #####################################\n";
 
     // Flush the stream so QSaveFile sees all bytes before commit/cancel.
@@ -570,6 +578,16 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err, int *reje
         StTokenAnimations = 4,
         StTokenAframes = 5,
         StTokenHeader = 6,
+        // F5.2: the .lvks format reserves a `transitions(...)` block for a
+        // feature that is not yet implemented. The UI button is disabled
+        // (D4), but a hand-edited file or a forward-compatible producer
+        // could still include such a block. Previously the loader hit
+        // StNoToken's "Unknown token" branch and failed the whole load
+        // with ErrInvalidFormat. We now recognise the block, warn the
+        // operator that the data is being dropped, and consume lines
+        // until the matching ')'. save() emits a corresponding comment
+        // so the drop is visible end-to-end.
+        StTokenTransitions = 7,
         StError = 999,
     } state = StCheckVersion;
 
@@ -639,6 +657,17 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err, int *reje
                 state = StTokenAnimations;
             } else if (line == "custom_header(") {
                 state = StTokenHeader;
+            } else if (line == "transitions(") {
+                // F5.2: transitions are not yet implemented. Warn loudly
+                // so a silent drop is visible on stderr, then skip the
+                // block (StTokenTransitions consumes lines until ')').
+                // save() emits a comment so the user sees the drop in the
+                // round-tripped file as well.
+                qWarning() << "SpriteState::load(): transitions() block found in" << filename
+                           << "at line" << lineNumber
+                           << "but transitions are not yet implemented; "
+                              "block contents will be dropped on save.";
+                state = StTokenTransitions;
             } else if (line == "aframes(") {
                 qDebug() << "Error: SpriteState::load(): Unspected token" << line << "at line"
                          << lineNumber;
@@ -795,6 +824,16 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err, int *reje
                 state = StNoToken;
             } else {
                 _customHeader.append(line).append("\n");
+            }
+            break;
+
+        case StTokenTransitions:
+            // F5.2: drop transitions content until we see the closing
+            // ')'. We do NOT preserve the content -- see save() for the
+            // corresponding "feature not implemented" comment that tells
+            // a user inspecting the file in a text editor what happened.
+            if (line == ")") {
+                state = StNoToken;
             }
             break;
 

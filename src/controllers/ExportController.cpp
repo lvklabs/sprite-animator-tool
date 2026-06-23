@@ -20,6 +20,14 @@
 #include <QFileInfo>
 #include <QSet>
 
+// F5.1: see the declaration in ExportController.h for the rationale.
+// The helper is a public static member so it's reachable from unit
+// tests that link against ExportController.cpp without us needing to
+// expose any of the rest of the dialog plumbing.
+bool ExportController::isAllFilesFilter(const QString &f) {
+    return f.endsWith(QStringLiteral("(*)"));
+}
+
 ExportController::ExportController(MainWindow *mw, Ui::MainWindow *ui, SpriteState2 *state,
                                    QObject *parent)
     : QObject(parent), m_mw(mw), m_ui(ui), m_state(state) {}
@@ -93,7 +101,10 @@ void ExportController::exportAsFile() {
         QStringLiteral("json"), QStringLiteral("lvks"),
     };
     const QString suffix = QFileInfo(exportFileName).suffix().toLower();
-    if (selectedFilter != allFiles && !knownExt.contains(suffix)) {
+    // F5.1: locale-safe All Files detection -- match on the "(*)"
+    // pattern suffix (untranslated) instead of the human label, which
+    // QFileDialog returns localized under any non-English locale.
+    if (!isAllFilesFilter(selectedFilter) && !knownExt.contains(suffix)) {
         QString defaultSuffix;
         if (fmt == SpriteState::Json)
             defaultSuffix = QStringLiteral("json");

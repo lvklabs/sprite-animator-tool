@@ -28,6 +28,22 @@ public:
     void setCurrentExportFile(const QString &exportFileName);
     QString currentExportFile() const { return m_exportFileName; }
 
+    /// True when @p f is the "All files (*)" wildcard filter, regardless
+    /// of locale.
+    ///
+    /// F5.1: The dialog filter list contains an "All files (*)" entry
+    /// whose human label is translated by Qt at runtime ("Tous les
+    /// fichiers (*)" under fr_FR, "Alle Dateien (*)" under de_DE, ...).
+    /// QFileDialog returns the SELECTED filter as the localized string,
+    /// so the previous literal compare against `tr("All files (*)")`
+    /// silently regressed every non-English locale: the comparison
+    /// failed and the "user picked All Files = keep their filename"
+    /// guarantee (D4.2) silently disappeared. We match on the "(*)"
+    /// pattern suffix instead -- that suffix is Qt filter syntax, never
+    /// translated, and uniquely identifies the all-files wildcard among
+    /// the filters we register.
+    static bool isAllFilesFilter(const QString &f);
+
 public slots:
     void exportFile();
     void exportAsFile();

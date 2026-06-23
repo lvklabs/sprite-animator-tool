@@ -190,6 +190,39 @@ Known bug: each save/load cycle currently appends one extra trailing
 newline (`UPGRADE_NOTES.md` #5). Tracked for Agent 8's
 `src/spritestate.cpp` follow-up.
 
+### Transitions
+
+The `.lvks` format historically reserved a `transitions(...)` block as a
+sibling of `animations(...)` to describe state transitions between named
+animations. The feature is **not currently implemented**: there is no
+public API to author transitions, the UI button that used to open the
+transitions dialog is disabled (Team D4), and `SpriteState::save()` does
+not emit a `transitions(...)` block.
+
+The loader is tolerant of the block: if a hand-edited file (or a
+forward-compatible producer) includes one, the parser recognises the
+opening `transitions(` token and consumes lines until the matching
+`)`, then issues a `qWarning()` on stderr:
+
+```
+SpriteState::load(): transitions() block found in "<path>" at line N
+but transitions are not yet implemented; block contents will be
+dropped on save.
+```
+
+The block's payload is **dropped** -- the in-memory model has no slot to
+hold it, and saving the file does not write it back. To make the silent
+drop visible in the saved file, `save()` emits a comment near the end
+of the file:
+
+```
+# transitions intentionally dropped -- feature not implemented
+```
+
+If/when transitions are implemented, both the warning and the comment
+should be removed in lockstep with the load/save plumbing that
+preserves the block.
+
 ## Round-trip guarantee
 
 Per Phase-1 Agent 2's work:

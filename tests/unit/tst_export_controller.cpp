@@ -45,6 +45,7 @@ private slots:
     void testJsonAtlasExportShape();
     void testCurrentExportFileRoundTrip();
     void testReopenSameFilePreservesExportTarget();
+    void testIsAllFilesFilterLocaleSafe();
 
 private:
     QString examplesDir() const;
@@ -256,6 +257,50 @@ void TestExportController::testReopenSameFilePreservesExportTarget()
                         "got '" + exporter->currentExportFile() + "'"));
 
     QDir::setCurrent(savedCwd);
+}
+
+void TestExportController::testIsAllFilesFilterLocaleSafe()
+{
+    // F5.1: ExportController::isAllFilesFilter must recognise the
+    // wildcard "(*)" pattern at the END of the filter string regardless
+    // of the human-readable label, which Qt translates per-locale.
+    //
+    // Pre-fix code did a literal `selectedFilter == tr("All files (*)")`
+    // compare; under any non-English locale Qt returns the translated
+    // form ("Tous les fichiers (*)", "Alle Dateien (*)", ...) and the
+    // compare silently failed, regressing the D4 "user picked All Files
+    // = keep their literal filename" guarantee. The new helper matches
+    // on the pattern suffix instead, so every locale's all-files filter
+    // is correctly identified.
+    //
+    // We don't install a QTranslator -- we just hand the helper the
+    // literal strings Qt would return after translation. That keeps the
+    // test deterministic across CI hosts where the system locale and
+    // Qt's available .qm files aren't guaranteed.
+    QVERIFY(ExportController::isAllFilesFilter(
+        QStringLiteral("All files (*)")));
+    QVERIFY(ExportController::isAllFilesFilter(
+        QStringLiteral("Tous les fichiers (*)")));   // fr_FR
+    QVERIFY(ExportController::isAllFilesFilter(
+        QStringLiteral("Alle Dateien (*)")));        // de_DE
+    QVERIFY(ExportController::isAllFilesFilter(
+        QStringLiteral("Todos los archivos (*)")));  // es_ES
+    QVERIFY(ExportController::isAllFilesFilter(
+        QStringLiteral("Tutti i file (*)")));        // it_IT
+    QVERIFY(ExportController::isAllFilesFilter(
+        QStringLiteral("\xE3\x81\x99\xE3\x81\xB9\xE3\x81\xA6\xE3\x81\xAE"
+                       "\xE3\x83\x95\xE3\x82\xA1\xE3\x82\xA4\xE3\x83\xAB (*)")));  // ja_JP
+
+    // Negative cases: format-specific filters must NOT be misidentified
+    // as All Files even though they contain a parenthesised pattern.
+    QVERIFY(!ExportController::isAllFilesFilter(
+        QStringLiteral("Cocos2d (*.lkot *.lkob)")));
+    QVERIFY(!ExportController::isAllFilesFilter(
+        QStringLiteral("JSON Atlas (*.json)")));
+    QVERIFY(!ExportController::isAllFilesFilter(
+        QStringLiteral("All Formats (*.lvks *.json)")));
+    // Edge: empty string is not the all-files filter.
+    QVERIFY(!ExportController::isAllFilesFilter(QString()));
 }
 
 QTEST_MAIN(TestExportController)
