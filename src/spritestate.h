@@ -235,10 +235,26 @@ public:
     /// save instance to @param filename
     /// NOTE: Input image filenames cannot contain the charater ',',
     ///       otherwise deserialize() will fail
+    ///
+    /// Team D2 (D2.2): save() now writes to "<filename>.save-tmp" and
+    /// atomic-renames on success. On failure (e.g. an image filename
+    /// with an embedded comma) the temp file is removed and the original
+    /// file at @p filename is untouched. The previous open(WriteOnly)
+    /// truncated the original file BEFORE the empty-record check, so a
+    /// failed save destroyed the user's existing data.
     bool save(const QString &filename, SpriteStateError *err = 0);
 
     /// load instance from @param filename
-    bool load(const QString &filename, SpriteStateError *err = 0);
+    ///
+    /// Team D2 (D2.1): @p rejectedCount, if non-null, is populated with
+    /// the number of records the loader skipped due to the format
+    /// whitelist enforcement now applied at load time (see
+    /// image_validation.h). A non-zero count means the resulting
+    /// SpriteState is a strict subset of the on-disk data. Callers that
+    /// care about silent data loss (e.g. the headless `--export` CLI)
+    /// should surface a warning and use a non-zero exit code.
+    bool load(const QString &filename, SpriteStateError *err = 0,
+              int *rejectedCount = nullptr);
 
     /// clear all hashes
     void clear();

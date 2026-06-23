@@ -88,12 +88,13 @@ int runHeadlessExport(const CliOptions &cli, const QString &binName) {
 
     SpriteState sprState;
     SpriteState::SpriteStateError err = SpriteState::ErrNone;
+    int rejectedCount = 0;
 
     // Progress to stderr -- the legacy Qt4 binary printed all diagnostics
     // to stderr, leaving stdout free for downstream tooling (a script can
     // redirect stdout to /dev/null and still see this line).
     std::cerr << "Loading " << inputFile.toStdString() << "..." << std::endl;
-    if (!sprState.load(inputFile, &err)) {
+    if (!sprState.load(inputFile, &err, &rejectedCount)) {
         std::cerr << binName.toStdString() << ": Error: Cannot open '"
                   << cli.spriteFile.toStdString() << "' "
                   << SpriteState::errorMessage(err).toStdString() << "\n";
@@ -107,6 +108,23 @@ int runHeadlessExport(const CliOptions &cli, const QString &binName) {
                   << cli.spriteFile.toStdString() << "' "
                   << SpriteState::errorMessage(err).toStdString() << "\n";
         return -1;
+    }
+
+    // Team D2 (D2.3): If load() rejected any records (D2.1's format
+    // whitelist enforcement now applies at load time too), surface the
+    // count to stderr and return exit code 2 -- "export ran, but with
+    // silent data loss." Without this, a CI pipeline running --export
+    // over a tampered .lvks would observe exit 0 + missing artifacts and
+    // never notice. Exit code 2 is conventional Unix shorthand for
+    // "partial success" / "warnings emitted" (cf. grep(1), diff(1)).
+    if (rejectedCount > 0) {
+        std::cerr << binName.toStdString() << ": Warning: " << rejectedCount
+                  << " image record(s) were rejected during load of '"
+                  << cli.spriteFile.toStdString()
+                  << "' (format whitelist). The exported artifacts are missing data.\n";
+        std::cerr << binName.toStdString() << ": Export '" << cli.spriteFile.toStdString()
+                  << "' completed with warnings.\n";
+        return 2;
     }
 
     std::cerr << binName.toStdString() << ": Export '" << cli.spriteFile.toStdString()

@@ -1,5 +1,6 @@
 #include "spritestate.h"
 #include "exporters/JsonAtlasExporter.h"
+#include "image_validation.h"
 
 #include <QDebug>
 #include <QDir>
@@ -306,10 +307,22 @@ void SpriteState::clear() {
 bool SpriteState::save(const QString &filename, SpriteStateError *err) {
     setError(err, ErrNone);
 
-    QFile file(filename);
+    // Team D2 (D2.2): atomic-save pattern. Write the new content to
+    // "<filename>.save-tmp" first; only rename over the original on
+    // success. Without this, QFile::open(WriteOnly | Text) truncates the
+    // target file AT OPEN TIME -- so a save() that fails on a
+    // comma-bearing name (the sawInvalidRecord branch below) would
+    // destroy the user's existing .lvks before returning false. The
+    // user-visible regression: open a working sprite, type a comma into
+    // a filename, hit Save -> file is now zero bytes and save() reports
+    // failure. With the atomic pattern, the original file is untouched
+    // on any failure path; the temp file is cleaned up by the early
+    // returns below or by the explicit QFile::remove() at the bottom.
+    const QString tmpPath = filename + QStringLiteral(".save-tmp");
+    QFile file(tmpPath);
 
     if (!file.open(QFile::WriteOnly | QFile::Text)) {
-        qDebug() << "Error: SpriteState::save(): could not open" << filename << "in rw mode";
+        qDebug() << "Error: SpriteState::save(): could not open" << tmpPath << "in rw mode";
         setError(err, ErrCantOpenReadWriteMode);
         return false;
     }
@@ -469,14 +482,44 @@ bool SpriteState::save(const QString &filename, SpriteStateError *err) {
     file.close();
 
     if (sawInvalidRecord) {
+        // Team D2 (D2.2): the original file is still on disk and
+        // untouched (we wrote to tmpPath, not filename). Remove the
+        // half-written tmp file and bail.
+        QFile::remove(tmpPath);
         setError(err, ErrInvalidFormat);
+        return false;
+    }
+
+    // Team D2 (D2.2): atomic-replace. QFile::rename on POSIX uses
+    // rename(2) which is atomic for same-filesystem moves: either the
+    // old inode is in place (failure) or the new inode is (success);
+    // there is no observable intermediate state where the path is
+    // missing. On Windows, Qt's QFile::rename will refuse to clobber an
+    // existing target, so we remove() first -- the small race here is
+    // not the bug D2.2 closes (an open/truncate destroyed the file
+    // BEFORE the failure check; this remove() only runs AFTER a
+    // successful write).
+    if (QFile::exists(filename) && !QFile::remove(filename)) {
+        qDebug() << "Error: SpriteState::save(): could not remove existing" << filename
+                 << "to rename in tmpPath";
+        QFile::remove(tmpPath);
+        setError(err, ErrCantOpenReadWriteMode);
+        return false;
+    }
+    if (!QFile::rename(tmpPath, filename)) {
+        qDebug() << "Error: SpriteState::save(): could not rename" << tmpPath << "to" << filename;
+        QFile::remove(tmpPath);
+        setError(err, ErrCantOpenReadWriteMode);
         return false;
     }
     return true;
 }
 
-bool SpriteState::load(const QString &filename, SpriteStateError *err) {
+bool SpriteState::load(const QString &filename, SpriteStateError *err, int *rejectedCount) {
     setError(err, ErrNone);
+    if (rejectedCount) {
+        *rejectedCount = 0;
+    }
 
     if (filename.isEmpty()) {
         setError(err, ErrNullFilename);
@@ -593,6 +636,47 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err) {
                 state = StNoToken;
             } else {
                 if (tmpImage.fromString(line)) {
+                    // Team D2 (D2.1): enforce the GUI dialog's
+                    // image-format whitelist on load too. Without this,
+                    // a malicious .lvks with a record like
+                    //     0,evil.eps,1
+                    // survives InputImage::fromString's
+                    // isSafeImagePath check (no NUL, no "..", clean
+                    // relative path), gets inserted into state, and is
+                    // rendered unchecked by the controller's
+                    // refreshTable -- the "advisory dialog" hole B3
+                    // closed in the dialog path remained open through
+                    // the load path.
+                    //
+                    // We ONLY consult the whitelist when the file
+                    // actually exists on disk. A non-existent image
+                    // file is the legacy "broken asset link" case
+                    // (e.g. opening a sprite whose images were moved):
+                    // pre-D2.1 the loader tolerated it with a null
+                    // pixmap warning, and the unit / format tests rely
+                    // on synthesizing fixtures with placeholder
+                    // filenames like "nonexistent.png" to exercise the
+                    // parser without writing real PNG bytes. Rejecting
+                    // missing files at load time would break that
+                    // contract; the format whitelist is the only
+                    // *security* invariant we close here.
+                    //
+                    // Rejected records are SKIPPED (we don't abort the
+                    // whole load) and a counter is bumped that the
+                    // headless CLI inspects in D2.3 to surface a
+                    // non-zero exit code.
+                    if (!tmpImage.filename.isEmpty() &&
+                        QFileInfo(tmpImage.filename).exists()) {
+                        QString errMsg;
+                        if (!lvk::validateImageFile(tmpImage.filename, &errMsg)) {
+                            qWarning() << "SpriteState::load(): rejected image record"
+                                       << "(format whitelist):" << errMsg;
+                            if (rejectedCount) {
+                                ++(*rejectedCount);
+                            }
+                            break; // skip this record, keep loading
+                        }
+                    }
                     emit(loadProgress(tr("Image ") + tmpImage.filename));
                     addImage(tmpImage);
                 } else {

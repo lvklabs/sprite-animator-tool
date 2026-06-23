@@ -49,6 +49,8 @@ lvk_add_test(tst_spritestate_crud
         ${SRC_DIR}/lvkframe.cpp
         ${SRC_DIR}/lvkanimation.cpp
         ${SRC_DIR}/lvkaframe.cpp
+        # Team D2 (D2.1): SpriteState::load now calls lvk::validateImageFile.
+        ${SRC_DIR}/image_validation.cpp
         # Agent 8: SpriteState::exportSprite now references the JSON
         # exporter; include it so the unit test still links.
         ${SRC_DIR}/exporters/JsonAtlasExporter.cpp
@@ -88,6 +90,8 @@ set(LVK_FULL_SOURCES
     ${SRC_DIR}/statecircularbuffer.cpp
     ${SRC_DIR}/lvkframedefwidget.cpp
     ${SRC_DIR}/theme.cpp
+    # Team D2 (D2.1): shared image-file validator.
+    ${SRC_DIR}/image_validation.cpp
     ${SRC_DIR}/exporters/JsonAtlasExporter.cpp
     ${SRC_DIR}/controllers/ImageTabController.cpp
     ${SRC_DIR}/controllers/FrameTabController.cpp

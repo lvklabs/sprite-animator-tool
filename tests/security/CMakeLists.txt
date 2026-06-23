@@ -22,6 +22,8 @@ set(SECTEST_SRCS
     "${CMAKE_SOURCE_DIR}/src/lvkframe.cpp"
     "${CMAKE_SOURCE_DIR}/src/lvkanimation.cpp"
     "${CMAKE_SOURCE_DIR}/src/lvkaframe.cpp"
+    # Team D2 (D2.1): SpriteState::load now calls lvk::validateImageFile.
+    "${CMAKE_SOURCE_DIR}/src/image_validation.cpp"
     # Agent 8: SpriteState::exportSprite() pulled in JsonAtlasExporter.
     "${CMAKE_SOURCE_DIR}/src/exporters/JsonAtlasExporter.cpp"
 )
@@ -64,3 +66,5 @@ lvk_add_security_test(tst_atlas_size_bomb)
 lvk_add_security_test(tst_path_traversal_hard)
 # Phase 4 (Item 18): symlink-TOCTOU on the postprocessing script.
 lvk_add_security_test(tst_script_toctou)
+# Team D2 (D2.1): image-format whitelist enforcement on SpriteState::load.
+lvk_add_security_test(tst_lvks_image_load_whitelist)

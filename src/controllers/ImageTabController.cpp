@@ -11,6 +11,7 @@
 #include "controllers/AnimationTabController.h"
 #include "controllers/FrameTabController.h"
 #include "dialogs.h"
+#include "image_validation.h"
 #include "lvkinputimagewidget.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -171,47 +172,15 @@ Id ImageTabController::addImage(const InputImage &image) {
 }
 
 bool ImageTabController::validateImageFile(const QString &filename, QString *errMsg) const {
-    // Centralised file-existence + format check used by addImage as the
-    // hard rejection gate. addImage_ui no longer duplicates this work
-    // because refreshTable() repopulates the UI from already-validated
-    // SpriteState entries; running file checks every redraw produced
-    // spurious dialogs on legitimate reloads of sprites with missing
-    // assets.
-    if (!QFileInfo(filename).exists()) {
-        if (errMsg) {
-            *errMsg = tr("File '") + filename + tr("' does not exist");
-        }
-        return false;
-    }
-
-    // SECURITY (Phase 4 + B3.1 expansion): Whitelist image formats by
-    // sniffing file content via QImageReader. We expand the whitelist to
-    // cover EVERY extension the open-file dialog advertises (png/jpg/
-    // jpeg/xpm/xbm/bmp/tif/tiff) plus the additional formats Qt6 ships
-    // image plugins for (gif/webp/svg). Mismatch between dialog filter
-    // and validator was confusing UX -- users were allowed to pick a
-    // .xpm and then told it was "unsupported".
-    QImageReader reader(filename);
-    const QByteArray fmt = reader.format().toLower();
-    static const QSet<QByteArray> allowed = {
-        QByteArrayLiteral("png"), QByteArrayLiteral("jpg"),  QByteArrayLiteral("jpeg"),
-        QByteArrayLiteral("bmp"), QByteArrayLiteral("gif"),  QByteArrayLiteral("webp"),
-        QByteArrayLiteral("svg"), QByteArrayLiteral("xpm"),  QByteArrayLiteral("xbm"),
-        QByteArrayLiteral("tif"), QByteArrayLiteral("tiff"),
-    };
-    if (!allowed.contains(fmt)) {
-        if (errMsg) {
-            *errMsg = filename + tr(" has an unsupported image format: ") + QString::fromUtf8(fmt);
-        }
-        return false;
-    }
-    if (QImage(filename).isNull()) {
-        if (errMsg) {
-            *errMsg = filename + tr(" has an invalid image format");
-        }
-        return false;
-    }
-    return true;
+    // Team D2 (D2.1): Delegate to the free-function validator in
+    // image_validation.{h,cpp} so that BOTH the GUI dialog path (here)
+    // AND the SpriteState::load() path enforce the same format whitelist.
+    // The pre-D2 code kept this validator inside the controller, which
+    // meant SpriteState::load could insert images that the format
+    // whitelist would have rejected -- the "advisory dialog" hole B3
+    // claimed to close was still open through the load route. Now the
+    // single source of truth lives in lvk::validateImageFile().
+    return lvk::validateImageFile(filename, errMsg);
 }
 
 void ImageTabController::addImage_ui(const InputImage &image) {

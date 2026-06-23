@@ -57,6 +57,9 @@ set(LVK_SOURCES
     src/statecircularbuffer.cpp
     src/lvkframedefwidget.cpp
     src/theme.cpp
+    # Team D2 (D2.1): centralised image-file validator shared by the GUI
+    # dialog path (ImageTabController) and the load path (SpriteState).
+    src/image_validation.cpp
     # Agent 8: JSON atlas exporter + 5 MainWindow tab controllers split
     # out of the 2,511-line god class.
     src/exporters/JsonAtlasExporter.cpp
@@ -85,6 +88,7 @@ set(LVK_HEADERS
     src/statecircularbuffer.h
     src/lvkframedefwidget.h
     src/theme.h
+    src/image_validation.h
     src/exporters/JsonAtlasExporter.h
     src/controllers/ImageTabController.h
     src/controllers/FrameTabController.h

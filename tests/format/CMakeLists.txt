@@ -27,6 +27,8 @@ set(_LVK_FORMAT_SOURCES
     "${_LVK_SRC}/inputimage.cpp"
     "${_LVK_SRC}/lvkanimation.cpp"
     "${_LVK_SRC}/lvkaframe.cpp"
+    # Team D2 (D2.1): SpriteState::load now calls lvk::validateImageFile.
+    "${_LVK_SRC}/image_validation.cpp"
     # Agent 8: SpriteState::exportSprite() now dispatches to the JSON
     # exporter when format=Json|All. The format tests need it linked in.
     "${_LVK_SRC}/exporters/JsonAtlasExporter.cpp"
@@ -39,6 +41,7 @@ set(_LVK_FORMAT_HEADERS
     "${_LVK_SRC}/lvkanimation.h"
     "${_LVK_SRC}/lvkaframe.h"
     "${_LVK_SRC}/types.h"
+    "${_LVK_SRC}/image_validation.h"
     "${_LVK_SRC}/exporters/JsonAtlasExporter.h"
 )
 
@@ -92,3 +95,6 @@ lvk_add_format_test(tst_aframe_order)
 # Phase 6b (Item 26): non-ASCII name safety (Unicode -> ASCII macro names,
 # collision disambiguation, comma rejection on save).
 lvk_add_format_test(tst_unicode_names)
+# Team D2 (D2.2): save() atomic-write -- failed save must NOT destroy the
+# original file (pre-D2 open(WriteOnly) truncated before the failure check).
+lvk_add_format_test(tst_save_atomic)
