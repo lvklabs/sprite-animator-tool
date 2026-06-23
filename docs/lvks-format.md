@@ -9,7 +9,11 @@ line that names the version, and each data class accepts multiple field
 counts in its `fromString()` for backward compatibility.
 
 This spec covers **v0.1 through v0.4** (latest). Read compatibility for
-all four is preserved; the `save()` path always writes v0.4.
+all four is preserved. `save()` writes the lowest version sufficient to
+represent the in-memory data (the max of the loaded version and the
+minimum-required version). v0.4 only when sticky is used; v0.3 only when
+animation flags or a `custom_header` is set; v0.2 only when image scale
+!= 1.0; otherwise v0.1.
 
 ## File layout
 
@@ -68,7 +72,7 @@ Source: `src/spritestate.cpp:71-75`.
 | `HEADER_VER_02`   | `LvkSprite version 0.2` | (no on-disk field change)    |
 | `HEADER_VER_03`   | `LvkSprite version 0.3` | added `custom_header()` block |
 | `HEADER_VER_04`   | `LvkSprite version 0.4` | added `sticky` flag on aframes |
-| `HEADER_LATEST`   | `= HEADER_VER_04`       | what `save()` writes today   |
+| `HEADER_LATEST`   | `= HEADER_VER_04`       | upper bound on what `save()` may write; the actual written header is `max(loadedVersion, minimumVersion())` |
 
 The parser accepts any of the four header strings as valid
 (`spritestate.cpp:294-306`). Anything else terminates load with

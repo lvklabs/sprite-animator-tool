@@ -6,7 +6,7 @@
 #define APP_VERSION "2.0.1"
 #define APP_ABOUT                                                                                  \
     "<b>" APP_NAME " " APP_VERSION "</b><br/>"                                                     \
-    "(c) 2010, 2011, 2012 LVK<br/><br/>"                                                           \
+    "(c) 2010-2012 LVK Labs; 2026 modernization by Pablo Perez De Angelis<br/><br/>"               \
     "This software is FREE."                                                                       \
     "This software is distributed in the hope that it will be useful, "                            \
     "but WITHOUT ANY WARRANTY; without even the implied warranty of "                              \

@@ -40,11 +40,13 @@ this release closes all of them.
   - `tst_script_toctou` — canonical-path symlink defeat
   - `tst_image_tab_controller`, `tst_export_controller`,
     `tst_mainwindow_construction` — refactor-target coverage
-- **CI hardening**: Windows uses Visual Studio 17 2022 (not the
-  previously-hardcoded `Unix Makefiles`); per-OS CMake presets;
-  binary smoke step (`--help` + headless export) on Linux/macOS/Windows;
-  `cpack -G DEB` + `dpkg -i` install + invoke on every Linux push;
-  tag-triggered `release.yml` workflow.
+- **CI hardening**: per-OS CMake presets; binary smoke step
+  (`--help` + headless export) on Linux/macOS; `cpack -G DEB` +
+  `dpkg -i` install + invoke on every Linux push; tag-triggered
+  `release.yml` workflow.  Effective CI matrix: Linux (apt Qt 6.4.2)
+  + macOS (Qt 6.5.3, 6.8.0).  Windows builds via Ninja currently
+  fail with a duplicate-AUTOUIC error and are disabled in CI;
+  tracked as a follow-up CMake refactor.
 
 ### Fixed
 
@@ -77,13 +79,26 @@ this release closes all of them.
 - **Slot-connection order on `mouseRectChangeFinished`** flipped vs.
   master; moved the `showMouseRect` connect to after controller
   `wireSignals()` so `blendFrameRect` repaint fires first.
+- **`save()` returns `false` on comma/NUL in names** (animation, frame,
+  aframe, image). Previously the rejected record was silently dropped
+  mid-write, leaving a partial `.lvks` on disk that the loader would
+  then complain about.
+- **Recent-files menu placeholder reinstated.** `QMenu::clear()`
+  evicted the `actionNoRecentFiles` "(no recent files)" placeholder,
+  leaving an empty submenu with no hint that the feature exists.
+  Re-added after every clear.
 
 ### Security
 
 - **Image-path injection** in `InputImage::fromString`. Rejects
-  absolute paths, UNC (`\\…`), `..`, and embedded NUL bytes. Image
-  format whitelisted (png/jpg/jpeg/bmp/gif/webp/svg) via
-  `QImageReader::format()`. `QImageReader::setAllocationLimit(64MB)`
+  absolute paths, UNC (`\\…`), `..`, and embedded NUL bytes. Also
+  rejects leading `~` (shell-expansion sink) and Windows
+  drive-absolute paths (`C:\…` or `C:/…`) even when the editor is
+  running on Linux/macOS, so a malicious `.lvks` carrying a
+  drive-letter prefix can't reach the host fs. Image format
+  whitelisted via `QImageReader::format()`; the whitelist is
+  png/jpg/jpeg/bmp/gif/webp/svg/xpm/xbm/tif/tiff (expanded from the
+  initial seven by Team B3). `QImageReader::setAllocationLimit(256MB)`
   applied at startup.
 - **Frame dimension overflow** in the JSON atlas exporter.
   `LvkFrame::fromString` rejects `w/h` outside `(0, 8192]`;
@@ -169,8 +184,11 @@ output.
   invariants, `fromString`/`toString` round-trips, and `SpriteState`
   load/save. 9 ctest targets across `tests/unit/`, `tests/format/`, and
   `tests/security/`.
-- **CI/CD matrix** on GitHub Actions (Linux x macOS x Windows x Qt 6.8)
-  with `jurplel/install-qt-action` + `aqtinstall` cache.
+- **CI/CD** on GitHub Actions: Linux (apt Qt 6.4.2) + macOS
+  (Qt 6.5.3, 6.8.0) via `jurplel/install-qt-action` +
+  `aqtinstall` cache.  Windows builds via Ninja currently fail
+  with a duplicate-AUTOUIC error and are disabled in CI; tracked
+  as a follow-up CMake refactor.
 - **`.clang-format`**, **`.clang-tidy`**, **`.editorconfig`** for
   baseline code-style enforcement.
 - **CPack packaging** stubs for DEB / TGZ (Linux), DragNDrop / DMG

@@ -102,9 +102,11 @@ per-agent breakdown:
 - Replaced ~100 `SIGNAL()`/`SLOT()` macro connections with type-checked
   pointer-to-member-function syntax.
 - 21 unit / format / security test binaries (Qt Test).
-- GitHub Actions CI matrix (Linux/macOS/Windows x Qt 6.8), `.clang-format`,
-  `.clang-tidy`, `.editorconfig`, CPack packaging stubs (DEB / TGZ / DMG /
-  NSIS).
+- GitHub Actions CI: Linux (apt Qt 6.4.2) + macOS (Qt 6.5.3, 6.8.0).
+  Windows builds via Ninja currently fail with a duplicate-AUTOUIC
+  error and are disabled in CI; tracked as a follow-up CMake refactor.
+  Plus `.clang-format`, `.clang-tidy`, `.editorconfig`, CPack packaging
+  stubs (DEB / TGZ / DMG / NSIS).
 - **Security:** the `--postprocessing-script` shell-out is now
   `QProcess::start(program, args)` instead of the single-string overload,
   with `QTemporaryFile`-backed scratch images and script-path validation

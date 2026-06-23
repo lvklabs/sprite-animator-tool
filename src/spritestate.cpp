@@ -1425,7 +1425,9 @@ bool SpriteState::isFrameUnused(Id frameId) const {
 
     QMapIterator<Id, LvkAnimation> aniIt(_animations);
     while (aniIt.hasNext() && isUnused) {
-        const LvkAnimation &ani = aniIt.next().value();
+        // aniIt.next() returns a temporary Item proxy; bind by value to
+        // avoid the -Wdangling-reference warning on Qt6's iterator API.
+        const LvkAnimation ani = aniIt.next().value();
         QListIterator<LvkAframe> aframeIt(ani._aframes);
         while (aframeIt.hasNext() && isUnused) {
             if (aframeIt.next().frameId == frameId) {

@@ -117,6 +117,13 @@ target_include_directories(LvkSpriteEditor PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 
+# Compile warnings (Team D5) ---------------------------------------------
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(LvkSpriteEditor PRIVATE -Wall -Wextra -Wpedantic)
+elseif(MSVC)
+    target_compile_options(LvkSpriteEditor PRIVATE /W4)
+endif()
+
 # AUTOUIC needs to find mainwindow.ui from the controllers/ + exporters/
 # subdirectories that include "ui_mainwindow.h". Adding the .ui dir to
 # AUTOUIC_SEARCH_PATHS is the canonical Qt6 way.

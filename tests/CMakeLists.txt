@@ -27,6 +27,13 @@ function(lvk_add_test name)
         "${CMAKE_SOURCE_DIR}/src"
     )
 
+    # Match the main target's warning flags (Team D5).
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(${name} PRIVATE -Wall -Wextra -Wpedantic)
+    elseif(MSVC)
+        target_compile_options(${name} PRIVATE /W4)
+    endif()
+
     target_link_libraries(${name} PRIVATE
         Qt6::Test
         Qt6::Core
