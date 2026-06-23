@@ -1890,6 +1890,20 @@ p, li { white-space: pre-wrap; }
     <addaction name="separator"/>
     <addaction name="actionClearGuides"/>
    </widget>
+   <widget class="QMenu" name="menu_View">
+    <property name="title">
+     <string>&amp;View</string>
+    </property>
+    <widget class="QMenu" name="menuTheme">
+     <property name="title">
+      <string>&amp;Theme</string>
+     </property>
+     <addaction name="actionThemeSystem"/>
+     <addaction name="actionThemeLight"/>
+     <addaction name="actionThemeDark"/>
+    </widget>
+    <addaction name="menuTheme"/>
+   </widget>
    <widget class="QMenu" name="menuActions">
     <property name="title">
      <string>Sprite</string>
@@ -1911,6 +1925,7 @@ p, li { white-space: pre-wrap; }
    </widget>
    <addaction name="menu_File"/>
    <addaction name="menuEdit"/>
+   <addaction name="menu_View"/>
    <addaction name="menuActions"/>
    <addaction name="menu_Help"/>
   </widget>
@@ -2140,6 +2155,33 @@ p, li { white-space: pre-wrap; }
   <action name="actionInvertAframesOrder">
    <property name="text">
     <string>Invert animation frames order</string>
+   </property>
+  </action>
+  <action name="actionThemeSystem">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;System</string>
+   </property>
+   <property name="toolTip">
+    <string>Follow the desktop's light/dark setting</string>
+   </property>
+  </action>
+  <action name="actionThemeLight">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Light</string>
+   </property>
+  </action>
+  <action name="actionThemeDark">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Dark</string>
    </property>
   </action>
  </widget>

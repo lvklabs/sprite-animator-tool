@@ -124,7 +124,8 @@ Id FrameTabController::selectedFrameId() const {
 
 Id FrameTabController::getFrameDialog(const QString &title) {
     if (m_state->frames().isEmpty()) {
-        infoDialog(tr("No frames available.\n\nGo to the \"Frames\" tab to create one frame."));
+        infoDialog(tr("No frames available.\n\nGo to the \"Frames\" tab to create one frame."),
+                   m_mw);
         return NullId;
     }
     QStringList framesList;
@@ -144,7 +145,7 @@ Id FrameTabController::getFrameDialog(const QString &title) {
         if (tokens.size() >= 2) {
             frameId = tokens.at(1).toInt();
         } else {
-            infoDialog(tr("The selected frame could not be parsed"));
+            infoDialog(tr("The selected frame could not be parsed"), m_mw);
         }
     }
     return frameId;
@@ -181,10 +182,10 @@ Id FrameTabController::addFrameFromMouseRect(Id imgId, const QString &name) {
         w = m_state->ipixmap(imgId).width();
         h = m_state->ipixmap(imgId).height();
     } else if (frameRect.width() == 0) {
-        infoDialog(tr("Cannot add a frame with null width"));
+        infoDialog(tr("Cannot add a frame with null width"), m_mw);
         validRect = false;
     } else if (frameRect.height() == 0) {
-        infoDialog(tr("Cannot add a frame with null height"));
+        infoDialog(tr("Cannot add a frame with null height"), m_mw);
         validRect = false;
     } else {
         ox = frameRect.x();
@@ -261,11 +262,12 @@ void FrameTabController::removeSelFrame() {
     m_mw->showFramesTab();
     int currentRow = m_ui->framesTableWidget->currentRow();
     if (currentRow == -1) {
-        infoDialog(tr("No frame selected"));
+        infoDialog(tr("No frame selected"), m_mw);
         return;
     }
     QString frameName = m_ui->framesTableWidget->item(currentRow, ColFrameName)->text();
-    if (!yesNoDialog(tr("Are you sure you want to remove the frame '") + frameName + tr("'?"))) {
+    if (!yesNoDialog(tr("Are you sure you want to remove the frame '") + frameName + tr("'?"),
+                     m_mw)) {
         return;
     }
     removeFrame(currentRow);
@@ -308,7 +310,7 @@ void FrameTabController::updateCurrentFrame_ui(const QRect &rect) {
 }
 
 void FrameTabController::removeAllUnusedFrames() {
-    if (!yesNoDialog(tr("Are you sure you want to remove all unused animations?"))) {
+    if (!yesNoDialog(tr("Are you sure you want to remove all unused animations?"), m_mw)) {
         return;
     }
     QVector<int> unusedRows;
@@ -323,7 +325,7 @@ void FrameTabController::removeAllUnusedFrames() {
         removeFrame(unusedRows[i]);
     }
     m_state->endTransaction();
-    infoDialog(QString::number(unusedRows.size()) + tr(" unused frame(s) were removed."));
+    infoDialog(QString::number(unusedRows.size()) + tr(" unused frame(s) were removed."), m_mw);
 }
 
 void FrameTabController::hideFramePreview() {
@@ -387,14 +389,14 @@ void FrameTabController::updateFramesTable(int row, int col) {
     case ColFrameId:
     case ColFrameVisibleId:
         ok = false;
-        infoDialog(tr("Column \"Id\" is not editable"));
+        infoDialog(tr("Column \"Id\" is not editable"), m_mw);
         setCellInt(col, frame.id);
         break;
     case ColFrameImgId:
         if (ok && m_state->images().contains(i)) {
             frame.imgId = i;
         } else {
-            infoDialog(tr("Invalid image Id"));
+            infoDialog(tr("Invalid image Id"), m_mw);
             setCellInt(col, frame.imgId);
         }
         break;
@@ -402,7 +404,7 @@ void FrameTabController::updateFramesTable(int row, int col) {
         if (ok) {
             frame.ox = i;
         } else {
-            infoDialog(tr("Invalid frame offset."));
+            infoDialog(tr("Invalid frame offset."), m_mw);
             setCellInt(col, frame.ox);
         }
         break;
@@ -410,7 +412,7 @@ void FrameTabController::updateFramesTable(int row, int col) {
         if (ok) {
             frame.oy = i;
         } else {
-            infoDialog(tr("Invalid frame offset."));
+            infoDialog(tr("Invalid frame offset."), m_mw);
             setCellInt(col, frame.oy);
         }
         break;
@@ -418,7 +420,7 @@ void FrameTabController::updateFramesTable(int row, int col) {
         if (ok) {
             frame.w = i;
         } else {
-            infoDialog(tr("Invalid frame width."));
+            infoDialog(tr("Invalid frame width."), m_mw);
             setCellInt(col, frame.w);
         }
         break;
@@ -426,17 +428,17 @@ void FrameTabController::updateFramesTable(int row, int col) {
         if (ok) {
             frame.h = i;
         } else {
-            infoDialog(tr("Invalid frame height."));
+            infoDialog(tr("Invalid frame height."), m_mw);
             setCellInt(col, frame.h);
         }
         break;
     case ColFrameName:
         if (newValue.isEmpty()) {
             ok = false;
-            infoDialog(tr("Frame name cannot be empty"));
+            infoDialog(tr("Frame name cannot be empty"), m_mw);
         } else if (newValue.contains(',')) {
             ok = false;
-            infoDialog(tr("Frame name cannot contain the character ','"));
+            infoDialog(tr("Frame name cannot contain the character ','"), m_mw);
         }
         if (ok) {
             frame.name = newValue;
@@ -539,7 +541,8 @@ void FrameTabController::blendFrameId() {
         m_ui->framePreview->setBlendPixmap(m_state->fpixmap(m_blendFrameId));
     } else {
         infoDialog(tr("Frame id ") + QString::number(m_blendFrameId) +
-                   tr(" is no longer available"));
+                       tr(" is no longer available"),
+                   m_mw);
         m_blendFrameId = NullId;
     }
     if (m_blendFrameId == NullId) {

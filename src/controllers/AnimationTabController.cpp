@@ -243,7 +243,7 @@ void AnimationTabController::addAnimationDialog() {
     if (ok) {
         name = name.trimmed();
         if (name.isEmpty()) {
-            infoDialog(tr("Cannot add an animation without name"));
+            infoDialog(tr("Cannot add an animation without name"), m_mw);
             return;
         }
         addAnimation(LvkAnimation(NullId, name));
@@ -252,7 +252,7 @@ void AnimationTabController::addAnimationDialog() {
 
 void AnimationTabController::addAframeDialog() {
     if (m_ui->aniTableWidget->currentRow() == -1) {
-        infoDialog(tr("No animation selected"));
+        infoDialog(tr("No animation selected"), m_mw);
         return;
     }
     Id frameId = m_mw->frames()->getFrameDialog(tr("Add animation frame"));
@@ -265,11 +265,12 @@ void AnimationTabController::removeSelAnimation() {
     m_mw->showAnimationsTab();
     int currentRow = m_ui->aniTableWidget->currentRow();
     if (currentRow == -1) {
-        infoDialog(tr("No animation selected"));
+        infoDialog(tr("No animation selected"), m_mw);
         return;
     }
     QString aniName = m_ui->aniTableWidget->item(currentRow, ColAniName)->text();
-    if (!yesNoDialog(tr("Are you sure you want to remove the animation '") + aniName + tr("'?"))) {
+    if (!yesNoDialog(tr("Are you sure you want to remove the animation '") + aniName + tr("'?"),
+                     m_mw)) {
         return;
     }
     removeAnimation(currentRow);
@@ -290,10 +291,10 @@ void AnimationTabController::removeSelAframe() {
     m_mw->showAnimationsTab();
     int currentRow = m_ui->aframesTableWidget->currentRow();
     if (currentRow == -1) {
-        infoDialog(tr("No frame selected"));
+        infoDialog(tr("No frame selected"), m_mw);
         return;
     }
-    if (!yesNoDialog(tr("Are you sure you want to remove the selected frame?"))) {
+    if (!yesNoDialog(tr("Are you sure you want to remove the selected frame?"), m_mw)) {
         return;
     }
     removeAframe(currentRow);
@@ -324,10 +325,10 @@ void AnimationTabController::moveSelAframeDown() {
 void AnimationTabController::moveSelAframe(int offset) {
     LvkTableWidget *table = m_ui->aframesTableWidget;
     if (table->currentRow() == -1) {
-        infoDialog(tr("No frame selected"));
+        infoDialog(tr("No frame selected"), m_mw);
         return;
     } else if (m_ui->aniTableWidget->currentRow() == -1) {
-        infoDialog(tr("No animation selected"));
+        infoDialog(tr("No animation selected"), m_mw);
         return;
     }
     int currentRow = table->currentRow();
@@ -429,7 +430,7 @@ void AnimationTabController::clearPreviewAnimation() {
 
 void AnimationTabController::incAniSpeed(int ms) {
     if (m_ui->aniTableWidget->currentRow() == -1) {
-        infoDialog(tr("No animation selected"));
+        infoDialog(tr("No animation selected"), m_mw);
         return;
     }
     Id aniId = selectedAniId();
@@ -469,17 +470,17 @@ void AnimationTabController::changePreviewScrSize(const QString &text) {
     }
     QStringList split = res.split("x");
     if (split.size() != 2) {
-        infoDialog(tr("Invalid resolution. Use <width>x<height>."));
+        infoDialog(tr("Invalid resolution. Use <width>x<height>."), m_mw);
         return;
     }
     int w = QString(split.at(0)).toInt(&ok);
     if (!ok || w <= 0) {
-        infoDialog(tr("Invalid width size."));
+        infoDialog(tr("Invalid width size."), m_mw);
         return;
     }
     int h = QString(split.at(1)).toInt(&ok);
     if (!ok || h <= 0) {
-        infoDialog(tr("Invalid height size."));
+        infoDialog(tr("Invalid height size."), m_mw);
         return;
     }
     if (m_ui->landscapeCheckBox->isChecked()) {
@@ -520,18 +521,18 @@ void AnimationTabController::updateAframesTable(int row, int col) {
     switch (col) {
     case ColAframeId:
         ok = false;
-        infoDialog(tr("Column \"Id\" is not editable"));
+        infoDialog(tr("Column \"Id\" is not editable"), m_mw);
         break;
     case ColAframeAniId:
         ok = false;
-        infoDialog(tr("Column \"Animation Id\" is not editable."));
+        infoDialog(tr("Column \"Animation Id\" is not editable."), m_mw);
         setCellInt(col, aniId);
         break;
     case ColAframeFrameId:
         if (ok && m_state->frames().contains(i)) {
             aframe.frameId = i;
         } else {
-            infoDialog(tr("Invalid frame id."));
+            infoDialog(tr("Invalid frame id."), m_mw);
             setCellInt(col, aframe.frameId);
         }
         break;
@@ -539,7 +540,7 @@ void AnimationTabController::updateAframesTable(int row, int col) {
         if (ok) {
             aframe.ox = i;
         } else {
-            infoDialog(tr("Invalid frame offset."));
+            infoDialog(tr("Invalid frame offset."), m_mw);
             setCellInt(col, aframe.ox);
         }
         break;
@@ -547,7 +548,7 @@ void AnimationTabController::updateAframesTable(int row, int col) {
         if (ok) {
             aframe.oy = i;
         } else {
-            infoDialog(tr("Invalid frame offset."));
+            infoDialog(tr("Invalid frame offset."), m_mw);
             setCellInt(col, aframe.oy);
         }
         break;
@@ -555,7 +556,7 @@ void AnimationTabController::updateAframesTable(int row, int col) {
         if (ok && (i == 0 || i == 1)) {
             aframe.sticky = i;
         } else {
-            infoDialog(tr("Invalid sticky value. Use: 1 = On, 0 = Off"));
+            infoDialog(tr("Invalid sticky value. Use: 1 = On, 0 = Off"), m_mw);
             setCellInt(col, aframe.sticky);
         }
         break;
@@ -563,7 +564,7 @@ void AnimationTabController::updateAframesTable(int row, int col) {
         if (ok && i >= 0) {
             aframe.delay = i;
         } else {
-            infoDialog(tr("Invalid frame delay."));
+            infoDialog(tr("Invalid frame delay."), m_mw);
             setCellInt(col, aframe.delay);
         }
         break;
@@ -590,14 +591,14 @@ void AnimationTabController::updateAniTable(int row, int col) {
 
     switch (col) {
     case ColAniId:
-        infoDialog(tr("Column \"Id\" is not editable"));
+        infoDialog(tr("Column \"Id\" is not editable"), m_mw);
         break;
     case ColAniName:
         if (newValue.isEmpty()) {
-            infoDialog(tr("Animation name cannot be empty"));
+            infoDialog(tr("Animation name cannot be empty"), m_mw);
             setCellStr(col, ani.name);
         } else if (newValue.contains(',')) {
-            infoDialog(tr("Animation name cannot contain the character ','"));
+            infoDialog(tr("Animation name cannot contain the character ','"), m_mw);
             setCellStr(col, ani.name);
         } else {
             ani.name = newValue;
@@ -616,7 +617,7 @@ void AnimationTabController::updateAniTable(int row, int col) {
                 ani.flags = flags;
                 m_state->updateAnimation(ani);
             } else {
-                infoDialog(tr("Animation flags must be a 32 bits hex number"));
+                infoDialog(tr("Animation flags must be a 32 bits hex number"), m_mw);
             }
             setCellStr(col, toHexString(ani.flags));
         }

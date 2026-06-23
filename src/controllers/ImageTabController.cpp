@@ -173,7 +173,7 @@ Id ImageTabController::addImage(const InputImage &image) {
     if (!image_.filename.isEmpty()) {
         QString errMsg;
         if (!validateImageFile(image_.filename, &errMsg)) {
-            infoDialog(errMsg);
+            errorDialog(errMsg, m_mw);
             return NullId; // gate: reject => no state, no UI
         }
         m_state->addImage(image_);
@@ -198,7 +198,7 @@ void ImageTabController::addImage_ui(const InputImage &image) {
     QString filename(image.filename);
 
     if (filename.isEmpty()) {
-        infoDialog(tr("Empty Filename"));
+        infoDialog(tr("Empty Filename"), m_mw);
         return;
     }
     // NOTE (Team B3): file-existence / format checks moved into
@@ -255,11 +255,12 @@ void ImageTabController::removeSelImage() {
 
     int currentRow = m_ui->imgTableWidget->currentRow();
     if (currentRow == -1) {
-        infoDialog(tr("No image selected"));
+        infoDialog(tr("No image selected"), m_mw);
         return;
     }
     QString imgFilename = m_ui->imgTableWidget->item(currentRow, ColImageFilename)->text();
-    if (!yesNoDialog(tr("Are you sure you want to remove the image '") + imgFilename + tr("'?"))) {
+    if (!yesNoDialog(tr("Are you sure you want to remove the image '") + imgFilename + tr("'?"),
+                     m_mw)) {
         return;
     }
     removeImage(currentRow);
@@ -268,8 +269,6 @@ void ImageTabController::removeSelImage() {
 
 void ImageTabController::removeImage(int row) {
     Id imgId = getImageId(row);
-    qDebug() << m_ui->imgTableWidget->item(row, ColImageId)->text();
-    qDebug() << m_ui->imgTableWidget->item(row, ColImageId)->text().toInt();
 
     {
         QSignalBlocker blocker(m_ui->imgTableWidget);
@@ -281,8 +280,6 @@ void ImageTabController::removeImage(int row) {
     // remove frames that use this image
     FrameTabController *frames = m_mw->frames();
     for (int r = 0; r < m_ui->framesTableWidget->rowCount(); ++r) {
-        qDebug() << "row " << r << " -- frameImgId " << frames->getFrameImgId(r) << " == imgId "
-                 << imgId;
         if (frames->getFrameImgId(r) == imgId) {
             frames->removeFrame(r);
         }
@@ -335,23 +332,23 @@ void ImageTabController::updateImgTable(int row, int col) {
     switch (col) {
     case ColImageId:
     case ColImageVisibleId:
-        infoDialog(tr("Column \"Id\" is not editable"));
+        infoDialog(tr("Column \"Id\" is not editable"), m_mw);
         setCellInt(col, img.id);
         break;
     case ColImageFilename:
         if (newValue.isEmpty()) {
-            infoDialog(tr("Image filename cannot be empty"));
+            infoDialog(tr("Image filename cannot be empty"), m_mw);
             setCellStr(col, img.filename);
         } else if (newValue.contains(',')) {
-            infoDialog(tr("Image filename cannot contain the character ','"));
+            infoDialog(tr("Image filename cannot contain the character ','"), m_mw);
             setCellStr(col, img.filename);
         } else if (newValue != img.filename) {
             img.filename = newValue;
             img.reloadImage();
             if (!QFileInfo(newValue).exists()) {
-                infoDialog(tr("The file does not exist"));
+                errorDialog(tr("The file does not exist"), m_mw);
             } else if (img.pixmap.isNull()) {
-                infoDialog(tr("The file contains an invalid image format"));
+                errorDialog(tr("The file contains an invalid image format"), m_mw);
             }
             m_state->updateImage(img);
             setCellStr(col, img.filename);
@@ -359,7 +356,7 @@ void ImageTabController::updateImgTable(int row, int col) {
         break;
     case ColImageScale:
         if (!ok) {
-            infoDialog(tr("Invalid image scale"));
+            infoDialog(tr("Invalid image scale"), m_mw);
             setCellDbl(col, img.scale());
         } else if (newScale != img.scale()) {
             img.scale(newScale);
@@ -423,7 +420,7 @@ bool ImageTabController::hasImagesChecked() const {
 
 void ImageTabController::scaleCheckedImages() {
     if (!hasImagesChecked()) {
-        infoDialog(tr("This operation requires at least one image selected"));
+        infoDialog(tr("This operation requires at least one image selected"), m_mw);
         return;
     }
 
@@ -436,7 +433,8 @@ void ImageTabController::scaleCheckedImages() {
     double scale = input.toDouble(&ok);
     if (!ok || scale <= 0) {
         infoDialog(
-            tr("Invalid scale. The scale must be a floating point number greater than zero."));
+            tr("Invalid scale. The scale must be a floating point number greater than zero."),
+            m_mw);
         return;
     }
 
@@ -457,7 +455,7 @@ void ImageTabController::scaleCheckedImages() {
 
 void ImageTabController::createQuickAnimation() {
     if (!hasImagesChecked()) {
-        infoDialog(tr("This operation requires at least one image selected"));
+        infoDialog(tr("This operation requires at least one image selected"), m_mw);
         return;
     }
 
@@ -467,13 +465,14 @@ void ImageTabController::createQuickAnimation() {
     aniName = aniName.trimmed();
     if (!ok || aniName.isEmpty() || aniName.contains(',')) {
         if (ok) {
-            infoDialog(tr("Animation name cannot be empty or contain ','"));
+            infoDialog(tr("Animation name cannot be empty or contain ','"), m_mw);
         }
         return;
     }
 
     bool addReverseFrames = yesNoDialog(tr("After finishing the animationm,"
-                                           "do you want to add frames to reverse the animation?"));
+                                           "do you want to add frames to reverse the animation?"),
+                                        m_mw);
 
     m_state->startTransaction();
     Id aniId = m_mw->animations()->addAnimation(LvkAnimation(NullId, aniName));

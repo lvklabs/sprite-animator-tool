@@ -15,7 +15,10 @@
 #include "lvkaframe.h"
 #include "lvkframe.h"
 #include "settings.h"
+#include "theme.h"
 #include "ui_mainwindow.h"
+#include <QActionGroup>
+#include <QApplication>
 #include <QCloseEvent>
 #include <QDebug>
 #include <QDir>
@@ -186,6 +189,37 @@ void MainWindow::initSignals() {
     connect(ui->actionAbout, &QAction::triggered, this, &MainWindow::about);
     connect(ui->actionWhatsThis, &QAction::triggered, this, &MainWindow::whatsThisMode);
 
+    // Team H3: wire the View > Theme submenu. Theme infrastructure has
+    // been in place since Phase 6a but had no UI entry point -- the mode
+    // was frozen at startup to whatever loadFromSettings() returned and
+    // saveToSettings() was never called from anywhere. Group the three
+    // actions so checking one unchecks the others; mark the persisted
+    // mode as the initial check so the menu reflects current state.
+    auto *themeGroup = new QActionGroup(this);
+    themeGroup->setExclusive(true);
+    themeGroup->addAction(ui->actionThemeSystem);
+    themeGroup->addAction(ui->actionThemeLight);
+    themeGroup->addAction(ui->actionThemeDark);
+    const Theme::Mode savedMode = Theme::loadFromSettings();
+    switch (savedMode) {
+    case Theme::Mode::Light:
+        ui->actionThemeLight->setChecked(true);
+        break;
+    case Theme::Mode::Dark:
+        ui->actionThemeDark->setChecked(true);
+        break;
+    case Theme::Mode::Auto:
+    default:
+        ui->actionThemeSystem->setChecked(true);
+        break;
+    }
+    connect(ui->actionThemeSystem, &QAction::triggered, this,
+            &MainWindow::onThemeActionTriggered);
+    connect(ui->actionThemeLight, &QAction::triggered, this,
+            &MainWindow::onThemeActionTriggered);
+    connect(ui->actionThemeDark, &QAction::triggered, this,
+            &MainWindow::onThemeActionTriggered);
+
     // Phase 6a: bind the file/edit QActions to Qt's portable StandardKey
     // sequences so platform conventions (e.g. Cmd+O on macOS) are honored
     // even though the .ui file pins them to the literal "Ctrl+..." strings.
@@ -347,7 +381,7 @@ bool MainWindow::saveFile() {
         return saveAsFile();
     SpriteStateError err;
     if (!_sprState.save(_filename, &err)) {
-        infoDialog(tr("Cannot save") + _filename + ". " + SpriteState::errorMessage(err));
+        errorDialog(tr("Cannot save ") + _filename + ". " + SpriteState::errorMessage(err), this);
         return false;
     }
     return true;
@@ -363,7 +397,7 @@ bool MainWindow::saveAsFile() {
 
     SpriteStateError err;
     if (!_sprState.save(filename, &err)) {
-        infoDialog(tr("Cannot save ") + filename + ". " + SpriteState::errorMessage(err));
+        errorDialog(tr("Cannot save ") + filename + ". " + SpriteState::errorMessage(err), this);
         return false;
     }
     setCurrentFile(filename);
@@ -374,10 +408,10 @@ DialogButton MainWindow::saveChangesDialog() {
     QString msg = _filename.isEmpty()
                       ? tr("Save changes to file before closing?")
                       : tr("Save changes to file '") + _filename + tr("' before closing?");
-    DialogButton button = yesNoCancelDialog(msg);
+    DialogButton button = yesNoCancelDialog(msg, this);
     if (button == YesButton) {
         if (ui->transTableWidget->rowCount() > 0) {
-            infoDialog(tr("Warning: transitions won't be saved."));
+            infoDialog(tr("Warning: transitions won't be saved."), this);
         }
         if (!saveFile()) {
             button = CancelButton;
@@ -411,7 +445,7 @@ bool MainWindow::openFile_checkUnsaved(const QString &filename) {
 bool MainWindow::openFile(const QString &filename) {
     SpriteStateError err;
     if (!openFile_(filename, &err)) {
-        infoDialog(tr("Cannot open ") + filename + ". " + SpriteState::errorMessage(err));
+        errorDialog(tr("Cannot open ") + filename + ". " + SpriteState::errorMessage(err), this);
         return false;
     }
     return true;
@@ -473,7 +507,8 @@ bool MainWindow::openFile_(const QString &filename_, SpriteStateError *err) {
         infoDialog(tr("%n record(s) were skipped while loading %1 "
                       "(see stderr for details).",
                       "", rejectedCount)
-                       .arg(filename));
+                       .arg(filename),
+                   this);
     }
 
     refreshAll();
@@ -697,7 +732,7 @@ void MainWindow::showLoadProgress(const QString &progress) {
 
 void MainWindow::undo() {
     if (ui->tabWidget->currentWidget() == ui->transitionsTab) {
-        infoDialog(tr("Actions in the \"Transitions\" tab cannot be undone or redone"));
+        infoDialog(tr("Actions in the \"Transitions\" tab cannot be undone or redone"), this);
     } else if (_sprState.canUndo()) {
         _sprState.undo();
         refreshAll();
@@ -706,7 +741,7 @@ void MainWindow::undo() {
 
 void MainWindow::redo() {
     if (ui->tabWidget->currentWidget() == ui->transitionsTab) {
-        infoDialog(tr("Actions in the \"Transitions\" tab cannot be undone or redone"));
+        infoDialog(tr("Actions in the \"Transitions\" tab cannot be undone or redone"), this);
     } else if (_sprState.canRedo()) {
         _sprState.redo();
         refreshAll();
@@ -718,11 +753,37 @@ void MainWindow::whatsThisMode() {
 }
 
 void MainWindow::about() {
-    QMessageBox msg;
+    // Team H3: APP_ABOUT is an HTML string (anchor tags, <br/>, <b>...</b>),
+    // so the dialog must be told to render it as rich text -- otherwise
+    // QMessageBox auto-detects plain text and the `\n\n` join collapses
+    // to a single space, the fork URL renders as literal "<a href=...>",
+    // and the license link doesn't become clickable. Force Qt::RichText
+    // and use <br/><br/> for the trailing paragraph break.
+    QMessageBox msg(this);
+    msg.setIcon(QMessageBox::Information);
     msg.setWindowTitle(tr("About %1").arg(APP_NAME));
-    msg.setText(QString(APP_ABOUT) + "\n\n" + tr("Modernized 2026 — Qt 6 port, 10-agent upgrade."));
+    msg.setTextFormat(Qt::RichText);
+    msg.setText(QString(APP_ABOUT) + "<br/><br/>" +
+                tr("Modernized 2026 -- see CHANGELOG.md for details."));
     msg.setIconPixmap(QPixmap(":/icons/app-icon-128x128"));
     msg.exec();
+}
+
+void MainWindow::onThemeActionTriggered() {
+    // Map the currently-checked QAction back to a Theme::Mode, apply the
+    // palette live, and persist so the choice survives a restart. We
+    // resolve QApplication via qApp here rather than threading it in
+    // because Theme::apply only needs the application instance.
+    Theme::Mode mode = Theme::Mode::Auto;
+    if (ui->actionThemeLight->isChecked()) {
+        mode = Theme::Mode::Light;
+    } else if (ui->actionThemeDark->isChecked()) {
+        mode = Theme::Mode::Dark;
+    } else {
+        mode = Theme::Mode::Auto;
+    }
+    Theme::apply(qApp, mode);
+    Theme::saveToSettings(mode);
 }
 
 void MainWindow::exit() {

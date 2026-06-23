@@ -146,6 +146,12 @@ private slots:
     void whatsThisMode();
     void about();
 
+    /// Team H3: View > Theme menu handler. Calls Theme::apply() so the
+    /// palette swaps live, then Theme::saveToSettings() so the choice
+    /// survives a restart. The three actions live in an exclusive
+    /// QActionGroup so exactly one is checked at a time.
+    void onThemeActionTriggered();
+
     void addRecentFileMenu(const QString &filename);
     void storeRecentFile(const QString &filename);
 

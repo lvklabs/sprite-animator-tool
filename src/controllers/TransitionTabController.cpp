@@ -61,8 +61,9 @@ Id TransitionTabController::getTransAniId(int row) const {
 
 void TransitionTabController::addTransDialog() {
     if (m_state->animations().isEmpty()) {
-        infoDialog(tr(
-            "No animations available.\n\nGo to the \"Animations\" tab to create one animation."));
+        infoDialog(tr("No animations available.\n\n"
+                      "Go to the \"Animations\" tab to create one animation."),
+                   m_mw);
         return;
     }
 
@@ -80,7 +81,8 @@ void TransitionTabController::addTransDialog() {
     if (ok) {
         QStringList tokens = ani_str.split(" ");
         if (tokens.size() < 2) {
-            infoDialog(tr("Cannot add animation. The selected animation could not be parsed"));
+            infoDialog(tr("Cannot add animation. The selected animation could not be parsed"),
+                       m_mw);
             return;
         }
         Id aniId = tokens.at(1).toInt();
@@ -100,7 +102,8 @@ void TransitionTabController::addTrans(Id aniId) {
     infoDialog(tr("Coming soon: adding animation transitions is preview-only "
                   "in this build and is not yet persisted to the sprite "
                   "state. Your selection will play in the preview pane below, "
-                  "but it will not be saved with the project."));
+                  "but it will not be saved with the project."),
+               m_mw);
     addTrans_ui(aniId);
 }
 

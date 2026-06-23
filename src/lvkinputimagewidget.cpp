@@ -59,6 +59,19 @@ void LvkInputImageWidget::setPixmap(const QPixmap &pixmap, Id useCacheId) {
             qDebug() << "WARNING: LvkInputImageWidget::setPixmap() useCacheId negative, using 0";
             useCacheId = 0;
         }
+
+        // Team H3: if the caller reuses a cache id for a *different*
+        // pixmap (the common case is image reload after disk edit), the
+        // entries scaled from the previous pixmap are now stale and
+        // must be evicted -- otherwise paintEvent serves the old scaled
+        // copy and the user sees no visible refresh. QPixmap::cacheKey()
+        // is the canonical "same underlying data" probe and is cheap.
+        // We use it to compare the new pixmap against whatever was
+        // stored for this id, falling back to clearing on a fresh id
+        // (when _cacheId did not previously map to this useCacheId).
+        if (useCacheId != _cacheId || _pixmap.cacheKey() != pixmap.cacheKey()) {
+            clearPixmapCache(useCacheId);
+        }
         _cacheId = useCacheId;
     }
 
@@ -250,6 +263,13 @@ void LvkInputImageWidget::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void LvkInputImageWidget::wheelEvent(QWheelEvent *event) {
+    // Team H3: previously the function called event->accept() inside the
+    // Ctrl-zoom branch and then an UNCONDITIONAL event->ignore() at the
+    // tail, so Qt's "last call wins" semantics for accept/ignore meant
+    // the parent QScrollArea always received the wheel event too -- the
+    // image zoomed AND the scrollbar moved on every Ctrl+Wheel tick.
+    // The else branch keeps the legacy "no modifier ==> let the scroll
+    // area scroll" behaviour intact.
     if (ctrlKey()) {
         const int dy = event->angleDelta().y();
         if (dy > 0) {
@@ -258,8 +278,9 @@ void LvkInputImageWidget::wheelEvent(QWheelEvent *event) {
             zoomOut();
         }
         event->accept();
+    } else {
+        event->ignore();
     }
-    event->ignore();
 }
 
 void LvkInputImageWidget::keyPressEvent(QKeyEvent *event) {
