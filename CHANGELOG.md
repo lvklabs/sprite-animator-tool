@@ -28,7 +28,7 @@ this release closes all of them.
   geometry + state via `QSettings` (`ui/mainwindow/geometry`,
   `ui/mainwindow/state`).
 - **Accessibility.** `accessibleName` / `accessibleDescription` on
-  the four table widgets, frame canvas, previews, and primary toolbar
+  the five table widgets, frame canvas, previews, and primary toolbar
   buttons. Keyboard shortcuts via `QKeySequence::{Open,Save,SaveAs,Undo,Redo,New,Quit}`.
 - **10 new test executables** (21 total, up from 11):
   - `tst_version_preservation` — v0.1 round-trip + bump-on-edit

@@ -2,7 +2,8 @@
 #define SETTINGS_H
 
 #define APP_NAME "LVK Sprite Animation Tool"
-#define APP_VERSION "1.2.1"
+// Keep in sync with CMakeLists.txt project(VERSION ...) until refactored to a configured header.
+#define APP_VERSION "2.0.1"
 #define APP_ABOUT                                                                                  \
     "<b>" APP_NAME " " APP_VERSION "</b><br/>"                                                     \
     "(c) 2010, 2011, 2012 LVK<br/><br/>"                                                           \

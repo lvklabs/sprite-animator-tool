@@ -41,6 +41,13 @@ ctest --test-dir build --output-on-failure
 #### Headless export
 
 ```sh
+./build/LvkSpriteEditor --export examples/mario.lvks
+```
+
+By default the export trio is written next to the input `.lvks` file.
+Pass `--output-dir` to redirect it elsewhere:
+
+```sh
 ./build/LvkSpriteEditor --export examples/mario.lvks \
                         --output-dir /tmp/out
 ```
@@ -52,7 +59,8 @@ macros).
 Optional flags:
 
 - `-e`, `--export` -- enable headless mode.
-- `-o`, `--output-dir <dir>` -- required with `--export`.
+- `-o`, `--output-dir <dir>` -- export output directory. Defaults to the
+  input `.lvks` file's directory when omitted.
 - `-p`, `--postprocessing-script <script>` -- per-frame image filter. The
   script receives `<input-png> <output-png>` and must produce
   `<output-png>`. See `tests/security/tst_postpscript_injection.cpp` for
@@ -93,7 +101,7 @@ per-agent breakdown:
   `AUTOMOC`/`AUTOUIC`/`AUTORCC`.
 - Replaced ~100 `SIGNAL()`/`SLOT()` macro connections with type-checked
   pointer-to-member-function syntax.
-- 9 unit / format / security test binaries (Qt Test).
+- 21 unit / format / security test binaries (Qt Test).
 - GitHub Actions CI matrix (Linux/macOS/Windows x Qt 6.8), `.clang-format`,
   `.clang-tidy`, `.editorconfig`, CPack packaging stubs (DEB / TGZ / DMG /
   NSIS).

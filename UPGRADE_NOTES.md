@@ -278,7 +278,8 @@ rejection. Covered by `tests/format/tst_path_traversal.cpp`.
 - A new `JsonAtlasExporter` in `src/exporters/` emits a packed PNG
   sheet (shelf-pack) + TexturePacker-compatible JSON descriptor with
   an extra `animations` key (LVK extension).
-- `MainWindow::cellChangedSignals(bool)` is preserved as a no-op
-  bottleneck hook for future read-only mode work; the controllers
-  each wrap their `setText()` calls with local
-  disconnect/reconnect pairs (mirrors legacy behavior).
+- `MainWindow::cellChangedSignals(bool)` was deleted entirely in
+  Phase 3 (the post-refactor stub was an empty no-op that wiped the
+  undo stack on every file open). Each controller now wraps its
+  `setText()` calls with a per-controller `QSignalBlocker` (RAII),
+  which mirrors the legacy bottleneck without the global side effect.

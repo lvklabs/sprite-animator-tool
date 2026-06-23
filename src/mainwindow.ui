@@ -1628,6 +1628,12 @@ Currently, this button does nothing</string>
             </item>
             <item>
              <widget class="QTableWidget" name="transTableWidget">
+              <property name="accessibleName">
+               <string>Transitions table</string>
+              </property>
+              <property name="accessibleDescription">
+               <string>List of animation transitions defined for this sprite.</string>
+              </property>
               <property name="editTriggers">
                <set>QAbstractItemView::NoEditTriggers</set>
               </property>
