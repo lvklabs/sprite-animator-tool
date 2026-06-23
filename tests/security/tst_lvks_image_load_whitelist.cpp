@@ -48,6 +48,14 @@ private slots:
     // link) must still be admitted. The validator's Optional mode
     // tolerates absent files iff their extension is on the whitelist.
     void acceptsMissingFileWithGoodExtension();
+    // Team F2 (F2.2): the same fixture must be rejected (or accepted)
+    // regardless of which directory the calling process is currently in.
+    // Pre-F2.2 the validator used QFileInfo(relativePath).exists() which
+    // resolved against CWD -- so a tampered .lvks would slip through if
+    // the user happened to run the editor from anywhere other than the
+    // .lvks file's own directory.
+    void cwdIndependentRejection();
+    void cwdIndependentAcceptance();
 
 private:
     // Build a v0.4 .lvks fixture referencing a single image filename, and
@@ -214,6 +222,94 @@ void TstLvksImageLoadWhitelist::acceptsMissingFileWithGoodExtension()
         writeFixture(QDir(tmp.path()), QStringLiteral("moved.png"));
     QVERIFY(!lvksPath.isEmpty());
 
+    SpriteState st;
+    SpriteState::SpriteStateError err = SpriteState::ErrNone;
+    int rejectedCount = 0;
+    const bool ok = st.load(lvksPath, &err, &rejectedCount);
+    QVERIFY(ok);
+    QCOMPARE(err, SpriteState::ErrNone);
+    QCOMPARE(st.images().size(), 1);  // admitted despite missing file
+    QCOMPARE(rejectedCount, 0);
+}
+
+void TstLvksImageLoadWhitelist::cwdIndependentRejection()
+{
+    // Team F2 (F2.2): Build a fixture in one directory, plant the
+    // bad image alongside it (so it's discoverable relative to the
+    // .lvks file's directory), then chdir() the test process into a
+    // sibling directory that does NOT contain the image. The load
+    // must still reject the bad image -- proving the validator
+    // resolves the record against the .lvks file's directory, not
+    // the process CWD.
+    QTemporaryDir spriteHome;
+    QVERIFY(spriteHome.isValid());
+    QTemporaryDir otherCwd;
+    QVERIFY(otherCwd.isValid());
+
+    // Write the bad image into spriteHome (NOT into otherCwd).
+    {
+        QFile evil(QDir(spriteHome.path()).absoluteFilePath(QStringLiteral("evil.eps")));
+        QVERIFY(evil.open(QFile::WriteOnly));
+        evil.write("%"); // unrecognised format
+        evil.close();
+    }
+
+    const QString lvksPath =
+        writeFixture(QDir(spriteHome.path()), QStringLiteral("evil.eps"));
+    QVERIFY(!lvksPath.isEmpty());
+
+    // CWD = otherCwd (a directory with NO evil.eps in it). Without
+    // F2.2, validateImageFile would QFileInfo("evil.eps").exists() ==
+    // false in this CWD and silently let the record through as a
+    // "missing asset" -- a silent-data-loss + bypass primitive.
+    QDir::setCurrent(otherCwd.path());
+
+    SpriteState st;
+    SpriteState::SpriteStateError err = SpriteState::ErrNone;
+    int rejectedCount = 0;
+    const bool ok = st.load(lvksPath, &err, &rejectedCount);
+    QVERIFY(ok);
+    QCOMPARE(err, SpriteState::ErrNone);
+    QCOMPARE(st.images().size(), 0);
+    QCOMPARE(rejectedCount, 1);
+
+    // Re-run with CWD == the .lvks file's home directory. The
+    // outcome MUST be identical -- same rejection, same count.
+    QDir::setCurrent(spriteHome.path());
+
+    SpriteState st2;
+    SpriteState::SpriteStateError err2 = SpriteState::ErrNone;
+    int rejectedCount2 = 0;
+    const bool ok2 = st2.load(lvksPath, &err2, &rejectedCount2);
+    QVERIFY(ok2);
+    QCOMPARE(err2, SpriteState::ErrNone);
+    QCOMPARE(st2.images().size(), 0);
+    QCOMPARE(rejectedCount2, 1);
+}
+
+void TstLvksImageLoadWhitelist::cwdIndependentAcceptance()
+{
+    // Team F2 (F2.2): symmetric positive case. A clean PNG sitting
+    // next to its .lvks file should be admitted regardless of where
+    // the calling process happens to be.
+    QTemporaryDir spriteHome;
+    QVERIFY(spriteHome.isValid());
+    QTemporaryDir otherCwd;
+    QVERIFY(otherCwd.isValid());
+
+    // Write good.png into spriteHome.
+    {
+        QImage img(4, 4, QImage::Format_ARGB32);
+        img.fill(qRgba(0, 255, 0, 255));
+        QVERIFY(img.save(QDir(spriteHome.path()).absoluteFilePath(QStringLiteral("good.png")),
+                         "PNG"));
+    }
+
+    const QString lvksPath =
+        writeFixture(QDir(spriteHome.path()), QStringLiteral("good.png"));
+    QVERIFY(!lvksPath.isEmpty());
+
+    QDir::setCurrent(otherCwd.path());
     SpriteState st;
     SpriteState::SpriteStateError err = SpriteState::ErrNone;
     int rejectedCount = 0;

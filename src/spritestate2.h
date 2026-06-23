@@ -47,7 +47,8 @@ public:
 
     void clear();
     bool save(const QString &filename, SpriteStateError *err = 0);
-    bool load(const QString &filename, SpriteStateError *err = 0);
+    bool load(const QString &filename, SpriteStateError *err = 0,
+              int *rejectedCount = nullptr);
 
 private:
     StateCircularBuffer _stBuffer;

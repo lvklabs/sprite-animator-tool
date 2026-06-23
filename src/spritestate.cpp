@@ -546,6 +546,20 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err, int *reje
         return false;
     }
 
+    // Team F2 (F2.2): resolve image-record filenames against the
+    // .lvks file's own directory, not the process CWD. The previous
+    // call site fed tmpImage.filename verbatim to QFileInfo / the
+    // validator, which used QFileInfo(relPath).exists() -- a CWD-
+    // relative resolution. That made load() non-deterministic
+    // across invocations (a relative "evil.png" sitting in CWD
+    // would be sniffed instead of the sibling-to-the-.lvks file
+    // the format actually means), and broke portability of .lvks
+    // files between users with different working directories.
+    //
+    // We compute the absolute base directory once, here, and pass
+    // resolved absolute paths into validateImageFile from now on.
+    const QString spriteFileDir = QFileInfo(filename).absolutePath();
+
     clear();
 
     enum {
@@ -670,9 +684,21 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err, int *reje
                     // whole load) and a counter is bumped that the
                     // headless CLI inspects in D2.3 to surface a
                     // non-zero exit code.
+                    // Team F1 + F2 merged: resolve filename against the
+                    // .lvks file's directory (F2.2: CWD-independent), then
+                    // call the validator with ExistenceCheck::Optional
+                    // (F1.2: closes the TOCTOU bypass — a malicious .lvks
+                    // referencing evil.eps that doesn't exist at load
+                    // time is rejected on extension alone). The
+                    // validator transparently falls back to extension-
+                    // only when the file is absent, so a broken-asset
+                    // .lvks with a missing `.png` is still admitted
+                    // (the pixmap will be null but the record survives).
                     if (!tmpImage.filename.isEmpty()) {
+                        const QString absImgPath = QDir(spriteFileDir)
+                                                       .absoluteFilePath(tmpImage.filename);
                         QString errMsg;
-                        if (!lvk::validateImageFile(tmpImage.filename, &errMsg,
+                        if (!lvk::validateImageFile(absImgPath, &errMsg,
                                                     lvk::ExistenceCheck::Optional)) {
                             qWarning() << "SpriteState::load(): rejected image record"
                                        << "(format whitelist):" << errMsg;
@@ -701,10 +727,23 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err, int *reje
                     addFrame(tmpFrame);
                     emit(loadProgress(tr("Frame ") + tmpImage.filename));
                 } else {
-                    qDebug() << "Error: SpriteState::load(): invalid frame entry" << line
-                             << "at line" << lineNumber;
-                    setError(err, ErrInvalidFormat);
-                    state = StError;
+                    // Team F2 (F2.3): a bad frame record (e.g. out-of-bounds
+                    // w/h flagged by LvkFrame::fromString's Phase 4 cap) used
+                    // to abort the entire load with ErrInvalidFormat. That's
+                    // inconsistent with the image-record path, which skips
+                    // and counts (see StTokenImages above) so partial-load
+                    // surfaces to the user via rejectedCount. Treat frame
+                    // rejections the same way: warn, bump the counter, and
+                    // keep parsing. The user gets a sprite missing the bad
+                    // frame plus a banner / non-zero CLI exit; the alternative
+                    // (silent abort + ErrInvalidFormat for the whole file) is
+                    // strictly worse for the "one tampered record in a
+                    // 1000-frame sprite" case.
+                    qWarning() << "SpriteState::load(): rejected frame entry" << line
+                               << "at line" << lineNumber;
+                    if (rejectedCount) {
+                        ++(*rejectedCount);
+                    }
                 }
             }
             break;

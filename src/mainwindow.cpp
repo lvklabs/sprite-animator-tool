@@ -444,13 +444,36 @@ bool MainWindow::openFile_(const QString &filename_, SpriteStateError *err) {
     }
 
     setCursor(QCursor(Qt::BusyCursor));
-    bool success = _sprState.load(filename, err);
+    int rejectedCount = 0;
+    bool success = _sprState.load(filename, err, &rejectedCount);
     statusBarRectSize->setText("");
     setCursor(QCursor(Qt::ArrowCursor));
 
     if (!success) {
         closeFile();
         return false;
+    }
+
+    // Team F2 (F2.1): surface partial-load to the user. The CLI
+    // already exits with code 2 when records are rejected (see
+    // src/main.cpp); the GUI used to silently load the partial
+    // sprite, so a user opening a tampered .lvks had no indication
+    // that data was dropped. Two complementary surfaces:
+    //   (1) a 5-second status-bar message (the minimum --
+    //       discoverable even if the user dismissed the dialog),
+    //   (2) a non-modal info dialog so the message is not lost in a
+    //       flurry of refreshAll() events that will reset the
+    //       status bar's "Loading..." label below.
+    // The text mirrors the CLI's warning wording for parity.
+    if (rejectedCount > 0) {
+        statusBar()->showMessage(
+            tr("%n record(s) rejected during load (see stderr for details)",
+               "", rejectedCount),
+            5000);
+        infoDialog(tr("%n record(s) were skipped while loading %1 "
+                      "(see stderr for details).",
+                      "", rejectedCount)
+                       .arg(filename));
     }
 
     refreshAll();

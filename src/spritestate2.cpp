@@ -203,8 +203,13 @@ bool SpriteState2::save(const QString &filename, SpriteStateError *err) {
     return success;
 }
 
-bool SpriteState2::load(const QString &filename, SpriteStateError *err) {
-    bool success = SpriteState::load(filename, err);
+bool SpriteState2::load(const QString &filename, SpriteStateError *err, int *rejectedCount) {
+    // Team F2 (F2.1): forward the rejectedCount outparam so the GUI
+    // (MainWindow::openFile_) can surface partial-load warnings. Without
+    // this, a malicious .lvks file whose records get dropped at load
+    // time (image format whitelist, frame-bounds rejection) appears to
+    // open cleanly and the user has no signal that data was lost.
+    bool success = SpriteState::load(filename, err, rejectedCount);
 
     if (success) {
         _stBuffer.clear();

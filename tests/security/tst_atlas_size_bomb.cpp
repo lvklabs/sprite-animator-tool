@@ -19,9 +19,11 @@
 #include <QGuiApplication>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QImage>
 #include <QPixmap>
 #include <QTemporaryDir>
+#include <QTextStream>
 
 #include "exporters/JsonAtlasExporter.h"
 #include "spritestate.h"
@@ -56,6 +58,11 @@ class TstAtlasSizeBomb : public QObject
 private slots:
     void rejectsOversizedFrameInFromString();
     void rejectsAtlasAreaOverflow();
+    // Team F2 (F2.3): a .lvks with one valid frame and one
+    // out-of-bounds frame must load with rejectedCount==1 and one
+    // surviving frame, rather than aborting the entire load with
+    // ErrInvalidFormat as the pre-F2.3 behavior did.
+    void loadSkipsOutOfBoundsFrameAndCountsIt();
 };
 
 
@@ -138,6 +145,67 @@ void TstAtlasSizeBomb::rejectsAtlasAreaOverflow()
              "atlas_bomb.png written despite overflow refusal");
 }
 
+
+void TstAtlasSizeBomb::loadSkipsOutOfBoundsFrameAndCountsIt()
+{
+    // Team F2 (F2.3): pre-F2.3, LvkFrame::fromString returning false
+    // (which it does for w/h > 8192 per Phase 4's atlas-bomb cap) made
+    // SpriteState::load() set ErrInvalidFormat and bail. That broke
+    // the partial-load invariant the image path already honours:
+    // skip + warn + count. This test verifies that a single bad frame
+    // in an otherwise-clean .lvks is now dropped (not promoted to a
+    // hard load failure) and that rejectedCount reflects it.
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+    QDir::setCurrent(tmp.path());
+
+    // Need a real PNG so the image record survives F2.2's
+    // absolute-path validation. The .lvks file's directory is tmp.
+    {
+        QImage img(8, 8, QImage::Format_ARGB32);
+        img.fill(qRgba(255, 0, 0, 255));
+        QVERIFY(img.save(QDir(tmp.path()).absoluteFilePath(QStringLiteral("seed.png")),
+                         "PNG"));
+    }
+
+    const QString lvksPath = QDir(tmp.path()).absoluteFilePath(QStringLiteral("mix.lvks"));
+    {
+        QFile f(lvksPath);
+        QVERIFY(f.open(QFile::WriteOnly | QFile::Text));
+        QTextStream ts(&f);
+        ts << "### LvkSprite #####\n";
+        ts << "LvkSprite version 0.4\n\n";
+        ts << "images(\n";
+        ts << "\t0,seed.png,1\n";
+        ts << ")\n\n";
+        ts << "frames(\n";
+        // Good frame: w=64, h=64 -- well under the 8192 cap.
+        ts << "\t0,good,0,0,0,64,64\n";
+        // Bad frame: w=9000 > 8192 -- LvkFrame::fromString rejects
+        // these per Phase 4's atlas-bomb hardening.
+        ts << "\t1,bad,0,0,0,9000,9000\n";
+        ts << ")\n\n";
+        ts << "animations(\n";
+        ts << ")\n\n";
+        ts << "custom_header(\n";
+        ts << ")\n\n";
+        ts << "### End LvkSprite #####\n";
+        f.close();
+    }
+
+    SpriteState st;
+    SpriteState::SpriteStateError err = SpriteState::ErrNone;
+    int rejectedCount = 0;
+    const bool ok = st.load(lvksPath, &err, &rejectedCount);
+
+    // F2.3 contract: load succeeds, the bad frame is skipped, the
+    // good frame survives, and the counter reflects the rejection.
+    QVERIFY2(ok, "load() should now skip out-of-bounds frames rather "
+                 "than aborting the whole file (pre-F2.3 behavior)");
+    QCOMPARE(err, SpriteState::ErrNone);
+    QCOMPARE(st.frames().size(), 1);
+    QCOMPARE(rejectedCount, 1);
+}
 
 int main(int argc, char *argv[])
 {
