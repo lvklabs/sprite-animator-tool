@@ -218,10 +218,15 @@ void SpriteState2::startTransaction() {
 void SpriteState2::endTransaction() {
     // Re-entrant: only the outermost endTransaction pushes a marker, pairing
     // with the outermost startTransaction. Underflow (more ends than starts)
-    // is a programming error -- clamp at zero so we don't push a stray end
-    // marker without a matching start.
-    Q_ASSERT(_transactionDepth > 0);
-    if (_transactionDepth > 0 && --_transactionDepth == 0) {
+    // is a programming error -- log and no-op so we don't push a stray end
+    // marker without a matching start. Logging instead of Q_ASSERT keeps
+    // release/debug behaviour aligned and lets tests verify the no-op.
+    if (_transactionDepth == 0) {
+        qWarning() << "SpriteState2::endTransaction(): underflow (more "
+                      "endTransaction than startTransaction calls); ignoring.";
+        return;
+    }
+    if (--_transactionDepth == 0) {
         StateChange st;
         st.type = StateCircularBuffer::st_transactionEnd;
         _stBuffer.addState(st);
