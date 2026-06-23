@@ -7,6 +7,25 @@
 
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Test)
 
+# lvk_set_warning_flags(target)
+#
+# Apply the same -Wall -Wextra -Wpedantic (or MSVC /W4) flags the main
+# target uses (Team D5) to a test target. Centralised here so that each
+# of the four lvk_add_*_test helpers in this directory tree -- the
+# canonical lvk_add_test below, tests/format/CMakeLists.txt's
+# lvk_add_format_test, tests/security/CMakeLists.txt's
+# lvk_add_security_test, and tests/unit/CMakeLists.txt's
+# lvk_add_full_test -- can call into the SAME warning-flag policy
+# without each re-declaring it (or, as before, silently dropping it for
+# 12 of 18 test executables).
+function(lvk_set_warning_flags target_name)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(${target_name} PRIVATE -Wall -Wextra -Wpedantic)
+    elseif(MSVC)
+        target_compile_options(${target_name} PRIVATE /W4)
+    endif()
+endfunction()
+
 # lvk_add_test(name SOURCES srcs... LINKS libs...)
 #
 # Creates a Qt Test executable wired up with the meta-build conveniences and
@@ -27,12 +46,7 @@ function(lvk_add_test name)
         "${CMAKE_SOURCE_DIR}/src"
     )
 
-    # Match the main target's warning flags (Team D5).
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        target_compile_options(${name} PRIVATE -Wall -Wextra -Wpedantic)
-    elseif(MSVC)
-        target_compile_options(${name} PRIVATE /W4)
-    endif()
+    lvk_set_warning_flags(${name})
 
     target_link_libraries(${name} PRIVATE
         Qt6::Test

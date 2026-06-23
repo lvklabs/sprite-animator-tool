@@ -15,6 +15,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QImage>
+#include <QImageReader>
 #include <QTemporaryDir>
 
 #include "inputimage.h"
@@ -44,6 +45,10 @@ private:
 void TstImagePathInjection::initTestCase()
 {
     QVERIFY2(m_workdir.isValid(), "Could not create temp workdir");
+
+    // Bonus (Team F3): pin QImageReader::setAllocationLimit so a future
+    // PR adding a malicious .lvks fixture can't DoS the test grid.
+    QImageReader::setAllocationLimit(256);
 
     // Write a 4x4 PNG and capture its CWD-relative filename. The positive
     // test expects the loaded pixmap to be non-null.

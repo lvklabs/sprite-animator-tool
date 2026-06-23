@@ -24,6 +24,8 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QImageReader>
+#include <QScopeGuard>
 #include <QTemporaryDir>
 #include <QTextStream>
 
@@ -34,6 +36,7 @@ class TstLvksImageLoadWhitelist : public QObject
 {
     Q_OBJECT
 private slots:
+    void initTestCase();
     void rejectsEpsRecordViaLoadPath();
     void acceptsValidPngRecordViaLoadPath();
     // Team F1 (F1.2): TOCTOU bypass. Pre-F1, an attacker .lvks
@@ -65,6 +68,16 @@ private:
                                 const QString &imageFilename);
 };
 
+void TstLvksImageLoadWhitelist::initTestCase()
+{
+    // Bonus (Team F3): pin QImageReader::setAllocationLimit so a future
+    // PR that lands a malicious .lvks fixture (e.g. a multi-gigapixel PNG
+    // header) cannot DoS the test grid by exhausting allocator memory.
+    // 256MB is the same cap Qt 6.5+ ships and matches the production
+    // hardening Team D2.1 picked up.
+    QImageReader::setAllocationLimit(256);
+}
+
 QString TstLvksImageLoadWhitelist::writeFixture(const QDir &dir,
                                                 const QString &imageFilename)
 {
@@ -94,6 +107,12 @@ void TstLvksImageLoadWhitelist::rejectsEpsRecordViaLoadPath()
 {
     QTemporaryDir tmp;
     QVERIFY(tmp.isValid());
+    // Team F3.4: save/restore CWD around the chdir. Without this, when
+    // `tmp` goes out of scope and its directory is unlinked, the
+    // process CWD points at a deleted inode -- which leaks into the
+    // next test case (and any subsequent QDir::currentPath() lookup).
+    const QString savedCwd = QDir::currentPath();
+    auto restore = qScopeGuard([savedCwd]() { QDir::setCurrent(savedCwd); });
     QDir::setCurrent(tmp.path());
 
     // Create a fake "evil.eps": 1 byte of arbitrary content. QImageReader
@@ -141,6 +160,10 @@ void TstLvksImageLoadWhitelist::acceptsValidPngRecordViaLoadPath()
     // whitelist accepts the formats it's supposed to.
     QTemporaryDir tmp;
     QVERIFY(tmp.isValid());
+    // Team F3.4: save/restore CWD; see rejectsEpsRecordViaLoadPath for
+    // the rationale.
+    const QString savedCwd = QDir::currentPath();
+    auto restore = qScopeGuard([savedCwd]() { QDir::setCurrent(savedCwd); });
     QDir::setCurrent(tmp.path());
 
     // Write a real PNG. QImage().save() produces a file QImageReader

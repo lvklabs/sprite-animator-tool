@@ -277,6 +277,22 @@ void TstVersionPreservation::marioPreservesV01()
     QCOMPARE(reloaded.const_aframe(1, 5).delay, 80);
     QCOMPARE(reloaded.const_aframe(1, 6).delay, 180);
     QCOMPARE(reloaded.const_aframe(1, 7).delay, 80);
+
+    // Team F3.2: the previous test only validated ox/oy/delay. A
+    // regression that mis-emitted frameId (e.g. swapping the id and
+    // frameId columns, or zero-filling frameId on the v0.1 path) would
+    // pass everything above. mario.lvks rows 5/6/7 under animation 1
+    // ("jump") all carry frameId=0 (the third column of "5,0,80,0,-10"
+    // etc. -- frameId is column #2 after the id), and row id=1 also
+    // has frameId=0. Assert that explicitly.
+    QCOMPARE(reloaded.const_aframe(1, 1).frameId, static_cast<Id>(0));
+    QCOMPARE(reloaded.const_aframe(1, 5).frameId, static_cast<Id>(0));
+    QCOMPARE(reloaded.const_aframe(1, 6).frameId, static_cast<Id>(0));
+    QCOMPARE(reloaded.const_aframe(1, 7).frameId, static_cast<Id>(0));
+    // animation 0 ("walk") row id=2 -> frameId=2, row id=3 -> frameId=3
+    // (a different invariant: catches a "frameId always 0" bug).
+    QCOMPARE(reloaded.const_aframe(0, 2).frameId, static_cast<Id>(2));
+    QCOMPARE(reloaded.const_aframe(0, 3).frameId, static_cast<Id>(3));
 }
 
 void TstVersionPreservation::scaleMutationBumpsToV02()
@@ -470,34 +486,88 @@ void TstVersionPreservation::marioRoundtripIsByteEquivalent()
     // 3c) Animation section: the per-animation HEADER lines (e.g.
     //     "0,walk") and the "aframes(" / ")" delimiters must match
     //     exactly -- those are what B1.1 (header preservation) +
-    //     B1.3 (sort-on-save sequencing) together guarantee. We
-    //     filter out the inner aframe rows because their textual
-    //     form is normalised by the minimal-emit policy, and the
-    //     load-and-compare below already catches any drift on those.
-    auto stripAframeRows = [](const QStringList &in) {
-        QStringList out;
+    //     B1.3 (sort-on-save sequencing) together guarantee. We can't
+    //     compare aframe ROW TEXT byte-for-byte because LvkAframe::
+    //     toString uses the minimal 3-field form for ox==oy==0 rows
+    //     while mario.lvks ships uniform 5-field rows for visual
+    //     consistency (e.g. original "2,2,180,0,0" -> saved "2,2,180").
+    //     Team F3.2: instead of dropping aframe rows entirely (the
+    //     previous strategy silently let frameId/delay/ox/oy/sticky
+    //     regressions slip through), PARSE each row and compare ALL
+    //     fields per LvkAframe. The non-aframe lines are still compared
+    //     verbatim.
+    auto splitAnimsAndAframes = [](const QStringList &in) {
+        QStringList nonAframeLines;
+        QList<QPair<int, QList<LvkAframe>>> aframeBlocks;  // (animId, rows)
         bool inAframes = false;
+        int currentAnimId = -1;
+        QList<LvkAframe> currentBlock;
         for (const QString &line : in) {
             if (line == QStringLiteral("aframes(")) {
                 inAframes = true;
-                out.append(line);
+                nonAframeLines.append(line);
+                currentBlock.clear();
                 continue;
             }
             if (line == QStringLiteral(")")) {
                 if (inAframes) {
                     inAframes = false;
-                    out.append(line);
+                    aframeBlocks.append(qMakePair(currentAnimId, currentBlock));
+                    currentBlock.clear();
+                    nonAframeLines.append(line);
                     continue;
                 }
-                out.append(line);
+                nonAframeLines.append(line);
                 continue;
             }
-            if (inAframes) continue;  // skip aframe rows themselves
-            out.append(line);
+            if (inAframes) {
+                LvkAframe af;
+                if (af.fromString(line)) {
+                    currentBlock.append(af);
+                }
+                continue;
+            }
+            // Non-aframe animation row (e.g. "0,walk" or "1,jump,0").
+            // The first comma-delimited field is the animation id.
+            const int comma = line.indexOf(QLatin1Char(','));
+            if (comma > 0) {
+                bool ok = false;
+                const int id = line.left(comma).toInt(&ok);
+                if (ok) currentAnimId = id;
+            }
+            nonAframeLines.append(line);
         }
-        return out;
+        return qMakePair(nonAframeLines, aframeBlocks);
     };
-    QCOMPARE(stripAframeRows(savedAnims), stripAframeRows(origAnims));
+
+    auto aframesEqual = [](const QList<LvkAframe> &a, const QList<LvkAframe> &b) {
+        if (a.size() != b.size()) return false;
+        for (int i = 0; i < a.size(); ++i) {
+            if (a.at(i).id != b.at(i).id) return false;
+            if (a.at(i).frameId != b.at(i).frameId) return false;
+            if (a.at(i).delay != b.at(i).delay) return false;
+            if (a.at(i).ox != b.at(i).ox) return false;
+            if (a.at(i).oy != b.at(i).oy) return false;
+            if (a.at(i).sticky != b.at(i).sticky) return false;
+        }
+        return true;
+    };
+
+    const auto origSplit = splitAnimsAndAframes(origAnims);
+    const auto savedSplit = splitAnimsAndAframes(savedAnims);
+    // Non-aframe lines: per-animation header rows + the literal
+    // "aframes("/")" delimiters must match exactly.
+    QCOMPARE(savedSplit.first, origSplit.first);
+    // Aframe blocks: same count of blocks, each with the same animId
+    // and the same ordered list of LvkAframes (all 6 fields per row).
+    QCOMPARE(savedSplit.second.size(), origSplit.second.size());
+    for (int i = 0; i < origSplit.second.size(); ++i) {
+        QCOMPARE(savedSplit.second.at(i).first, origSplit.second.at(i).first);
+        QVERIFY2(aframesEqual(savedSplit.second.at(i).second,
+                              origSplit.second.at(i).second),
+                 qPrintable(QString("aframe block %1 (animId %2) drifted on round-trip")
+                                .arg(i).arg(origSplit.second.at(i).first)));
+    }
 
     // 4) Explicit aframe-id sequence per animation (loaded from the
     //    saved bytes) must be ascending and match mario.lvks. This

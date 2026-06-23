@@ -114,6 +114,8 @@ function(lvk_add_full_test name)
         AUTOUIC_SEARCH_PATHS "${SRC_DIR}"
     )
     target_include_directories(${name} PRIVATE "${SRC_DIR}")
+    # Match the main target's warning flags (Team D5 / Team F3.1).
+    lvk_set_warning_flags(${name})
     target_link_libraries(${name} PRIVATE
         Qt6::Test
         Qt6::Core

@@ -41,6 +41,8 @@ function(lvk_add_security_test name)
     target_include_directories(${name} PRIVATE
         "${CMAKE_SOURCE_DIR}/src"
     )
+    # Match the main target's warning flags (Team D5 / Team F3.1).
+    lvk_set_warning_flags(${name})
     target_link_libraries(${name} PRIVATE
         Qt6::Core
         Qt6::Gui

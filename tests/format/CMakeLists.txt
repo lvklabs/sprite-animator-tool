@@ -58,6 +58,11 @@ function(lvk_add_format_test test_name)
         ${_LVK_FORMAT_HEADERS}
     )
     target_include_directories(${test_name} PRIVATE "${_LVK_SRC}")
+    # Match the main target's warning flags (Team D5 / Team F3.1): use
+    # the shared helper defined in tests/CMakeLists.txt so this helper
+    # stays in sync with lvk_add_test / lvk_add_security_test /
+    # lvk_add_full_test.
+    lvk_set_warning_flags(${test_name})
     target_link_libraries(${test_name} PRIVATE
         Qt6::Core
         Qt6::Gui

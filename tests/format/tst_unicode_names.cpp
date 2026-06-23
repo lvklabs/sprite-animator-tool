@@ -322,44 +322,47 @@ void TstUnicodeNames::saveReturnsFalseOnAnimationNameWithComma()
     QVERIFY2(!ok, "save() must return false when an animation name contains a comma");
     QCOMPARE(err, SpriteState::ErrInvalidFormat);
 
-    // Atomic-save invariant: either the file is gone (target removed
-    // because the rename never happened) OR its bytes still equal the
-    // pre-written content. Anything else means save() half-wrote bytes
-    // through the target and clobbered the user's previous file --
-    // exactly the silent-data-loss regression we are guarding against.
-    //
-    // NOTE: this assertion is the D3.2 strengthening that depends on
-    // D2.2's atomic-save fix (QSaveFile-style write-to-tmp + rename).
-    // In worktrees where D2.2 is not yet in place, save() opens the
-    // target with truncate semantics and partial bytes leak through;
-    // the QEXPECT_FAIL below documents that dependency without
-    // turning the suite red. Once D2.2 lands, the QEXPECT_FAIL can be
-    // dropped and this assertion will hold unconditionally.
+    // Atomic-save invariant: the pre-written file MUST still be on
+    // disk with its original bytes intact. The previous form of this
+    // test used `if (postInfo.exists())` -- a silent regression that
+    // DELETED the user's pre-written file then returned false would
+    // pass that guard, because the "file is gone" branch was treated
+    // as acceptable. It is not: an atomic save MUST NEVER destroy
+    // the original on failure. We assert presence + byte identity
+    // hard. (Team F3.3.)
     QFileInfo postInfo(out);
-    if (postInfo.exists()) {
+    QVERIFY2(postInfo.exists(),
+             "failed save() must not delete the pre-existing good file");
+    {
         QFile post(out);
         QVERIFY(post.open(QFile::ReadOnly));
         const QByteArray postBytes = post.readAll();
-        // D2.2 atomic save (QSaveFile/rename) is landed; assertion is hard.
         QVERIFY2(postBytes == preWritten,
                  "failed save() must not clobber pre-existing good content");
-        SpriteState reloaded;
-        SpriteStateError loadErr = SpriteState::ErrNone;
-        const bool loadedOk = reloaded.load(out, &loadErr);
-        if (loadedOk) {
-            // The bad animation MUST NOT have round-tripped: either
-            // because save() never wrote it OR because the post-save
-            // file is the pre-written good file with a different
-            // animation. The exact identity depends on D2.2; what we
-            // forbid here is the original silent-data-loss bug where
-            // an animation named "a,b" would survive intact.
-            for (auto it = reloaded.animations().constBegin();
-                 it != reloaded.animations().constEnd(); ++it) {
-                QVERIFY2(it.value().name != QStringLiteral("a,b"),
-                         "the comma-bearing animation must not survive save+reload");
-            }
-        }
-        // (else: load failed, which is also acceptable.)
+    }
+
+    // Also verify there's no orphaned .tmp / .save-tmp file lingering
+    // next to the target. The atomic save writes to a sibling tmp file
+    // and renames into place on success; on the failure path it must
+    // clean the tmp up rather than leaving stale partial bytes around.
+    QVERIFY2(QDir(QFileInfo(out).path())
+                 .entryList(QStringList{QStringLiteral("*.tmp"),
+                                        QStringLiteral("*.save-tmp")},
+                            QDir::Files).isEmpty(),
+             "no orphan tmp files");
+
+    // The bad animation MUST NOT have round-tripped: reloading the
+    // file we kept on disk must yield the pre-written sprite (one
+    // image, one frame, one "clean" animation), not the comma-bearing
+    // one we tried to save.
+    SpriteState reloaded;
+    SpriteStateError loadErr = SpriteState::ErrNone;
+    const bool loadedOk = reloaded.load(out, &loadErr);
+    QVERIFY2(loadedOk, "the pre-written good file must still load cleanly");
+    for (auto it = reloaded.animations().constBegin();
+         it != reloaded.animations().constEnd(); ++it) {
+        QVERIFY2(it.value().name != QStringLiteral("a,b"),
+                 "the comma-bearing animation must not survive save+reload");
     }
 }
 
@@ -413,16 +416,26 @@ void TstUnicodeNames::saveReturnsFalseOnImageFilenameWithComma()
     QVERIFY2(!ok, "save() must return false when an image filename contains a comma");
     QCOMPARE(err, SpriteState::ErrInvalidFormat);
 
-    // Same atomic-save invariant as saveReturnsFalseOnAnimationNameWithComma.
-    // QEXPECT_FAIL until D2.2 lands; see the long comment in that test.
-    if (QFile::exists(out)) {
+    // Same atomic-save invariant as saveReturnsFalseOnAnimationNameWithComma:
+    // the pre-written file must still exist and its bytes must match
+    // the pre-written content (Team F3.3 -- the previous `if (exists())`
+    // guard silently accepted "file gone" as success).
+    QVERIFY2(QFile::exists(out),
+             "failed save() must not delete the pre-existing good file");
+    {
         QFile post(out);
         QVERIFY(post.open(QFile::ReadOnly));
         const QByteArray postBytes = post.readAll();
-        // D2.2 atomic save (QSaveFile/rename) is landed; assertion is hard.
         QVERIFY2(postBytes == preWritten,
                  "failed save() must not clobber pre-existing good content");
     }
+
+    // No orphan tmp files left behind by the failed atomic save.
+    QVERIFY2(QDir(QFileInfo(out).path())
+                 .entryList(QStringList{QStringLiteral("*.tmp"),
+                                        QStringLiteral("*.save-tmp")},
+                            QDir::Files).isEmpty(),
+             "no orphan tmp files");
 }
 
 QTEST_MAIN(TstUnicodeNames)
