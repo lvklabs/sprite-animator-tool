@@ -52,27 +52,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Linux Qt6 runtime deps
+      - name: Install Qt6 via apt (Linux)
+        # aqtinstall pulls Qt binaries linked against the libicu version
+        # current at the Qt build's time (so.56 for Qt 6.5.3, so.73 for
+        # 6.8.0). Ubuntu 24.04 ships libicu74 only, so uic exits before
+        # the build can run. apt's qt6-base-dev/qt6-tools-dev are
+        # compiled against the system ICU, so they work directly. We
+        # ignore matrix.qt-version on Linux and use apt's package
+        # (currently Qt 6.4.2 on Ubuntu 24.04).
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get install -y --no-install-recommends \
+            qt6-base-dev \
+            qt6-base-dev-tools \
+            qt6-tools-dev \
+            libqt6widgets6 \
             libgl1-mesa-dev \
             libxkbcommon-x11-0 \
-            libxcb-icccm4 \
-            libxcb-image0 \
-            libxcb-keysyms1 \
-            libxcb-randr0 \
-            libxcb-render-util0 \
-            libxcb-shape0 \
-            libxcb-xfixes0 \
-            libxcb-xinerama0 \
-            libxcb-cursor0 \
             libfontconfig1 \
             libdbus-1-3 \
             xvfb
 
       - name: Install Qt ${{ matrix.qt-version }}
+        if: runner.os != 'Linux'
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ matrix.qt-version }}
@@ -118,7 +121,8 @@ jobs:
         if: runner.os == 'macOS'
         env:
           QT_QPA_PLATFORM: offscreen
-        run: ./build/LvkSpriteEditor --help
+        # MACOSX_BUNDLE TRUE puts the binary inside an .app bundle.
+        run: ./build/LvkSpriteEditor.app/Contents/MacOS/LvkSpriteEditor --help
 
       - name: Smoke (binary runs --help) (Windows)
         if: runner.os == 'Windows'
