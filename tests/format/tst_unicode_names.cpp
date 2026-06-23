@@ -340,14 +340,9 @@ void TstUnicodeNames::saveReturnsFalseOnAnimationNameWithComma()
         QFile post(out);
         QVERIFY(post.open(QFile::ReadOnly));
         const QByteArray postBytes = post.readAll();
-        QEXPECT_FAIL("", "depends on D2.2 atomic save (QSaveFile/rename)", Continue);
+        // D2.2 atomic save (QSaveFile/rename) is landed; assertion is hard.
         QVERIFY2(postBytes == preWritten,
                  "failed save() must not clobber pre-existing good content");
-
-        // Even without D2.2, we can assert the WEAKER but still
-        // meaningful invariant: a reload of whatever is on disk must
-        // not silently re-introduce the bad "a,b" animation as a
-        // valid record.
         SpriteState reloaded;
         SpriteStateError loadErr = SpriteState::ErrNone;
         const bool loadedOk = reloaded.load(out, &loadErr);
@@ -424,7 +419,7 @@ void TstUnicodeNames::saveReturnsFalseOnImageFilenameWithComma()
         QFile post(out);
         QVERIFY(post.open(QFile::ReadOnly));
         const QByteArray postBytes = post.readAll();
-        QEXPECT_FAIL("", "depends on D2.2 atomic save (QSaveFile/rename)", Continue);
+        // D2.2 atomic save (QSaveFile/rename) is landed; assertion is hard.
         QVERIFY2(postBytes == preWritten,
                  "failed save() must not clobber pre-existing good content");
     }
