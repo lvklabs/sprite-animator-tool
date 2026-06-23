@@ -194,22 +194,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Linux Qt6 runtime deps
+      - name: Install Qt6 via apt + clang-tidy
+        # Use the same apt Qt6 as the Linux matrix entry above; aqtinstall
+        # Qt 6.8.0 here would make tidy analyze headers the build doesn't
+        # use, so diagnostics could fire on APIs the actual build sees
+        # under apt's Qt 6.4.2 (or vice versa).
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get install -y --no-install-recommends \
+            qt6-base-dev \
+            qt6-base-dev-tools \
+            qt6-tools-dev \
+            libqt6widgets6 \
             libgl1-mesa-dev \
             libxkbcommon-x11-0 \
             libfontconfig1 \
             clang-tidy-18
-
-      - name: Install Qt 6.8.0
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.8.0'
-          aqtversion: '==3.1.*'
-          cache: true
-          archives: 'qtbase qtsvg'
 
       - name: Configure (export compile_commands.json)
         run: cmake --preset=linux

@@ -203,7 +203,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
     # Fallback explicit Depends so `dpkg -i` resolves even when shlibdeps
     # under-reports (e.g. when Qt was installed via aqt rather than apt).
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6widgets6, libqt6gui6, libqt6core6")
+    # Version floors mirror find_package(Qt6 6.4 REQUIRED ...) above: the
+    # binary calls qt_standard_project_setup, sets AUTOUIC_SEARCH_PATHS,
+    # and uses QImageReader::setAllocationLimit, all Qt 6.4+. Without the
+    # floor, `apt install` succeeds on Ubuntu 22.04 (Qt 6.2.x) and the
+    # editor crashes at runtime on missing symbols. With the floor, the
+    # install fails up front with a clear "unmet dependencies" message.
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6widgets6 (>= 6.4), libqt6gui6 (>= 6.4), libqt6core6 (>= 6.4)")
 elseif(APPLE)
     set(CPACK_GENERATOR "DragNDrop")
     set(CPACK_DMG_VOLUME_NAME "${CPACK_PACKAGE_NAME}")
