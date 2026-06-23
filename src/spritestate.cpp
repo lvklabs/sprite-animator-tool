@@ -338,7 +338,40 @@ bool SpriteState::save(const QString &filename, SpriteStateError *err) {
     //     touched.
     //   - the destructor of QSaveFile rolls back automatically if commit()
     //     is never called (safety net on early-return / exception paths).
-    QSaveFile file(filename);
+    //
+    // Team H2 (H2.1): QSaveFile's atomic rename(2) on the original path
+    // would REPLACE a symlink at @p filename with a regular file at the
+    // link's own inode, silently breaking the link's intent (the user
+    // pointed save() at the link expecting the TARGET to receive the
+    // bytes). Resolve symlinks ourselves before constructing QSaveFile
+    // so the atomic write lands at the link's destination. A broken
+    // symlink (target missing or unresolvable) falls back to the
+    // original path so the failure surfaces as a normal open() error
+    // rather than a mysterious write to "".
+    QString targetPath = filename;
+    QFileInfo fileInfo(filename);
+    if (fileInfo.isSymLink()) {
+        const QString resolved = fileInfo.symLinkTarget();
+        if (!resolved.isEmpty()) {
+            targetPath = resolved;
+        }
+        // else: broken symlink; keep targetPath == filename so open()
+        // fails visibly instead of writing to an empty path.
+    }
+    QSaveFile file(targetPath);
+
+    // Team H2 (H2.2): allow degradation to a non-atomic write on
+    // filesystems that can't honour rename(2)/ReplaceFile atomicity
+    // (FAT32, SMB, sshfs, some overlay mounts). Without this the
+    // commit() returns false on those filesystems even though the user
+    // clearly wants the bytes on disk -- their workflow is just "save
+    // my work" and they don't care about crash-consistent renames.
+    // Trade-off: on those filesystems a crash between the open and the
+    // commit may leave a partially-written file at the destination;
+    // on POSIX/NTFS the atomic-replace path is taken and the original
+    // guarantee holds. Best-effort atomicity beats hard-failure when
+    // the user has no other choice of storage.
+    file.setDirectWriteFallback(true);
 
     if (!file.open(QFile::WriteOnly | QFile::Text)) {
         qDebug() << "Error: SpriteState::save(): could not open" << filename << "in rw mode";

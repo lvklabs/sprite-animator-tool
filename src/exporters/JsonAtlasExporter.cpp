@@ -40,6 +40,8 @@
 #include <QMapIterator>
 #include <QPainter>
 #include <QPixmap>
+#include <QSaveFile>
+#include <QSet>
 
 namespace {
 
@@ -83,6 +85,23 @@ bool JsonAtlasExporter::exportAtlas(const QString &baseFilename, const SpriteSta
     QList<PackedFrame> pack;
     pack.reserve(state.frames().size());
 
+    // Team H2 (H2.3): disambiguate duplicate frame names by appending a
+    // numeric suffix. Before this, two frames both named "walk" would
+    // both serialize as pf.name=="walk.png"; the downstream QMap<QString,
+    // PackedFrame> and QJsonObject "frames" inserts then silently
+    // overwrote each other -- the JSON ended up with ONE "walk.png"
+    // entry holding whichever frame happened to be inserted last, and
+    // any animation reference resolving through idToName (built from
+    // pack[], so populated with both names) pointed at a key that no
+    // longer existed. Net effect: walk animation played a wrong/missing
+    // frame depending on insertion order.
+    //
+    // Fix: track names already assigned in the pack[] list and append
+    // "_2", "_3", ... to collisions BEFORE the ".png" suffix so the
+    // resulting JSON key is "walk_2.png". The frameId-keyed idToName
+    // map further down uses the SUFFIXED name, so animation references
+    // resolve to the right entry.
+    QSet<QString> usedNames;
     const QMap<Id, LvkFrame> &frames = state.frames();
     for (auto it = frames.constBegin(); it != frames.constEnd(); ++it) {
         const LvkFrame &fr = it.value();
@@ -104,8 +123,15 @@ bool JsonAtlasExporter::exportAtlas(const QString &baseFilename, const SpriteSta
         // the user has no name set. Append .png suffix so consumers that
         // treat the filename as a literal sprite path (TexturePacker
         // convention) work out of the box.
-        pf.name = fr.name.isEmpty() ? QStringLiteral("frame_%1.png").arg(fr.id)
-                                    : fr.name + QStringLiteral(".png");
+        const QString baseStem = fr.name.isEmpty() ? QStringLiteral("frame_%1").arg(fr.id)
+                                                   : fr.name;
+        QString stem = baseStem;
+        int suffix = 2;
+        while (usedNames.contains(stem + QStringLiteral(".png"))) {
+            stem = baseStem + QStringLiteral("_") + QString::number(suffix++);
+        }
+        pf.name = stem + QStringLiteral(".png");
+        usedNames.insert(pf.name);
         pf.pixmap = px;
         pf.width = px.width();
         pf.height = px.height();
@@ -116,8 +142,27 @@ bool JsonAtlasExporter::exportAtlas(const QString &baseFilename, const SpriteSta
     // Sort by descending height so each shelf is at least as tall as the
     // largest frame on it. With sprites this typically gives <10% wasted
     // space versus the bounding rectangle.
-    std::sort(pack.begin(), pack.end(),
-              [](const PackedFrame &a, const PackedFrame &b) { return a.height > b.height; });
+    //
+    // Team H2 (H2.4): use stable_sort with an explicit frameId tiebreak so
+    // equal-height frames keep a deterministic order across libstdc++
+    // versions, libc++ vs MSVC STLs, and across runs. The previous
+    // std::sort was non-stable AND had no tiebreaker, so two libstdc++
+    // releases could legitimately place equal-height frames at different
+    // (x, y) shelf positions, producing byte-different atlas PNGs from
+    // byte-identical input. That broke "diff the JSON to spot real
+    // changes" workflows and any consumer doing content-hash dedup on
+    // the atlas. stable_sort + explicit tiebreak is belt-and-braces:
+    // the tiebreak alone makes the comparator a total order so even
+    // std::sort would be deterministic, and stable_sort additionally
+    // pins iteration-order ties (insertion order from the QMap loop
+    // above) for free.
+    std::stable_sort(pack.begin(), pack.end(),
+                     [](const PackedFrame &a, const PackedFrame &b) {
+                         if (a.height != b.height) {
+                             return a.height > b.height;
+                         }
+                         return a.frameId < b.frameId;
+                     });
 
     // SECURITY (Phase 4): Bound atlas allocations.
     //   - kMaxAtlasDim caps a single axis. 16384 matches the maximum
@@ -286,13 +331,54 @@ bool JsonAtlasExporter::exportAtlas(const QString &baseFilename, const SpriteSta
     root.insert(QStringLiteral("animations"), animsObj);
     root.insert(QStringLiteral("meta"), meta);
 
+    // Team H2 (H2.5): atomic best-effort for the JSON + PNG pair.
+    //
+    // Pre-H2 the sequence was:
+    //   1. atlas.save(pngPath, "PNG")     -- regular open+write+close
+    //   2. QFile out(jsonPath); ... write ... close()
+    // A crash, OOM, or full disk between step 1 and step 2 left the
+    // PNG on disk WITHOUT a matching JSON descriptor. Consumers that
+    // probe for both files would see a half-built export and either
+    // crash or silently render garbage.
+    //
+    // Strategy (the "simpler alternative" called out in the task
+    // brief): keep "PNG first, JSON second" but use QSaveFile for the
+    // JSON write so the publish is atomic on the JSON side, and on a
+    // JSON failure ALSO remove the PNG so the on-disk state is
+    // "either both files or neither". Qt's QImageWriter has no
+    // QSaveFile-equivalent, so the PNG side is best-effort: a crash
+    // mid-PNG-write may leave a partial PNG, but in that case the
+    // JSON has not yet been written either, so the "neither file"
+    // invariant still holds modulo the partial-PNG corruption (no
+    // matching descriptor -> consumer treats it as absent). The
+    // window where both files are present and inconsistent shrinks
+    // from "between two normal open/write/close calls" to "between
+    // PNG-close and QSaveFile::commit() of the JSON" -- a single
+    // syscall on POSIX.
     QJsonDocument doc(root);
-    QFile out(jsonPath);
+    QSaveFile out(jsonPath);
+    out.setDirectWriteFallback(true);
     if (!out.open(QFile::WriteOnly | QFile::Truncate)) {
-        qDebug() << "JsonAtlasExporter::exportAtlas: failed to open" << jsonPath;
+        qDebug() << "JsonAtlasExporter::exportAtlas: failed to open" << jsonPath
+                 << "-" << out.errorString();
+        // Roll back the orphan PNG so the (PNG, JSON) pair is "neither".
+        QFile::remove(pngPath);
         return false;
     }
-    out.write(doc.toJson(QJsonDocument::Indented));
-    out.close();
+    const QByteArray jsonBytes = doc.toJson(QJsonDocument::Indented);
+    if (out.write(jsonBytes) != jsonBytes.size()) {
+        qDebug() << "JsonAtlasExporter::exportAtlas: short write on" << jsonPath
+                 << "-" << out.errorString();
+        out.cancelWriting();
+        out.commit(); // remove tmp; leaves jsonPath untouched
+        QFile::remove(pngPath);
+        return false;
+    }
+    if (!out.commit()) {
+        qDebug() << "JsonAtlasExporter::exportAtlas: commit() failed for" << jsonPath
+                 << "-" << out.errorString();
+        QFile::remove(pngPath);
+        return false;
+    }
     return true;
 }

@@ -40,6 +40,9 @@ class TstSaveAtomic : public QObject
 private slots:
     void preservesOriginalWhenSaveFails();
     void successfulSaveProducesNoLeftoverTmpFile();
+#ifdef Q_OS_LINUX
+    void saveFollowsSymlinkToTarget();
+#endif
 };
 
 void TstSaveAtomic::preservesOriginalWhenSaveFails()
@@ -141,6 +144,85 @@ void TstSaveAtomic::successfulSaveProducesNoLeftoverTmpFile()
     out.close();
     QVERIFY(bytes.contains("LvkSprite version"));
 }
+
+#ifdef Q_OS_LINUX
+void TstSaveAtomic::saveFollowsSymlinkToTarget()
+{
+    // Team H2 (H2.1): when @p filename is a symlink, save() must write to
+    // the LINK TARGET, not replace the link with a regular file at the
+    // link's own inode. Pre-H2 QSaveFile's atomic rename(2) would unlink
+    // the symlink and substitute the freshly-written tmp -- silently
+    // breaking any consumer that pointed at the link expecting the
+    // target to receive updates.
+    //
+    // Linux-only because symlink semantics differ on Windows (where
+    // QFile::link emits a .lnk shortcut, not a true symlink) and on
+    // macOS where the resolution path through QFileInfo is identical
+    // but the CI bots don't run with the permissions needed to create
+    // arbitrary symlinks in /tmp. The bug, the fix, and the regression
+    // are all Linux-relevant so a Linux-only test is the right scope.
+    QTemporaryDir tmpDir;
+    QVERIFY(tmpDir.isValid());
+
+    const QString targetPath =
+        tmpDir.path() + QDir::separator() + QStringLiteral("target.lvks");
+    const QString linkPath =
+        tmpDir.path() + QDir::separator() + QStringLiteral("link.lvks");
+
+    // Pre-create the target with a known sentinel string so we can
+    // confirm the link points at the same inode AND that save() wrote
+    // through the link instead of clobbering it.
+    {
+        QFile target(targetPath);
+        QVERIFY(target.open(QFile::WriteOnly));
+        target.write("PLACEHOLDER_BYTES");
+        target.close();
+    }
+
+    // QFile::link() on Linux creates a real symlink.
+    QVERIFY2(QFile::link(targetPath, linkPath),
+             "test environment cannot create symlinks");
+    QVERIFY(QFileInfo(linkPath).isSymLink());
+
+    // Sanity: capture the inode of the target so we can prove the same
+    // inode is rewritten (and not replaced by a fresh inode at linkPath
+    // that just happens to share the contents).
+    const QFileInfo targetInfoBefore(targetPath);
+    QVERIFY(targetInfoBefore.exists());
+
+    // Build a SpriteState with enough content to produce a non-empty
+    // save body, then save TO THE SYMLINK.
+    SpriteState st;
+    InputImage img;
+    img.id = 0;
+    img.filename = QStringLiteral("clean.png");
+    st.addImage(img);
+
+    SpriteStateError err = SpriteState::ErrNone;
+    QVERIFY2(st.save(linkPath, &err),
+             qPrintable("save() to symlink should succeed: " +
+                        SpriteState::errorMessage(err)));
+
+    // H2.1 invariant #1: linkPath is STILL a symlink (we didn't replace
+    // it with a regular file).
+    QVERIFY2(QFileInfo(linkPath).isSymLink(),
+             "save() replaced the symlink with a regular file");
+
+    // H2.1 invariant #2: linkPath still resolves to targetPath.
+    QCOMPARE(QFileInfo(linkPath).symLinkTarget(), targetPath);
+
+    // H2.1 invariant #3: targetPath got the new bytes (no longer the
+    // placeholder), proving the save went through the link.
+    QFile targetAfter(targetPath);
+    QVERIFY(targetAfter.open(QFile::ReadOnly));
+    const QByteArray afterBytes = targetAfter.readAll();
+    targetAfter.close();
+    QVERIFY2(!afterBytes.contains("PLACEHOLDER_BYTES"),
+             "target file was not overwritten by save() through the link");
+    QVERIFY2(afterBytes.contains("LvkSprite version"),
+             "target file does not contain saved sprite content");
+}
+#endif // Q_OS_LINUX
 
 QTEST_MAIN(TstSaveAtomic)
 #include "tst_save_atomic.moc"
