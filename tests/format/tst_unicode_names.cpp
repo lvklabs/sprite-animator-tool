@@ -274,6 +274,19 @@ void TstUnicodeNames::saveReturnsFalseOnAnimationNameWithComma()
     // record while save() still reported success. The fix is to detect
     // the empty record at save time and return false with an error code
     // the caller can surface.
+    //
+    // Team D3.2: in addition to the return-value check, prove the
+    // failed save did NOT clobber a pre-existing good file at the
+    // target path. The user invariant we want is: if save() returns
+    // false, the previous on-disk content (if any) is untouched.
+    // That's the property D2.2's atomic-save fix establishes
+    // (write-to-tmp + rename-into-place; rename only happens if the
+    // body completed cleanly). Without D2.2, save() opens the target
+    // with truncate semantics and partial bytes leak through. We
+    // assert the strong invariant: after the failed save, EITHER the
+    // file does not exist OR its bytes match the pre-written content.
+    // Asserting `size()>0` alone (the old form) is compatible with
+    // arbitrary half-written garbage, which is the bug.
     QTemporaryDir tmpDir;
     QVERIFY(tmpDir.isValid());
 
@@ -283,27 +296,73 @@ void TstUnicodeNames::saveReturnsFalseOnAnimationNameWithComma()
     const QString out = tmpDir.path() + QDir::separator()
         + QStringLiteral("bad_animation.lvks");
 
+    // Pre-write a known-good .lvks at the target. We capture its bytes
+    // verbatim so we can assert byte-identity after the failed save.
+    // The content is intentionally a complete (parseable) v0.1 file so
+    // a follow-up reload could check it survived as a real .lvks.
+    const QByteArray preWritten =
+        QByteArrayLiteral("### LvkSprite ##\n"
+                          "LvkSprite version 0.1\n\n"
+                          "images(\n\t0,clean.png\n)\n\n"
+                          "frames(\n\t0,solo,0,0,0,16,16\n)\n\n"
+                          "animations(\n\t0,clean\n"
+                          "\taframes(\n\t\t0,0,200\n\t)\n"
+                          ")\n\n"
+                          "### End LvkSprite ##\n");
+    {
+        QFile pre(out);
+        QVERIFY(pre.open(QFile::WriteOnly | QFile::Truncate));
+        QCOMPARE(pre.write(preWritten), static_cast<qint64>(preWritten.size()));
+        pre.close();
+    }
+    QVERIFY(QFile::exists(out));
+
     SpriteStateError err = SpriteState::ErrNone;
     const bool ok = st.save(out, &err);
     QVERIFY2(!ok, "save() must return false when an animation name contains a comma");
     QCOMPARE(err, SpriteState::ErrInvalidFormat);
 
-    // Reloading the (partial) saved file should not silently produce a
-    // SpriteState that drops the bad animation while reporting success.
-    // We allow either: (a) load fails with a non-OK error, or (b) load
-    // succeeds but the animation is missing. The strongest guarantee is
-    // (a); we encode the weaker disjunction so the test stays green
-    // even if a future loader becomes more lenient, as long as the data
-    // loss is visible to the user via save()'s false return.
-    if (QFile::exists(out)) {
+    // Atomic-save invariant: either the file is gone (target removed
+    // because the rename never happened) OR its bytes still equal the
+    // pre-written content. Anything else means save() half-wrote bytes
+    // through the target and clobbered the user's previous file --
+    // exactly the silent-data-loss regression we are guarding against.
+    //
+    // NOTE: this assertion is the D3.2 strengthening that depends on
+    // D2.2's atomic-save fix (QSaveFile-style write-to-tmp + rename).
+    // In worktrees where D2.2 is not yet in place, save() opens the
+    // target with truncate semantics and partial bytes leak through;
+    // the QEXPECT_FAIL below documents that dependency without
+    // turning the suite red. Once D2.2 lands, the QEXPECT_FAIL can be
+    // dropped and this assertion will hold unconditionally.
+    QFileInfo postInfo(out);
+    if (postInfo.exists()) {
+        QFile post(out);
+        QVERIFY(post.open(QFile::ReadOnly));
+        const QByteArray postBytes = post.readAll();
+        QEXPECT_FAIL("", "depends on D2.2 atomic save (QSaveFile/rename)", Continue);
+        QVERIFY2(postBytes == preWritten,
+                 "failed save() must not clobber pre-existing good content");
+
+        // Even without D2.2, we can assert the WEAKER but still
+        // meaningful invariant: a reload of whatever is on disk must
+        // not silently re-introduce the bad "a,b" animation as a
+        // valid record.
         SpriteState reloaded;
         SpriteStateError loadErr = SpriteState::ErrNone;
         const bool loadedOk = reloaded.load(out, &loadErr);
         if (loadedOk) {
-            // Loader was lenient -- but the animation must NOT have
-            // been silently round-tripped. (It can't have been: the
-            // record was never written.)
-            QCOMPARE(reloaded.animations().size(), 0);
+            // The bad animation MUST NOT have round-tripped: either
+            // because save() never wrote it OR because the post-save
+            // file is the pre-written good file with a different
+            // animation. The exact identity depends on D2.2; what we
+            // forbid here is the original silent-data-loss bug where
+            // an animation named "a,b" would survive intact.
+            for (auto it = reloaded.animations().constBegin();
+                 it != reloaded.animations().constEnd(); ++it) {
+                QVERIFY2(it.value().name != QStringLiteral("a,b"),
+                         "the comma-bearing animation must not survive save+reload");
+            }
         }
         // (else: load failed, which is also acceptable.)
     }
@@ -315,6 +374,9 @@ void TstUnicodeNames::saveReturnsFalseOnImageFilenameWithComma()
     // the images section: an image filename with a comma cannot be
     // serialized; save() must signal failure rather than silently
     // emitting a blank image record.
+    //
+    // Team D3.2: also assert the atomic-save invariant on a pre-
+    // written good file at the target path.
     QTemporaryDir tmpDir;
     QVERIFY(tmpDir.isValid());
 
@@ -334,10 +396,38 @@ void TstUnicodeNames::saveReturnsFalseOnImageFilenameWithComma()
     const QString out = tmpDir.path() + QDir::separator()
         + QStringLiteral("bad_image.lvks");
 
+    const QByteArray preWritten =
+        QByteArrayLiteral("### LvkSprite ##\n"
+                          "LvkSprite version 0.1\n\n"
+                          "images(\n\t0,clean.png\n)\n\n"
+                          "frames(\n\t0,solo,0,0,0,16,16\n)\n\n"
+                          "animations(\n\t0,clean\n"
+                          "\taframes(\n\t\t0,0,200\n\t)\n"
+                          ")\n\n"
+                          "### End LvkSprite ##\n");
+    {
+        QFile pre(out);
+        QVERIFY(pre.open(QFile::WriteOnly | QFile::Truncate));
+        QCOMPARE(pre.write(preWritten), static_cast<qint64>(preWritten.size()));
+        pre.close();
+    }
+    QVERIFY(QFile::exists(out));
+
     SpriteStateError err = SpriteState::ErrNone;
     const bool ok = st.save(out, &err);
     QVERIFY2(!ok, "save() must return false when an image filename contains a comma");
     QCOMPARE(err, SpriteState::ErrInvalidFormat);
+
+    // Same atomic-save invariant as saveReturnsFalseOnAnimationNameWithComma.
+    // QEXPECT_FAIL until D2.2 lands; see the long comment in that test.
+    if (QFile::exists(out)) {
+        QFile post(out);
+        QVERIFY(post.open(QFile::ReadOnly));
+        const QByteArray postBytes = post.readAll();
+        QEXPECT_FAIL("", "depends on D2.2 atomic save (QSaveFile/rename)", Continue);
+        QVERIFY2(postBytes == preWritten,
+                 "failed save() must not clobber pre-existing good content");
+    }
 }
 
 QTEST_MAIN(TstUnicodeNames)

@@ -194,6 +194,17 @@ void TestExportController::testReopenSameFilePreservesExportTarget()
     // After the fix, the previous _filename and export target are captured
     // before closeFile() and the export target is restored when the file
     // path being re-opened matches the previous one.
+    //
+    // Team D3.3: the previous version of this test only exercised the
+    // POSITIVE case (same-file reopen preserves the target). That is
+    // necessary but not sufficient: a buggy implementation that NEVER
+    // cleared the export target on open would also pass. The negative
+    // case is the actual safety invariant: opening a DIFFERENT .lvks
+    // file MUST clear the export target so the user does not
+    // accidentally overwrite the previous document's export artifact.
+    // We construct a second .lvks fixture by copying mario.lvks to
+    // tmp/other.lvks and assert opening it after setting a target on
+    // mario clears the target.
     const QString src = examplesDir() + QDir::separator() + "mario.lvks";
     QVERIFY2(QFile::exists(src), qPrintable("missing fixture: " + src));
 
@@ -217,14 +228,32 @@ void TestExportController::testReopenSameFilePreservesExportTarget()
     // The export target must survive the same-file reopen.
     QCOMPARE(exporter->currentExportFile(), exportTarget);
 
-    // Opening a *different* file (use the same fixture under a different
-    // absolute path via a symlink-ish trick is overkill -- instead verify
-    // the negative case by manually clearing _filename equivalence: open a
-    // path that does not match. We don't have a second .lvks fixture
-    // guaranteed to be present, so just check the path identity invariant
-    // by re-opening the same file once more and confirming the same target.
+    // Re-open again, still the same file.
     QVERIFY(mw.openFile(src));
     QCOMPARE(exporter->currentExportFile(), exportTarget);
+
+    // NEGATIVE CASE: opening a DIFFERENT .lvks must clear the export
+    // target. We copy mario.lvks under a fresh name to get a real,
+    // openable second fixture. Image-path references inside the copy
+    // are relative; they resolve against CWD (which we just set to
+    // examplesDir), so the copy is loadable without further setup.
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+    const QString otherPath = tmp.path() + QDir::separator()
+        + QStringLiteral("other.lvks");
+    QVERIFY2(QFile::copy(src, otherPath),
+             qPrintable("failed to copy fixture to " + otherPath));
+    QVERIFY(QFile::exists(otherPath));
+
+    // Re-confirm the export target is still set (sanity before the
+    // negative case).
+    QCOMPARE(exporter->currentExportFile(), exportTarget);
+
+    // Opening a different file path MUST wipe the export target.
+    QVERIFY(mw.openFile(otherPath));
+    QVERIFY2(exporter->currentExportFile().isEmpty(),
+             qPrintable("opening a different file must clear the export target; "
+                        "got '" + exporter->currentExportFile() + "'"));
 
     QDir::setCurrent(savedCwd);
 }

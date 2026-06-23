@@ -1044,11 +1044,22 @@ bool SpriteState::exportSprite(const QString &filename, const QString &outputDir
     textStream << "# Animation frames\n";
     textStream << "# format: aframeId,frameId,delay,ox,oy,sticky\n";
     textStream << "animations(\n";
+    // Phase B1.3 parity (Team D3.5): the .lvks save() path sorts aframes by id
+    // at write time so a load->save round-trip is byte-equivalent. The Cocos2d
+    // .lkot exporter iterates _aframes directly here, so for any non-sequential
+    // input ordering (hand-edited file, post-delete-save, or just data added in
+    // a non-id order during a session) the exported aframe rows would come out
+    // in the in-memory order instead of canonical id-order, and post-B1
+    // .lkot files would differ from pre-B1. Build a sorted copy per animation
+    // and iterate that so the export matches save()'s sort policy.
     for (QMapIterator<Id, LvkAnimation> it(_animations); it.hasNext();) {
         it.next();
         textStream << "\t" << it.value().toString() << "\n";
         textStream << "\taframes(\n";
-        for (QListIterator<LvkAframe> it2(it.value()._aframes); it2.hasNext();) {
+        QList<LvkAframe> sortedAframes = it.value()._aframes;
+        std::sort(sortedAframes.begin(), sortedAframes.end(),
+                  [](const LvkAframe &a, const LvkAframe &b) { return a.id < b.id; });
+        for (QListIterator<LvkAframe> it2(sortedAframes); it2.hasNext();) {
             textStream << "\t\t" << it2.next().toString() << "\n";
         }
         textStream << "\t)\n\n";

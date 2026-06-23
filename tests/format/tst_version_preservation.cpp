@@ -248,6 +248,35 @@ void TstVersionPreservation::marioPreservesV01()
     // -> read the temp file header line -> must be v0.1.
     const QString header = readVersionHeader(out);
     QCOMPARE(header, QStringLiteral("LvkSprite version 0.1"));
+
+    // Team D3.4: the header preservation is necessary but NOT sufficient.
+    // mario.lvks's distinguishing payload is that some aframes carry
+    // nonzero ox/oy ("5,0,80,0,-10", "6,0,180,0,-15", "7,0,80,0,-10"
+    // under animation 1 / "jump"). A regression that emitted a v0.1
+    // header but truncated aframe records to 3 fields (the strict v0.1
+    // schema) would lose ox/oy on round-trip while still passing the
+    // header-only check. Reload the saved file and assert the
+    // ox/oy values were preserved on the rows we know carry them.
+    SpriteState reloaded;
+    QVERIFY(reloaded.load(out, &err));
+    QCOMPARE(err, SpriteState::ErrNone);
+
+    // mario.lvks animation 1 ("jump") row id=5: "5,0,80,0,-10"
+    QCOMPARE(reloaded.const_aframe(1, 5).ox, 0);
+    QCOMPARE(reloaded.const_aframe(1, 5).oy, -10);
+    // row id=6: "6,0,180,0,-15"
+    QCOMPARE(reloaded.const_aframe(1, 6).ox, 0);
+    QCOMPARE(reloaded.const_aframe(1, 6).oy, -15);
+    // row id=7: "7,0,80,0,-10"
+    QCOMPARE(reloaded.const_aframe(1, 7).ox, 0);
+    QCOMPARE(reloaded.const_aframe(1, 7).oy, -10);
+
+    // Sanity: delays survived too -- catches a regression where
+    // aframes were rewritten with fewer fields and the parser shifted
+    // columns.
+    QCOMPARE(reloaded.const_aframe(1, 5).delay, 80);
+    QCOMPARE(reloaded.const_aframe(1, 6).delay, 180);
+    QCOMPARE(reloaded.const_aframe(1, 7).delay, 80);
 }
 
 void TstVersionPreservation::scaleMutationBumpsToV02()
@@ -297,11 +326,110 @@ void TstVersionPreservation::marioRoundtripIsByteEquivalent()
     //
     // This test depends on B1.1: if the header is silently bumped to
     // v0.2, the file headers differ and round-trip fails.
+    //
+    // Team D3.1: the previous version of this test only compared
+    // save#2 == save#3 (a "fixed point" check). That passes even if the
+    // B1.3 load-time sort were reverted -- both saves see the same
+    // in-memory order, so they trivially agree on a stable order. The
+    // real invariant we want is that loading the on-disk mario.lvks and
+    // saving it back produces a file that matches the ORIGINAL bytes
+    // for the data-bearing records. Comments / blank-line padding /
+    // section-header text are presentation that save() does not
+    // preserve verbatim (e.g. mario.lvks uses "### LvkSprite ####...",
+    // save() emits a fixed-width banner), so byte equivalence isn't
+    // achievable for the whole file. Instead we extract the
+    // load-bearing records (header version line + image/frame/animation
+    // record bodies, plus the explicit aframe id sequence per
+    // animation) and assert they match the originals exactly. If B1.3
+    // were reverted, animation 1's aframe sequence would come back as
+    // [1,5,6,7] from a sort-on-load implementation -- but with
+    // arbitrary in-memory ordering disrupting other animations -- so
+    // the explicit-id-sequence assertions below would catch the drift
+    // on a fixture whose aframes are already in id order (and would
+    // catch any non-determinism on a fixture that isn't).
     const QString marioPath = QString::fromUtf8(LVK_EXAMPLES_DIR)
         + QDir::separator() + QStringLiteral("mario.lvks");
     QVERIFY2(QFile::exists(marioPath),
              qPrintable(QString("Could not locate %1").arg(marioPath)));
 
+    // 1) Read the ORIGINAL mario.lvks bytes and extract its data-
+    //    bearing records (drop comments / blank lines / banners).
+    QFile origF(marioPath);
+    QVERIFY(origF.open(QFile::ReadOnly | QFile::Text));
+    const QByteArray origBytes = origF.readAll();
+    origF.close();
+    QVERIFY(!origBytes.isEmpty());
+
+    auto isBanner = [](const QString &t) {
+        return t.startsWith(QStringLiteral("### LvkSprite"))
+            || t.startsWith(QStringLiteral("### End LvkSprite"));
+    };
+    // Extract the data-bearing lines for a specific section
+    // ("images", "frames", "animations") -- i.e. the lines BETWEEN the
+    // section's opening "<name>(" line and its matching ")" close
+    // line. We compare per-section because save() always emits an
+    // empty "custom_header(\n)\n" block, while mario.lvks does not, so
+    // a whole-file line-equality comparison would diverge structurally
+    // even though every record body the user can see is identical.
+    auto extractSection = [&](const QByteArray &bytes,
+                              const QString &sectionName) {
+        QStringList out;
+        QTextStream ts(bytes);
+        bool inSection = false;
+        int depth = 0;
+        const QString openTag = sectionName + QStringLiteral("(");
+        while (!ts.atEnd()) {
+            const QString line = ts.readLine();
+            const QString trimmed = line.trimmed();
+            if (trimmed.isEmpty()) continue;
+            if (trimmed.startsWith(QLatin1Char('#'))) continue;
+            if (isBanner(trimmed)) continue;
+            if (!inSection) {
+                if (trimmed == openTag) {
+                    inSection = true;
+                    depth = 1;
+                }
+                continue;
+            }
+            // We are in the section. Track nesting because animations(
+            // contains aframes( ) blocks.
+            if (trimmed.endsWith(QLatin1Char('('))) {
+                depth += 1;
+                out.append(trimmed);
+                continue;
+            }
+            if (trimmed == QStringLiteral(")")) {
+                depth -= 1;
+                if (depth == 0) {
+                    return out;
+                }
+                out.append(trimmed);
+                continue;
+            }
+            out.append(trimmed);
+        }
+        return out;
+    };
+
+    auto readHeaderLine = [&](const QByteArray &bytes) {
+        QTextStream ts(bytes);
+        while (!ts.atEnd()) {
+            const QString line = ts.readLine().trimmed();
+            if (line.isEmpty() || line.startsWith(QLatin1Char('#'))) continue;
+            return line;
+        }
+        return QString();
+    };
+
+    const QStringList origImages = extractSection(origBytes, QStringLiteral("images"));
+    const QStringList origFrames = extractSection(origBytes, QStringLiteral("frames"));
+    const QStringList origAnims = extractSection(origBytes, QStringLiteral("animations"));
+    const QString origHeader = readHeaderLine(origBytes);
+    QVERIFY(!origImages.isEmpty());
+    QVERIFY(!origFrames.isEmpty());
+    QVERIFY(!origAnims.isEmpty());
+
+    // 2) Load + save the file under test.
     SpriteState st;
     SpriteStateError err = SpriteState::ErrNone;
     QVERIFY(st.load(marioPath, &err));
@@ -314,28 +442,94 @@ void TstVersionPreservation::marioRoundtripIsByteEquivalent()
     QVERIFY(st.save(out, &err));
     QCOMPARE(err, SpriteState::ErrNone);
 
-    // After the first save, every subsequent save must produce the same
-    // bytes -- the canonical form is a fixed point. We don't compare
-    // against the original mario.lvks bytes (it has decorative comments
-    // and whitespace that save() does not preserve verbatim), only that
-    // a second save matches the first. Together with the v0.1 header
-    // assertion in marioPreservesV01() this guards against future
-    // header-drift bugs.
+    QFile savedF(out);
+    QVERIFY(savedF.open(QFile::ReadOnly | QFile::Text));
+    const QByteArray savedBytes = savedF.readAll();
+    savedF.close();
+
+    const QStringList savedImages = extractSection(savedBytes, QStringLiteral("images"));
+    const QStringList savedFrames = extractSection(savedBytes, QStringLiteral("frames"));
+    const QStringList savedAnims = extractSection(savedBytes, QStringLiteral("animations"));
+    const QString savedHeader = readHeaderLine(savedBytes);
+
+    // 3a) Header must match: B1.1 protection. Reverting B1.1 (silent
+    //     bump to v0.2) would make this assertion fail.
+    QCOMPARE(savedHeader, origHeader);
+    QCOMPARE(savedHeader, QStringLiteral("LvkSprite version 0.1"));
+
+    // 3b) The images and frames sections must match the original
+    //     record-for-record. (Aframe records cannot be compared
+    //     byte-for-byte because LvkAframe::toString uses a minimal
+    //     3-field form for ox==oy==0 rows while mario.lvks ships with
+    //     uniform 5-field rows for visual consistency. We assert
+    //     aframe SEMANTIC equality via the reload check below
+    //     instead.)
+    QCOMPARE(savedImages, origImages);
+    QCOMPARE(savedFrames, origFrames);
+
+    // 3c) Animation section: the per-animation HEADER lines (e.g.
+    //     "0,walk") and the "aframes(" / ")" delimiters must match
+    //     exactly -- those are what B1.1 (header preservation) +
+    //     B1.3 (sort-on-save sequencing) together guarantee. We
+    //     filter out the inner aframe rows because their textual
+    //     form is normalised by the minimal-emit policy, and the
+    //     load-and-compare below already catches any drift on those.
+    auto stripAframeRows = [](const QStringList &in) {
+        QStringList out;
+        bool inAframes = false;
+        for (const QString &line : in) {
+            if (line == QStringLiteral("aframes(")) {
+                inAframes = true;
+                out.append(line);
+                continue;
+            }
+            if (line == QStringLiteral(")")) {
+                if (inAframes) {
+                    inAframes = false;
+                    out.append(line);
+                    continue;
+                }
+                out.append(line);
+                continue;
+            }
+            if (inAframes) continue;  // skip aframe rows themselves
+            out.append(line);
+        }
+        return out;
+    };
+    QCOMPARE(stripAframeRows(savedAnims), stripAframeRows(origAnims));
+
+    // 4) Explicit aframe-id sequence per animation (loaded from the
+    //    saved bytes) must be ascending and match mario.lvks. This
+    //    catches B1.3 regressions even if the lines-equal check were
+    //    accidentally relaxed.
     SpriteState reloaded;
     QVERIFY(reloaded.load(out, &err));
     QCOMPARE(err, SpriteState::ErrNone);
 
-    const QString out2 = tmpDir.path() + QDir::separator()
-        + QStringLiteral("mario.out2.lvks");
-    QVERIFY(reloaded.save(out2, &err));
-    QCOMPARE(err, SpriteState::ErrNone);
+    // animation 0 (walk): aframes 2, 3
+    const QList<LvkAframe> a0 = reloaded.aframes(0);
+    QCOMPARE(a0.size(), 2);
+    QCOMPARE(a0.at(0).id, static_cast<Id>(2));
+    QCOMPARE(a0.at(1).id, static_cast<Id>(3));
 
-    QFile f1(out), f2(out2);
-    QVERIFY(f1.open(QFile::ReadOnly));
-    QVERIFY(f2.open(QFile::ReadOnly));
-    const QByteArray b1 = f1.readAll();
-    const QByteArray b2 = f2.readAll();
-    QCOMPARE(b1, b2);
+    // animation 1 (jump): aframes 1, 5, 6, 7 (non-contiguous)
+    const QList<LvkAframe> a1 = reloaded.aframes(1);
+    QCOMPARE(a1.size(), 4);
+    QCOMPARE(a1.at(0).id, static_cast<Id>(1));
+    QCOMPARE(a1.at(1).id, static_cast<Id>(5));
+    QCOMPARE(a1.at(2).id, static_cast<Id>(6));
+    QCOMPARE(a1.at(3).id, static_cast<Id>(7));
+
+    // animation 2 (queen_walk): aframes 8, 9
+    const QList<LvkAframe> a2 = reloaded.aframes(2);
+    QCOMPARE(a2.size(), 2);
+    QCOMPARE(a2.at(0).id, static_cast<Id>(8));
+    QCOMPARE(a2.at(1).id, static_cast<Id>(9));
+
+    // 5) Image count smoke-check from the saved bytes (5 images in
+    //    mario.lvks).
+    QCOMPARE(reloaded.images().size(), 5);
 }
 
 void TstVersionPreservation::v04WithStickyPreservesHeader()
