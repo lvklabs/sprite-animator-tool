@@ -46,6 +46,7 @@ private slots:
     void roundtripRyu();
     void roundtripSyntheticCanonical();
     void roundtripPreservesCustomHeader();
+    void emptyStateRoundtrips();
 
 private:
     // Locate a sample file. We try, in order:
@@ -389,6 +390,60 @@ void TstLvksRoundtrip::roundtripPreservesCustomHeader()
     QVERIFY(reloaded2.load(out2, &err));
     QCOMPARE(err, SpriteState::ErrNone);
     QCOMPARE(reloaded2.getCustomHeader(), reloaded.getCustomHeader());
+}
+
+void TstLvksRoundtrip::emptyStateRoundtrips()
+{
+    // Team H5.6: the existing fixture-based round-trips (mario.lvks /
+    // ryu.lvks / synthetic) all start with non-empty image+frame+animation
+    // sets. A new SpriteState with zero records is its own legitimate
+    // state -- e.g. immediately after "File > New" or
+    // SpriteState::clear() -- and save+load+structural-equality must
+    // hold for it too. A regression that crashed save() on an empty
+    // QMap, or that emitted a header-only file the loader rejected,
+    // would have slipped past CI before this slot existed.
+
+    QTemporaryDir tmpDir;
+    QVERIFY(tmpDir.isValid());
+
+    SpriteState empty;
+    QCOMPARE(empty.images().size(),     0);
+    QCOMPARE(empty.frames().size(),     0);
+    QCOMPARE(empty.animations().size(), 0);
+
+    const QString out = tmpDir.path() + QDir::separator()
+                        + QStringLiteral("empty.lvks");
+    SpriteStateError err = SpriteState::ErrNone;
+    QVERIFY2(empty.save(out, &err),
+             qPrintable(QString("save() failed on empty state: %1")
+                            .arg(SpriteState::errorMessage(err))));
+    QCOMPARE(err, SpriteState::ErrNone);
+    QVERIFY(QFile::exists(out));
+
+    SpriteState reloaded;
+    err = SpriteState::ErrNone;
+    QVERIFY2(reloaded.load(out, &err),
+             qPrintable(QString("load() failed on empty state: %1")
+                            .arg(SpriteState::errorMessage(err))));
+    QCOMPARE(err, SpriteState::ErrNone);
+
+    QCOMPARE(reloaded.images().size(),     0);
+    QCOMPARE(reloaded.frames().size(),     0);
+    QCOMPARE(reloaded.animations().size(), 0);
+
+    // Re-save must also be a fixed point: the canonical form of an empty
+    // state is stable under save/load.
+    const QString out2 = tmpDir.path() + QDir::separator()
+                         + QStringLiteral("empty.out2.lvks");
+    QVERIFY(reloaded.save(out2, &err));
+    QCOMPARE(err, SpriteState::ErrNone);
+
+    SpriteState reloaded2;
+    QVERIFY(reloaded2.load(out2, &err));
+    QCOMPARE(err, SpriteState::ErrNone);
+    QCOMPARE(reloaded2.images().size(),     0);
+    QCOMPARE(reloaded2.frames().size(),     0);
+    QCOMPARE(reloaded2.animations().size(), 0);
 }
 
 QTEST_MAIN(TstLvksRoundtrip)

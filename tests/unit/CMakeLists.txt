@@ -162,3 +162,51 @@ lvk_add_full_test(tst_mainwindow_construction)
 lvk_add_full_test(tst_image_tab_controller)
 lvk_add_full_test(tst_export_controller)
 lvk_add_full_test(tst_transition_tab_controller)
+# Team H5.4 / H5.5: MRU recent-files and geometry persistence tests both
+# instantiate MainWindow under offscreen QPA, so they ride the same
+# lvk_add_full_test helper.
+lvk_add_full_test(tst_recent_files)
+lvk_add_full_test(tst_geometry_persistence)
+
+# Team H5.7: undo + save integration test. Uses SpriteState2 + the
+# examples/mario.lvks fixture; doesn't need the MainWindow sources.
+lvk_add_test(tst_undo_save_integration
+    SOURCES
+        tst_undo_save_integration.cpp
+        ${SRC_DIR}/spritestate.cpp
+        ${SRC_DIR}/spritestate2.cpp
+        ${SRC_DIR}/inputimage.cpp
+        ${SRC_DIR}/lvkframe.cpp
+        ${SRC_DIR}/lvkanimation.cpp
+        ${SRC_DIR}/lvkaframe.cpp
+        ${SRC_DIR}/statecircularbuffer.cpp
+        ${SRC_DIR}/image_validation.cpp
+        ${SRC_DIR}/exporters/JsonAtlasExporter.cpp
+    LINKS
+        Qt6::Widgets
+)
+target_compile_definitions(tst_undo_save_integration PRIVATE
+    LVK_EXAMPLES_DIR="${CMAKE_SOURCE_DIR}/examples"
+)
+# SpriteState2 carries QPixmap members like SpriteState -- run under the
+# offscreen QPA so it passes on headless CI runners.
+set_tests_properties(tst_undo_save_integration PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)
+
+# Team H5.3: spawns the built editor via QProcess to assert documented
+# --export exit codes (0 / -1 / 2). No production sources are linked --
+# the test is a thin Qt Test harness around QProcess.
+lvk_add_test(tst_cli_exit_codes
+    SOURCES
+        tst_cli_exit_codes.cpp
+)
+target_compile_definitions(tst_cli_exit_codes PRIVATE
+    LVK_BIN_PATH="$<TARGET_FILE:LvkSpriteEditor>"
+    LVK_EXAMPLES_DIR="${CMAKE_SOURCE_DIR}/examples"
+)
+# Make sure the editor binary exists before this test runs.
+add_dependencies(tst_cli_exit_codes LvkSpriteEditor)
+set_tests_properties(tst_cli_exit_codes PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)

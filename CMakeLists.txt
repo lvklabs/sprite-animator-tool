@@ -213,8 +213,20 @@ set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/COPYING")
 # this the default file name is just "LvkSpriteEditor-2.0.1-Linux.deb"
 # and there's no way to tell what Qt it expects.
 set(_LVK_QT_VER "${Qt6_VERSION}")
+# Normalize the OS string for user-facing package names. CMAKE_SYSTEM_NAME is
+# "Darwin" on macOS, which is the kernel name -- the DMG that lands in the
+# Releases page should say "macOS" so users searching for a build for their
+# laptop find it. Linux stays "Linux"; other platforms fall back to the raw
+# CMAKE_SYSTEM_NAME so MSYS/MinGW etc. still produce a sensible filename.
+if(APPLE)
+    set(_LVK_OS_NAME "macOS")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(_LVK_OS_NAME "Linux")
+else()
+    set(_LVK_OS_NAME "${CMAKE_SYSTEM_NAME}")
+endif()
 set(CPACK_PACKAGE_FILE_NAME
-    "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_NAME}-qt${_LVK_QT_VER}")
+    "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${_LVK_OS_NAME}-qt${_LVK_QT_VER}")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(CPACK_GENERATOR "DEB;TGZ")

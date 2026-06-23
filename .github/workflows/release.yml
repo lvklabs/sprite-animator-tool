@@ -78,6 +78,11 @@ jobs:
       - name: Build
         run: cmake --build --preset=${{ matrix.preset }} -j
 
+      - name: Test
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ctest --test-dir build --output-on-failure
+
       - name: Smoke (binary runs --help) (Linux)
         if: runner.os == 'Linux'
         env:
