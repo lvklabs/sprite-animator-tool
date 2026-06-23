@@ -11,6 +11,7 @@
 #include <QImageWriter>
 #include <QProcess>
 #include <QRegularExpression>
+#include <QSaveFile>
 #include <QSet>
 #include <QStandardPaths>
 #include <QStringList>
@@ -307,22 +308,34 @@ void SpriteState::clear() {
 bool SpriteState::save(const QString &filename, SpriteStateError *err) {
     setError(err, ErrNone);
 
-    // Team D2 (D2.2): atomic-save pattern. Write the new content to
-    // "<filename>.save-tmp" first; only rename over the original on
-    // success. Without this, QFile::open(WriteOnly | Text) truncates the
-    // target file AT OPEN TIME -- so a save() that fails on a
-    // comma-bearing name (the sawInvalidRecord branch below) would
-    // destroy the user's existing .lvks before returning false. The
-    // user-visible regression: open a working sprite, type a comma into
-    // a filename, hit Save -> file is now zero bytes and save() reports
-    // failure. With the atomic pattern, the original file is untouched
-    // on any failure path; the temp file is cleaned up by the early
-    // returns below or by the explicit QFile::remove() at the bottom.
-    const QString tmpPath = filename + QStringLiteral(".save-tmp");
-    QFile file(tmpPath);
+    // Team F1 (F1.1): atomic-save via Qt's purpose-built QSaveFile.
+    //
+    // History:
+    //   Pre-D2 used QFile::open(filename, WriteOnly|Text), which truncated
+    //   the original file BEFORE the empty-record check; a failed save
+    //   (e.g. an image filename with a comma) destroyed the user's data.
+    //   D2.2 introduced a hand-rolled "<filename>.save-tmp" + remove+rename
+    //   pattern. This was atomic on POSIX (rename(2)) but NOT on Windows
+    //   (QFile::rename refuses to clobber, so the sequence was
+    //   remove(filename); rename(tmp, filename) -- the remove() succeeded
+    //   then the rename failed under AV-hold/disk-full, leaving BOTH files
+    //   gone). The fixed ".save-tmp" suffix also collided with concurrent
+    //   saves of the same file.
+    //
+    // QSaveFile fixes all three:
+    //   - commit() uses POSIX rename(2) on Linux/macOS and on Windows uses
+    //     ReplaceFile / MoveFileEx(MOVEFILE_REPLACE_EXISTING) -- both are
+    //     OS-level atomic replace operations (no remove-then-rename gap).
+    //   - tmp filename is randomised internally so concurrent saves cannot
+    //     collide on the temp path.
+    //   - cancelWriting()+commit() removes the tmp; the original is never
+    //     touched.
+    //   - the destructor of QSaveFile rolls back automatically if commit()
+    //     is never called (safety net on early-return / exception paths).
+    QSaveFile file(filename);
 
     if (!file.open(QFile::WriteOnly | QFile::Text)) {
-        qDebug() << "Error: SpriteState::save(): could not open" << tmpPath << "in rw mode";
+        qDebug() << "Error: SpriteState::save(): could not open" << filename << "in rw mode";
         setError(err, ErrCantOpenReadWriteMode);
         return false;
     }
@@ -479,36 +492,30 @@ bool SpriteState::save(const QString &filename, SpriteStateError *err) {
 
     stream << "### End LvkSprite #####################################\n";
 
-    file.close();
+    // Flush the stream so QSaveFile sees all bytes before commit/cancel.
+    stream.flush();
 
     if (sawInvalidRecord) {
-        // Team D2 (D2.2): the original file is still on disk and
-        // untouched (we wrote to tmpPath, not filename). Remove the
-        // half-written tmp file and bail.
-        QFile::remove(tmpPath);
+        // Team F1 (F1.1): discard the staged write; the original file at
+        // @p filename is untouched. We still call commit() so QSaveFile
+        // cleans up its randomised tmp -- per Qt docs, after
+        // cancelWriting() the subsequent commit() returns true without
+        // touching the destination and removes the tmp file.
+        file.cancelWriting();
+        file.commit();
         setError(err, ErrInvalidFormat);
         return false;
     }
 
-    // Team D2 (D2.2): atomic-replace. QFile::rename on POSIX uses
-    // rename(2) which is atomic for same-filesystem moves: either the
-    // old inode is in place (failure) or the new inode is (success);
-    // there is no observable intermediate state where the path is
-    // missing. On Windows, Qt's QFile::rename will refuse to clobber an
-    // existing target, so we remove() first -- the small race here is
-    // not the bug D2.2 closes (an open/truncate destroyed the file
-    // BEFORE the failure check; this remove() only runs AFTER a
-    // successful write).
-    if (QFile::exists(filename) && !QFile::remove(filename)) {
-        qDebug() << "Error: SpriteState::save(): could not remove existing" << filename
-                 << "to rename in tmpPath";
-        QFile::remove(tmpPath);
-        setError(err, ErrCantOpenReadWriteMode);
-        return false;
-    }
-    if (!QFile::rename(tmpPath, filename)) {
-        qDebug() << "Error: SpriteState::save(): could not rename" << tmpPath << "to" << filename;
-        QFile::remove(tmpPath);
+    // Team F1 (F1.1): atomic publish. On POSIX this is rename(2); on
+    // Windows it's ReplaceFile / MoveFileEx with MOVEFILE_REPLACE_EXISTING
+    // -- both are OS-atomic, so there is no observable moment in which
+    // the destination is missing or partially written. Failure paths
+    // (full disk, AV hold, perms revoked between open and commit) leave
+    // the original file intact; QSaveFile removes its tmp automatically.
+    if (!file.commit()) {
+        qDebug() << "Error: SpriteState::save(): commit() failed for" << filename << "-"
+                 << file.errorString();
         setError(err, ErrCantOpenReadWriteMode);
         return false;
     }
@@ -636,39 +643,37 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err, int *reje
                 state = StNoToken;
             } else {
                 if (tmpImage.fromString(line)) {
-                    // Team D2 (D2.1): enforce the GUI dialog's
-                    // image-format whitelist on load too. Without this,
-                    // a malicious .lvks with a record like
+                    // Team D2 (D2.1) + Team F1 (F1.2): enforce the GUI
+                    // dialog's image-format whitelist on load. Without
+                    // this, a malicious .lvks with a record like
                     //     0,evil.eps,1
-                    // survives InputImage::fromString's
-                    // isSafeImagePath check (no NUL, no "..", clean
-                    // relative path), gets inserted into state, and is
-                    // rendered unchecked by the controller's
-                    // refreshTable -- the "advisory dialog" hole B3
-                    // closed in the dialog path remained open through
-                    // the load path.
+                    // survives InputImage::fromString's isSafeImagePath
+                    // check (no NUL, no "..", clean relative path), gets
+                    // inserted into state, and is rendered unchecked by
+                    // the controller's refreshTable -- the "advisory
+                    // dialog" hole B3 closed in the dialog path remained
+                    // open through the load path.
                     //
-                    // We ONLY consult the whitelist when the file
-                    // actually exists on disk. A non-existent image
-                    // file is the legacy "broken asset link" case
-                    // (e.g. opening a sprite whose images were moved):
-                    // pre-D2.1 the loader tolerated it with a null
-                    // pixmap warning, and the unit / format tests rely
-                    // on synthesizing fixtures with placeholder
-                    // filenames like "nonexistent.png" to exercise the
-                    // parser without writing real PNG bytes. Rejecting
-                    // missing files at load time would break that
-                    // contract; the format whitelist is the only
-                    // *security* invariant we close here.
+                    // F1.2 closes a follow-up TOCTOU: the pre-F1 loader
+                    // skipped the whitelist whenever the file was
+                    // ABSENT, so a .lvks referencing "evil.eps" (file
+                    // not on disk at load time) admitted the record;
+                    // an attacker who then dropped evil.eps got it
+                    // decoded on the next refresh. ExistenceCheck::
+                    // Optional now gates on the extension even when the
+                    // file is absent, while still tolerating the
+                    // legitimate broken-asset-link case (a .lvks
+                    // referencing "nonexistent.png" still admits the
+                    // record -- only the pixmap will be null).
                     //
                     // Rejected records are SKIPPED (we don't abort the
                     // whole load) and a counter is bumped that the
                     // headless CLI inspects in D2.3 to surface a
                     // non-zero exit code.
-                    if (!tmpImage.filename.isEmpty() &&
-                        QFileInfo(tmpImage.filename).exists()) {
+                    if (!tmpImage.filename.isEmpty()) {
                         QString errMsg;
-                        if (!lvk::validateImageFile(tmpImage.filename, &errMsg)) {
+                        if (!lvk::validateImageFile(tmpImage.filename, &errMsg,
+                                                    lvk::ExistenceCheck::Optional)) {
                             qWarning() << "SpriteState::load(): rejected image record"
                                        << "(format whitelist):" << errMsg;
                             if (rejectedCount) {

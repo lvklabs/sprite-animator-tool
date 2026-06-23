@@ -36,6 +36,18 @@ class TstLvksImageLoadWhitelist : public QObject
 private slots:
     void rejectsEpsRecordViaLoadPath();
     void acceptsValidPngRecordViaLoadPath();
+    // Team F1 (F1.2): TOCTOU bypass. Pre-F1, an attacker .lvks
+    // referencing "evil.eps" with the file ABSENT at load time was
+    // silently admitted (the validator was skipped on missing files).
+    // The new ExistenceCheck::Optional mode still gates on the
+    // extension, so the .eps reference is rejected even when the file
+    // hasn't been dropped yet.
+    void rejectsMissingFileWithBadExtension();
+    // Team F1 (F1.2): a .lvks referencing a missing file with a
+    // GOOD extension (e.g. "moved.png" -- legitimate broken-asset
+    // link) must still be admitted. The validator's Optional mode
+    // tolerates absent files iff their extension is on the whitelist.
+    void acceptsMissingFileWithGoodExtension();
 
 private:
     // Build a v0.4 .lvks fixture referencing a single image filename, and
@@ -133,6 +145,73 @@ void TstLvksImageLoadWhitelist::acceptsValidPngRecordViaLoadPath()
 
     const QString lvksPath =
         writeFixture(QDir(tmp.path()), QStringLiteral("good.png"));
+    QVERIFY(!lvksPath.isEmpty());
+
+    SpriteState st;
+    SpriteState::SpriteStateError err = SpriteState::ErrNone;
+    int rejectedCount = 0;
+    const bool ok = st.load(lvksPath, &err, &rejectedCount);
+    QVERIFY(ok);
+    QCOMPARE(err, SpriteState::ErrNone);
+    QCOMPARE(st.images().size(), 1);
+    QCOMPARE(rejectedCount, 0);
+}
+
+void TstLvksImageLoadWhitelist::rejectsMissingFileWithBadExtension()
+{
+    // Team F1 (F1.2): TOCTOU bypass. Build a .lvks that references
+    // "evil.eps" -- a file that does NOT exist on disk. Pre-F1 this
+    // record was admitted into state (the loader skipped the
+    // whitelist entirely for absent files). An attacker could ship
+    // the .lvks, then later drop evil.eps next to it; on the next
+    // refresh the engine would decode it through Qt's image plugins.
+    //
+    // F1.2 fix: validate the EXTENSION even when the file is missing.
+    // ".eps" is not on the whitelist, so the record must be rejected
+    // before it reaches state, regardless of whether evil.eps shows
+    // up later. The rejectedCount outparam is bumped.
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+    QDir::setCurrent(tmp.path());
+
+    // Intentionally do NOT create evil.eps. The whole point is to
+    // exercise the file-absent code path.
+    QVERIFY(!QFileInfo(QStringLiteral("evil.eps")).exists());
+
+    const QString lvksPath =
+        writeFixture(QDir(tmp.path()), QStringLiteral("evil.eps"));
+    QVERIFY(!lvksPath.isEmpty());
+
+    SpriteState st;
+    SpriteState::SpriteStateError err = SpriteState::ErrNone;
+    int rejectedCount = 0;
+    const bool ok = st.load(lvksPath, &err, &rejectedCount);
+
+    // Partial-success contract: load() returns true (the rest of the
+    // file parses fine), but the malicious record was caught.
+    QVERIFY2(ok, "load() should return true even when image records are "
+                 "rejected via the missing-file-bad-extension path");
+    QCOMPARE(err, SpriteState::ErrNone);
+    QCOMPARE(st.images().size(), 0);
+    QCOMPARE(rejectedCount, 1);
+}
+
+void TstLvksImageLoadWhitelist::acceptsMissingFileWithGoodExtension()
+{
+    // Team F1 (F1.2): tolerance for the legitimate broken-asset-link
+    // case. Loading a .lvks whose image was moved/deleted but whose
+    // extension is whitelisted (".png" / ".jpg" / etc.) should admit
+    // the record, so the editor can still open the sprite (the user
+    // can re-point the image filename through the GUI). Only the
+    // pixmap will be null.
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+    QDir::setCurrent(tmp.path());
+
+    QVERIFY(!QFileInfo(QStringLiteral("moved.png")).exists());
+
+    const QString lvksPath =
+        writeFixture(QDir(tmp.path()), QStringLiteral("moved.png"));
     QVERIFY(!lvksPath.isEmpty());
 
     SpriteState st;

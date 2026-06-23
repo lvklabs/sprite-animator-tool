@@ -25,6 +25,16 @@
 // with a qWarning) rather than aborting the whole load. The user gets a
 // partial sprite -- better than silent admission of attacker-controlled
 // data.
+//
+// Team F1 (F1.2): TOCTOU bypass closed. The pre-F1 loader skipped the
+// whitelist entirely when the referenced file didn't exist on disk,
+// admitting any extension to state -- an attacker who shipped a .lvks
+// referencing "evil.eps" (not present at load time) and then dropped
+// evil.eps later got that file decoded on the next refresh. Validator
+// now exposes an ExistenceCheck mode: when the file is absent we still
+// gate on the EXTENSION (the path-derived suffix). The Qt format-sniff
+// step is skipped only when the file is absent; the GUI/dialog path
+// keeps full content-sniff semantics.
 
 #ifndef LVK_IMAGE_VALIDATION_H
 #define LVK_IMAGE_VALIDATION_H
@@ -33,10 +43,37 @@
 
 namespace lvk {
 
-/// Verify @p filename exists on disk and decodes as one of the formats
-/// the .lvks editor knows about (png/jpg/jpeg/bmp/gif/webp/svg/xpm/xbm/
-/// tif/tiff). Sniffs the file content via QImageReader -- the extension
-/// is not trusted.
+/// How strictly @p filename must exist on disk.
+enum class ExistenceCheck {
+    /// File MUST exist on disk; sniff content via QImageReader. This is
+    /// the GUI path (a file picker can never return a path that doesn't
+    /// exist) and the legacy validator behavior.
+    Required,
+    /// File MAY be absent. If present, fully validate (extension AND
+    /// content sniff). If absent, validate the extension only -- enough
+    /// to reject smuggled formats (e.g. "evil.eps") while tolerating the
+    /// legitimate broken-asset-link case (a .lvks referencing
+    /// "nonexistent.png" still admits the record, only the pixmap will
+    /// be null). This is the load path: it must close the TOCTOU bypass
+    /// where an attacker drops a malicious file AFTER load time.
+    Optional,
+};
+
+/// Verify @p filename's image format is on the whitelist.
+///
+/// The whitelist matches the file-dialog filter
+/// (png/jpg/jpeg/bmp/gif/webp/xpm/xbm/tif/tiff). Note that .svg is
+/// NOT on the whitelist -- it is a renderer surface (Qt SVG plugin) we
+/// don't need for sprite assets and was dropped to close XXE / scripted-
+/// SVG exposure (Team F1.3).
+///
+/// @p mode controls behavior when the file is missing on disk.
+///   - ExistenceCheck::Required: a missing file is a hard rejection.
+///     Content is sniffed via QImageReader::format().
+///   - ExistenceCheck::Optional: a missing file is admitted iff its
+///     filename has a whitelisted extension. A present file is sniffed
+///     in full (extension AND content). This is the load-path mode that
+///     closes the TOCTOU bypass.
 ///
 /// Returns true on success. On failure, optionally populates @p errMsg
 /// with a user-facing reason string.
@@ -45,7 +82,8 @@ namespace lvk {
 /// callers on hot redraw paths should cache the result. The two
 /// load-time call sites (GUI dialog -> ImageTabController::addImage and
 /// SpriteState::load) only validate once per record.
-bool validateImageFile(const QString &filename, QString *errMsg = nullptr);
+bool validateImageFile(const QString &filename, QString *errMsg = nullptr,
+                       ExistenceCheck mode = ExistenceCheck::Required);
 
 } // namespace lvk
 

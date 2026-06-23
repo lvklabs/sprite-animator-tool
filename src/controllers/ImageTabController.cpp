@@ -132,9 +132,20 @@ void ImageTabController::addImageDialog() {
 
     static QString lastDir = "";
 
+    // Team F1 (F1.3): align the file-dialog filter with the validator
+    // whitelist in src/image_validation.cpp. Pre-F1 the dialog only
+    // advertised png/jpg/jpeg/xpm/xbm/bmp/tif/tiff while the validator
+    // also accepted gif/webp/svg -- so a user could legitimately pick a
+    // webp through the dialog only if they switched to "All files (*)",
+    // and SVG was admitted through both paths despite XXE / scripted-
+    // SVG concerns. We now expand the dialog to include gif/webp and
+    // drop SVG from BOTH the dialog AND the validator (see
+    // src/image_validation.cpp). Final whitelist: png, jpg, jpeg, bmp,
+    // gif, webp, xpm, xbm, tif, tiff (10 formats).
     QStringList filenames = QFileDialog::getOpenFileNames(
         m_mw, tr("Add Image"), lastDir,
-        tr("Images (*.png *.jpg *.jpeg *.xpm *.xbm *.bmp *.tif *.tiff);;All files (*)"));
+        tr("Images (*.png *.jpg *.jpeg *.bmp *.gif *.webp *.xpm *.xbm *.tif *.tiff);;"
+           "All files (*)"));
 
     if (filenames.size() > 0) {
         lastDir = QFileInfo(filenames[0]).absolutePath();
