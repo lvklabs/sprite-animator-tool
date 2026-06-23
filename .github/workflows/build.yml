@@ -75,6 +75,10 @@ jobs:
           cache: true
           archives: 'qtbase qtsvg'
 
+      - name: Set up MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Configure (CMake preset)
         run: cmake --preset=${{ matrix.preset }}
 

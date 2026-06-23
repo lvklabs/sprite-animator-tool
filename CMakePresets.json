@@ -51,10 +51,10 @@
         },
         {
             "name": "windows",
-            "displayName": "Windows (Release, VS 2022)",
-            "description": "Release build for windows-latest using Visual Studio 17 2022",
+            "displayName": "Windows (Release, Ninja Multi-Config)",
+            "description": "Release build for windows runners using Ninja. Caller must set up MSVC env first (e.g. ilammy/msvc-dev-cmd in CI).",
             "binaryDir": "${sourceDir}/build",
-            "generator": "Visual Studio 17 2022",
+            "generator": "Ninja Multi-Config",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
