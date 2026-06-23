@@ -14,32 +14,33 @@
 
 class MainWindow;
 class SpriteState2;
-namespace Ui { class MainWindow; }
+namespace Ui {
+class MainWindow;
+}
 class LvkAnimation;
 class LvkAframe;
 
-class AnimationTabController : public QObject
-{
+class AnimationTabController : public QObject {
     Q_OBJECT
 public:
-    AnimationTabController(MainWindow* mw, Ui::MainWindow* ui, SpriteState2* state,
-                           QObject* parent = nullptr);
+    AnimationTabController(MainWindow *mw, Ui::MainWindow *ui, SpriteState2 *state,
+                           QObject *parent = nullptr);
     ~AnimationTabController() override = default;
 
     void wireSignals();
     void refreshTables(); // refreshes ani + aframe tables
 
-    Id   getAnimationId(int row) const;
-    Id   getAframeId(int row) const;
-    Id   getAframeFrameId(int row) const;
-    Id   getAframeAniId(int row) const;
-    Id   selectedAniId() const;
-    Id   selectedAframeId() const;
+    Id getAnimationId(int row) const;
+    Id getAframeId(int row) const;
+    Id getAframeFrameId(int row) const;
+    Id getAframeAniId(int row) const;
+    Id selectedAniId() const;
+    Id selectedAframeId() const;
 
-    Id   addAnimation(const LvkAnimation& ani);
-    void addAnimation_ui(const LvkAnimation& ani);
-    Id   addAframe(const LvkAframe& aframe, Id aniId);
-    void addAframe_ui(const LvkAframe& aframe, Id aniId);
+    Id addAnimation(const LvkAnimation &ani);
+    void addAnimation_ui(const LvkAnimation &ani);
+    Id addAframe(const LvkAframe &aframe, Id aniId);
+    void addAframe_ui(const LvkAframe &aframe, Id aniId);
 
     void showSelAframe(int row);
     void showAframe(Id frameId);
@@ -64,15 +65,15 @@ public slots:
     void incAniSpeed(int ms = 10);
     void decAniSpeed(int ms = 10);
     void switchLandscapeMode();
-    void changePreviewScrSize(const QString& text);
+    void changePreviewScrSize(const QString &text);
 
     void updateAframesTable(int row, int col);
     void updateAniTable(int row, int col);
 
 private:
-    MainWindow*     m_mw    = nullptr;
-    Ui::MainWindow* m_ui    = nullptr;
-    SpriteState2*   m_state = nullptr;
+    MainWindow *m_mw = nullptr;
+    Ui::MainWindow *m_ui = nullptr;
+    SpriteState2 *m_state = nullptr;
 };
 
 #endif // LVK_CONTROLLERS_ANIMATION_TAB_CONTROLLER_H

@@ -24,8 +24,8 @@
 //   return app.exec();
 
 #include <QApplication>
-#include <QCommandLineParser>
 #include <QCommandLineOption>
+#include <QCommandLineParser>
 #include <QDebug>
 #include <QDir>
 #include <QFileInfo>
@@ -45,27 +45,24 @@
 namespace {
 
 struct CliOptions {
-    bool        exportMode  = false;
-    QString     spriteFile;       // positional
-    QString     outputDir;        // -o
-    QString     postpScript;      // -p
-    QString     format = "cocos2d"; // -f (cocos2d|json|all)
+    bool exportMode = false;
+    QString spriteFile;         // positional
+    QString outputDir;          // -o
+    QString postpScript;        // -p
+    QString format = "cocos2d"; // -f (cocos2d|json|all)
 };
 
 // Run a headless export. Returns process exit code.
-int runHeadlessExport(const CliOptions& cli, const QString& binName)
-{
+int runHeadlessExport(const CliOptions &cli, const QString &binName) {
     if (cli.spriteFile.isEmpty()) {
-        std::cerr << binName.toStdString()
-                  << ": Error: --export requires a sprite-file argument\n";
+        std::cerr << binName.toStdString() << ": Error: --export requires a sprite-file argument\n";
         return -1;
     }
 
     QFileInfo info(cli.spriteFile);
     if (!info.exists()) {
-        std::cerr << binName.toStdString()
-                  << ": Error: sprite-file '" << cli.spriteFile.toStdString()
-                  << "' does not exist\n";
+        std::cerr << binName.toStdString() << ": Error: sprite-file '"
+                  << cli.spriteFile.toStdString() << "' does not exist\n";
         return -1;
     }
 
@@ -73,16 +70,14 @@ int runHeadlessExport(const CliOptions& cli, const QString& binName)
     if (outputDir.isEmpty()) {
         outputDir = info.absolutePath();
     } else if (!QDir(outputDir).exists()) {
-        std::cerr << binName.toStdString()
-                  << ": Error: output directory '" << outputDir.toStdString()
-                  << "' does not exist\n";
+        std::cerr << binName.toStdString() << ": Error: output directory '"
+                  << outputDir.toStdString() << "' does not exist\n";
         return -1;
     }
 
     if (!cli.postpScript.isEmpty() && !QFileInfo(cli.postpScript).exists()) {
-        std::cerr << binName.toStdString()
-                  << ": Error: postprocessing script '" << cli.postpScript.toStdString()
-                  << "' does not exist\n";
+        std::cerr << binName.toStdString() << ": Error: postprocessing script '"
+                  << cli.postpScript.toStdString() << "' does not exist\n";
         return -1;
     }
 
@@ -111,16 +106,15 @@ int runHeadlessExport(const CliOptions& cli, const QString& binName)
         return -1;
     }
 
-    std::cerr << binName.toStdString() << ": Export '"
-              << cli.spriteFile.toStdString() << "' successful!\n";
+    std::cerr << binName.toStdString() << ": Export '" << cli.spriteFile.toStdString()
+              << "' successful!\n";
     return 0;
 }
 
 // Parse the command line. Calls QCommandLineParser::process() which will
 // handle --version/--help internally (and exit). On a soft parse error
 // (e.g. --format=garbage) returns false and the caller should bail.
-bool parseCommandLine(QCoreApplication& app, CliOptions& cli, QString& errorMessage)
-{
+bool parseCommandLine(QCoreApplication &app, CliOptions &cli, QString &errorMessage) {
     QCommandLineParser parser;
     parser.setApplicationDescription(
         QStringLiteral("LVK Sprite Animation Tool -- WYSIWYG 2D sprite "
@@ -135,10 +129,9 @@ bool parseCommandLine(QCoreApplication& app, CliOptions& cli, QString& errorMess
     parser.addHelpOption();
     parser.addVersionOption();
 
-    QCommandLineOption exportOpt(
-        QStringList() << QStringLiteral("e") << QStringLiteral("export"),
-        QStringLiteral("Headless mode: export <sprite-file> instead of "
-                       "launching the GUI."));
+    QCommandLineOption exportOpt(QStringList() << QStringLiteral("e") << QStringLiteral("export"),
+                                 QStringLiteral("Headless mode: export <sprite-file> instead of "
+                                                "launching the GUI."));
     parser.addOption(exportOpt);
 
     QCommandLineOption outputDirOpt(
@@ -154,21 +147,19 @@ bool parseCommandLine(QCoreApplication& app, CliOptions& cli, QString& errorMess
         QStringLiteral("script"));
     parser.addOption(postpOpt);
 
-    QCommandLineOption formatOpt(
-        QStringList() << QStringLiteral("f") << QStringLiteral("format"),
-        QStringLiteral("Export format: cocos2d (default), json, or all."),
-        QStringLiteral("format"),
-        QStringLiteral("cocos2d"));
+    QCommandLineOption formatOpt(QStringList() << QStringLiteral("f") << QStringLiteral("format"),
+                                 QStringLiteral("Export format: cocos2d (default), json, or all."),
+                                 QStringLiteral("format"), QStringLiteral("cocos2d"));
     parser.addOption(formatOpt);
 
     // process() handles --help / --version (prints and exits) and reports
     // unknown options.
     parser.process(app);
 
-    cli.exportMode  = parser.isSet(exportOpt);
-    cli.outputDir   = parser.value(outputDirOpt);
+    cli.exportMode = parser.isSet(exportOpt);
+    cli.outputDir = parser.value(outputDirOpt);
     cli.postpScript = parser.value(postpOpt);
-    cli.format      = parser.value(formatOpt);
+    cli.format = parser.value(formatOpt);
 
     const QStringList positional = parser.positionalArguments();
     if (positional.size() > 1) {
@@ -193,11 +184,11 @@ bool parseCommandLine(QCoreApplication& app, CliOptions& cli, QString& errorMess
     }
 
     const QString fmt = cli.format.toLower();
-    if (fmt != QStringLiteral("cocos2d") &&
-        fmt != QStringLiteral("json") &&
+    if (fmt != QStringLiteral("cocos2d") && fmt != QStringLiteral("json") &&
         fmt != QStringLiteral("all")) {
         errorMessage = QStringLiteral("--format must be one of: cocos2d, json, all "
-                                      "(got '%1').").arg(cli.format);
+                                      "(got '%1').")
+                           .arg(cli.format);
         return false;
     }
     cli.format = fmt;
@@ -206,8 +197,7 @@ bool parseCommandLine(QCoreApplication& app, CliOptions& cli, QString& errorMess
 
 } // namespace
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
 
     // Phase 6b (Item 27): Install a QTranslator BEFORE constructing
@@ -224,15 +214,13 @@ int main(int argc, char* argv[])
     // yet) -- also a non-fatal "no translations available" state.  In
     // both cases tr() simply returns the source string verbatim.
     static QTranslator translator;
-    if (translator.load(QLocale(),
-                        QStringLiteral("lvkspriteeditor"),
-                        QStringLiteral("_"),
+    if (translator.load(QLocale(), QStringLiteral("lvkspriteeditor"), QStringLiteral("_"),
                         QStringLiteral(":/i18n"))) {
         if (app.installTranslator(&translator)) {
             qDebug() << "main: installed translator for locale" << QLocale().name();
         } else {
-            qDebug() << "main: translator loaded but empty for locale"
-                     << QLocale().name() << "-- using source strings";
+            qDebug() << "main: translator loaded but empty for locale" << QLocale().name()
+                     << "-- using source strings";
         }
     } else {
         qDebug() << "main: no translation found for locale" << QLocale().name()
@@ -259,8 +247,7 @@ int main(int argc, char* argv[])
     CliOptions cli;
     QString cliError;
     if (!parseCommandLine(app, cli, cliError)) {
-        std::cerr << binName.toStdString() << ": Error: "
-                  << cliError.toStdString() << "\n";
+        std::cerr << binName.toStdString() << ": Error: " << cliError.toStdString() << "\n";
         return -1;
     }
 

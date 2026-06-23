@@ -1,6 +1,6 @@
-#include <QStringList>
 #include <QDebug>
 #include <QFileInfo>
+#include <QStringList>
 
 #include "inputimage.h"
 #include "spritestate.h"
@@ -16,8 +16,7 @@ namespace {
 // Returns true if `path` looks safe to pass to QPixmap()/QImage(). On
 // rejection, the caller MUST mark its InputImage invalid so the rest of
 // the load pipeline doesn't try to read the path anyway.
-bool isSafeImagePath(const QString& path)
-{
+bool isSafeImagePath(const QString &path) {
     if (path.isEmpty()) {
         // Empty filenames are an existing legacy case (see
         // tst_inputimage::testFromStringEmptyFilename) -- not malicious,
@@ -40,27 +39,22 @@ bool isSafeImagePath(const QString& path)
     return true;
 }
 
-}
+} // namespace
 
-InputImage::InputImage(Id id, const QString& filename, double scale)
-        : id(id), filename(filename), pixmap(QPixmap(filename)), _scale(scale)
-{
-}
+InputImage::InputImage(Id id, const QString &filename, double scale)
+    : id(id), filename(filename), pixmap(QPixmap(filename)), _scale(scale) {}
 
-InputImage::InputImage(const QString& str)
-{
+InputImage::InputImage(const QString &str) {
     if (!fromString(str)) {
         // TODO should throw an exception
     }
 }
 
-QString InputImage::toString() const
-{
+QString InputImage::toString() const {
     return toString(LvkVersion::V_04);
 }
 
-QString InputImage::toString(LvkVersion v) const
-{
+QString InputImage::toString(LvkVersion v) const {
     // Phase 6b (Item 26): CSV format cannot represent ',' or NUL in the
     // filename field; reject rather than silently corrupt the saved file.
     // (isSafeImagePath already rejects NUL on load; reject on save too so
@@ -75,12 +69,10 @@ QString InputImage::toString(LvkVersion v) const
     if (v < LvkVersion::V_02) {
         return QStringLiteral("%1,%2").arg(QString::number(id), filename);
     }
-    return QStringLiteral("%1,%2,%3")
-        .arg(QString::number(id), filename, QString::number(_scale));
+    return QStringLiteral("%1,%2,%3").arg(QString::number(id), filename, QString::number(_scale));
 }
 
-bool InputImage::fromString(const QString& str)
-{
+bool InputImage::fromString(const QString &str) {
     QStringList list = str.split(",");
 
     if (list.size() >= 2 && list.size() <= 3) {
@@ -94,16 +86,16 @@ bool InputImage::fromString(const QString& str)
         if (!isSafeImagePath(candidateFilename)) {
             qDebug() << "Warning InputImage::fromString(const QString&) rejected unsafe image path"
                      << candidateFilename;
-            id       = NullId;
+            id = NullId;
             filename = QString();
-            _scale   = 1.0;
-            pixmap   = QPixmap();
+            _scale = 1.0;
+            pixmap = QPixmap();
             return false;
         }
 
-        id       = list.at(0).toInt();
+        id = list.at(0).toInt();
         filename = candidateFilename;
-        _scale   = (list.size() >= 3) ? list.at(2).toDouble() : 1.0;
+        _scale = (list.size() >= 3) ? list.at(2).toDouble() : 1.0;
 
         if (_scale == 1.0) {
             pixmap = QPixmap(filename);
@@ -112,8 +104,9 @@ bool InputImage::fromString(const QString& str)
         }
 
         if (pixmap.isNull()) {
-            qDebug() << "Warning InputImage::fromString(const QString&) null pixmap created from file"
-                     << filename;
+            qDebug()
+                << "Warning InputImage::fromString(const QString&) null pixmap created from file"
+                << filename;
         }
         return true;
     } else {
@@ -122,33 +115,28 @@ bool InputImage::fromString(const QString& str)
     }
 }
 
-void InputImage::scale(double scale)
-{
+void InputImage::scale(double scale) {
     _scale = scale;
 
     QPixmap origPixmap(filename);
     if (!origPixmap.isNull()) {
-        int w = origPixmap.width()*_scale;
-        int h = origPixmap.height()*_scale;
+        int w = origPixmap.width() * _scale;
+        int h = origPixmap.height() * _scale;
         pixmap = origPixmap.scaled(w, h, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     } else {
         pixmap = QPixmap();
     }
 }
 
-double InputImage::scale() const
-{
+double InputImage::scale() const {
     return _scale;
 }
 
-void InputImage::reloadImage()
-{
+void InputImage::reloadImage() {
     scale(_scale);
 }
 
-void InputImage::freeImageData()
-{
+void InputImage::freeImageData() {
     // TODO check if this actually does something
     pixmap = QPixmap();
 }
-

@@ -12,14 +12,15 @@
 
 class MainWindow;
 class SpriteState2;
-namespace Ui { class MainWindow; }
+namespace Ui {
+class MainWindow;
+}
 
-class TransitionTabController : public QObject
-{
+class TransitionTabController : public QObject {
     Q_OBJECT
 public:
-    TransitionTabController(MainWindow* mw, Ui::MainWindow* ui, SpriteState2* state,
-                            QObject* parent = nullptr);
+    TransitionTabController(MainWindow *mw, Ui::MainWindow *ui, SpriteState2 *state,
+                            QObject *parent = nullptr);
     ~TransitionTabController() override = default;
 
     void wireSignals();
@@ -37,9 +38,9 @@ public slots:
     void clearPreviewTransition();
 
 private:
-    MainWindow*     m_mw    = nullptr;
-    Ui::MainWindow* m_ui    = nullptr;
-    SpriteState2*   m_state = nullptr;
+    MainWindow *m_mw = nullptr;
+    Ui::MainWindow *m_ui = nullptr;
+    SpriteState2 *m_state = nullptr;
 };
 
 #endif // LVK_CONTROLLERS_TRANSITION_TAB_CONTROLLER_H

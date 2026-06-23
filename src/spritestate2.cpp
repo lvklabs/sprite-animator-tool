@@ -1,16 +1,12 @@
-#include <QObject>
 #include <QDebug>
+#include <QObject>
 
 #include "spritestate.h"
 #include "spritestate2.h"
 
-SpriteState2::SpriteState2(QObject* parent)
-    : SpriteState(parent), headerHasChanged(false)
-{
-}
+SpriteState2::SpriteState2(QObject *parent) : SpriteState(parent), headerHasChanged(false) {}
 
-bool SpriteState2::undo()
-{
+bool SpriteState2::undo() {
     if (!canUndo()) {
         return false;
     }
@@ -35,8 +31,7 @@ bool SpriteState2::undo()
     return true;
 }
 
-bool SpriteState2::undo(StateChange &st)
-{
+bool SpriteState2::undo(StateChange &st) {
     switch (st.type) {
 
     /* undo update */
@@ -90,9 +85,7 @@ bool SpriteState2::undo(StateChange &st)
     return true;
 }
 
-
-bool SpriteState2::redo()
-{
+bool SpriteState2::redo() {
     if (!canRedo()) {
         return false;
     }
@@ -117,8 +110,7 @@ bool SpriteState2::redo()
     return true;
 }
 
-bool SpriteState2::redo(StateChange &st)
-{
+bool SpriteState2::redo(StateChange &st) {
     switch (st.type) {
 
     /* redo update */
@@ -172,41 +164,35 @@ bool SpriteState2::redo(StateChange &st)
     return true;
 }
 
-bool SpriteState2::canUndo() const
-{
+bool SpriteState2::canUndo() const {
     return _stBuffer.hasPrevState();
 }
 
-bool SpriteState2::canRedo() const
-{
+bool SpriteState2::canRedo() const {
     return _stBuffer.hasNextState();
 }
 
-bool SpriteState2::hasUnsavedChanges() const
-{
+bool SpriteState2::hasUnsavedChanges() const {
     return !_stBuffer.hasSavedFlag() || headerHasChanged;
 }
 
-void SpriteState2::startTransaction()
-{
+void SpriteState2::startTransaction() {
     StateChange st;
     st.type = StateCircularBuffer::st_transactionStart;
     _stBuffer.addState(st);
 }
 
-void SpriteState2::endTransaction()
-{
+void SpriteState2::endTransaction() {
     StateChange st;
     st.type = StateCircularBuffer::st_transactionEnd;
     _stBuffer.addState(st);
 }
 
- /* inherited methods */
+/* inherited methods */
 
 // Load, save, export ******************************************************
 
-bool SpriteState2::save(const QString& filename, SpriteStateError* err)
-{
+bool SpriteState2::save(const QString &filename, SpriteStateError *err) {
     bool success = SpriteState::save(filename, err);
 
     if (success) {
@@ -217,8 +203,7 @@ bool SpriteState2::save(const QString& filename, SpriteStateError* err)
     return success;
 }
 
-bool SpriteState2::load(const QString& filename, SpriteStateError* err)
-{
+bool SpriteState2::load(const QString &filename, SpriteStateError *err) {
     bool success = SpriteState::load(filename, err);
 
     if (success) {
@@ -229,8 +214,7 @@ bool SpriteState2::load(const QString& filename, SpriteStateError* err)
     return success;
 }
 
-void SpriteState2::clear()
-{
+void SpriteState2::clear() {
     _stBuffer.clear();
     SpriteState::clear();
     headerHasChanged = false;
@@ -238,8 +222,7 @@ void SpriteState2::clear()
 
 // update *******************************************************************
 
-void SpriteState2::updateImage(const InputImage& img)
-{
+void SpriteState2::updateImage(const InputImage &img) {
     if (img == _images[img.id]) {
         return;
     }
@@ -255,8 +238,7 @@ void SpriteState2::updateImage(const InputImage& img)
     SpriteState::updateImage(img);
 }
 
-void SpriteState2::updateFrame(const LvkFrame& frame)
-{
+void SpriteState2::updateFrame(const LvkFrame &frame) {
     if (frame == _frames[frame.id]) {
         return;
     }
@@ -270,8 +252,7 @@ void SpriteState2::updateFrame(const LvkFrame& frame)
     SpriteState::updateFrame(frame);
 }
 
-void SpriteState2::updateAnimation(const LvkAnimation& ani)
-{
+void SpriteState2::updateAnimation(const LvkAnimation &ani) {
     if (ani == _animations[ani.id]) {
         return;
     }
@@ -285,8 +266,7 @@ void SpriteState2::updateAnimation(const LvkAnimation& ani)
     SpriteState::updateAnimation(ani);
 }
 
-void SpriteState2::updateAframe(const LvkAframe& aframe, Id aniId)
-{
+void SpriteState2::updateAframe(const LvkAframe &aframe, Id aniId) {
     if (aframe == _animations[aniId].aframe(aframe.id)) {
         return;
     }
@@ -303,8 +283,7 @@ void SpriteState2::updateAframe(const LvkAframe& aframe, Id aniId)
 
 // add *********************************************************************
 
-void SpriteState2::addImage(InputImage& img)
-{
+void SpriteState2::addImage(InputImage &img) {
     SpriteState::addImage(img);
 
     StateChange st;
@@ -314,8 +293,7 @@ void SpriteState2::addImage(InputImage& img)
     _stBuffer.addState(st);
 }
 
-void SpriteState2::addFrame(LvkFrame& frame)
-{
+void SpriteState2::addFrame(LvkFrame &frame) {
     SpriteState::addFrame(frame);
 
     StateChange st;
@@ -324,8 +302,7 @@ void SpriteState2::addFrame(LvkFrame& frame)
     _stBuffer.addState(st);
 }
 
-void SpriteState2::addAnimation(LvkAnimation& ani)
-{
+void SpriteState2::addAnimation(LvkAnimation &ani) {
     SpriteState::addAnimation(ani);
 
     StateChange st;
@@ -334,8 +311,7 @@ void SpriteState2::addAnimation(LvkAnimation& ani)
     _stBuffer.addState(st);
 }
 
-void SpriteState2::addAframe(LvkAframe& aframe, Id aniId)
-{
+void SpriteState2::addAframe(LvkAframe &aframe, Id aniId) {
     SpriteState::addAframe(aframe, aniId);
 
     StateChange st;
@@ -347,8 +323,7 @@ void SpriteState2::addAframe(LvkAframe& aframe, Id aniId)
 
 // remove ******************************************************************
 
-void SpriteState2::removeImage(Id id)
-{
+void SpriteState2::removeImage(Id id) {
     StateChange st;
     st.type = StateCircularBuffer::st_removeImage;
     st.data.img = _images[id];
@@ -358,8 +333,7 @@ void SpriteState2::removeImage(Id id)
     SpriteState::removeImage(id);
 }
 
-void SpriteState2::removeFrame(Id id)
-{
+void SpriteState2::removeFrame(Id id) {
     StateChange st;
     st.type = StateCircularBuffer::st_removeFrame;
     st.data.frame = _frames[id];
@@ -368,8 +342,7 @@ void SpriteState2::removeFrame(Id id)
     SpriteState::removeFrame(id);
 }
 
-void SpriteState2::removeAnimation(Id id)
-{
+void SpriteState2::removeAnimation(Id id) {
     StateChange st;
     st.type = StateCircularBuffer::st_removeAnimation;
     st.data.ani = _animations[id];
@@ -378,8 +351,7 @@ void SpriteState2::removeAnimation(Id id)
     SpriteState::removeAnimation(id);
 }
 
-void SpriteState2::removeAframe(Id aframeId, Id aniId)
-{
+void SpriteState2::removeAframe(Id aframeId, Id aniId) {
     StateChange st;
     st.type = StateCircularBuffer::st_removeAframe;
     st.data.aframe = _animations[aniId].aframe(aframeId);
@@ -389,18 +361,13 @@ void SpriteState2::removeAframe(Id aframeId, Id aniId)
     SpriteState::removeAframe(aframeId, aniId);
 }
 
-void SpriteState2::setCustomHeader(const QString &header)
-{
+void SpriteState2::setCustomHeader(const QString &header) {
     if (getCustomHeader() != header) {
         headerHasChanged = true;
         SpriteState::setCustomHeader(header);
     }
 }
 
-
-QString SpriteState2::getCustomHeader()
-{
+QString SpriteState2::getCustomHeader() {
     return SpriteState::getCustomHeader();
 }
-
-

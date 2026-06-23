@@ -36,12 +36,12 @@ enum class Mode {
 /// Apply the bundled dark palette to @p app. Safe to call repeatedly.
 /// The palette is also propagated as the application style so every
 /// existing widget (including those created before the call) repaints.
-void applyDarkPalette(QApplication* app);
+void applyDarkPalette(QApplication *app);
 
 /// Apply the bundled light palette to @p app. Symmetric with
 /// applyDarkPalette() — this is an explicit reset rather than a
 /// "do nothing and trust the system default".
-void applyLightPalette(QApplication* app);
+void applyLightPalette(QApplication *app);
 
 /// Detect whether the host desktop is currently in dark mode and
 /// apply the matching palette. The detection strategy is:
@@ -51,10 +51,10 @@ void applyLightPalette(QApplication* app);
 /// The heuristic is documented because it can misfire on heavily
 /// customised themes; users who want a deterministic outcome should
 /// pick Mode::Light or Mode::Dark explicitly.
-void autoDetect(QApplication* app);
+void autoDetect(QApplication *app);
 
 /// Dispatch to the right apply* helper for @p mode.
-void apply(QApplication* app, Mode mode);
+void apply(QApplication *app, Mode mode);
 
 /// Persist @p mode under QSettings key "ui/theme". The companion
 /// loadFromSettings() reads it back. Both calls honour the
@@ -68,7 +68,7 @@ Mode loadFromSettings();
 
 /// Parse a CLI / settings token ("auto", "light", "dark", any case)
 /// into a Mode. Unknown tokens map to Mode::Auto.
-Mode fromString(const QString& token);
+Mode fromString(const QString &token);
 
 /// Inverse of fromString(): canonical lowercase token for @p mode.
 QString toString(Mode mode);

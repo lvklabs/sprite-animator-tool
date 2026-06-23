@@ -1,24 +1,23 @@
 #include "spritestate.h"
 #include "exporters/JsonAtlasExporter.h"
 
+#include <QDebug>
+#include <QDir>
 #include <QFile>
 #include <QFileDevice>
 #include <QFileInfo>
-#include <QDebug>
-#include <QTextStream>
-#include <QStringList>
-#include <QImageWriter>
 #include <QImageReader>
-#include <QFileInfo>
-#include <QDir>
+#include <QImageWriter>
 #include <QProcess>
 #include <QRegularExpression>
 #include <QSet>
 #include <QStandardPaths>
+#include <QStringList>
 #include <QTemporaryFile>
-#include <iostream>
+#include <QTextStream>
 #include <algorithm>
 #include <cctype>
+#include <iostream>
 
 // SECURITY (Agent 5): Audit of src/spritestate.cpp - 2026-05-16
 // ---------------------------------------------------------------------------
@@ -74,11 +73,14 @@
 
 #define HEADER_VER_01 "LvkSprite version 0.1"
 #define HEADER_VER_02 "LvkSprite version 0.2"
-#define HEADER_VER_03 "LvkSprite version 0.3"   // New: Custom header section
-#define HEADER_VER_04 "LvkSprite version 0.4"   // New: Sticky flag
+#define HEADER_VER_03 "LvkSprite version 0.3" // New: Custom header section
+#define HEADER_VER_04 "LvkSprite version 0.4" // New: Sticky flag
 #define HEADER_LATEST HEADER_VER_04
 
-#define setError(p, err_code) if (p) { *(p) = err_code; }
+#define setError(p, err_code)                                                                      \
+    if (p) {                                                                                       \
+        *(p) = err_code;                                                                           \
+    }
 
 // Convert string to a new string containing only valid characters for macro names.
 //
@@ -98,8 +100,7 @@
 // Collision disambiguation (e.g. two animations whose names both collapse to
 // "FLY") is the caller's responsibility -- see the export loop in
 // exportSprite() which appends "_2", "_3", ... suffixes.
-static QString getMacroName(const QString& name)
-{
+static QString getMacroName(const QString &name) {
     QString clean;
     clean.reserve(name.size());
     for (QChar ch : name) {
@@ -148,21 +149,22 @@ static QString getMacroName(const QString& name)
     return collapsed;
 }
 
-SpriteState::SpriteState(QObject* parent)
-        : QObject(parent), _imgId(0), _frameId(0), _aniId(0), _aframeId(0)
-{
-}
+SpriteState::SpriteState(QObject *parent)
+    : QObject(parent), _imgId(0), _frameId(0), _aniId(0), _aframeId(0) {}
 
-const char* SpriteState::headerLiteral(LvkVersion v)
-{
+const char *SpriteState::headerLiteral(LvkVersion v) {
     // Single source of truth mapping LvkVersion -> header literal. Used
     // by save() to write the chosen version, by the version-preservation
     // round-trip test to assert on it, and by future consumers.
     switch (v) {
-    case LvkVersion::V_01: return HEADER_VER_01;
-    case LvkVersion::V_02: return HEADER_VER_02;
-    case LvkVersion::V_03: return HEADER_VER_03;
-    case LvkVersion::V_04: return HEADER_VER_04;
+    case LvkVersion::V_01:
+        return HEADER_VER_01;
+    case LvkVersion::V_02:
+        return HEADER_VER_02;
+    case LvkVersion::V_03:
+        return HEADER_VER_03;
+    case LvkVersion::V_04:
+        return HEADER_VER_04;
     }
     // Defensive: an out-of-range LvkVersion is a programming error; we
     // pick the latest so a partly-broken caller still emits a parseable
@@ -170,8 +172,7 @@ const char* SpriteState::headerLiteral(LvkVersion v)
     return HEADER_LATEST;
 }
 
-LvkVersion SpriteState::minimumVersion() const
-{
+LvkVersion SpriteState::minimumVersion() const {
     // Start at v0.1 and ratchet up as we encounter data that the older
     // versions cannot represent. Order of checks doesn't matter — the
     // final value is just the max over all data-introduced minimums.
@@ -181,9 +182,9 @@ LvkVersion SpriteState::minimumVersion() const
     // in v0.2; if either is nonzero we have to bump to at least v0.2.
     for (QMapIterator<Id, LvkAnimation> it(_animations); it.hasNext();) {
         it.next();
-        const QList<LvkAframe>& aframes = it.value()._aframes;
+        const QList<LvkAframe> &aframes = it.value()._aframes;
         for (int i = 0; i < aframes.size(); ++i) {
-            const LvkAframe& af = aframes.at(i);
+            const LvkAframe &af = aframes.at(i);
             if (af.sticky) {
                 v = std::max(v, LvkVersion::V_04);
             } else if ((af.ox != 0 || af.oy != 0) && v < LvkVersion::V_02) {
@@ -228,8 +229,7 @@ LvkVersion SpriteState::minimumVersion() const
     return v;
 }
 
-void SpriteState::addImage(InputImage& img)
-{
+void SpriteState::addImage(InputImage &img) {
     if (img.id == NullId) {
         img.id = _imgId++;
     } else {
@@ -238,8 +238,7 @@ void SpriteState::addImage(InputImage& img)
     _images.insert(img.id, img);
 }
 
-void SpriteState::addFrame(LvkFrame& frame)
-{
+void SpriteState::addFrame(LvkFrame &frame) {
     if (frame.id == NullId) {
         frame.id = _frameId++;
     } else {
@@ -249,8 +248,7 @@ void SpriteState::addFrame(LvkFrame& frame)
     _frames.insert(frame.id, frame);
 }
 
-void SpriteState::addAnimation(LvkAnimation& ani)
-{
+void SpriteState::addAnimation(LvkAnimation &ani) {
     if (ani.id == NullId) {
         ani.id = _aniId++;
     } else {
@@ -259,8 +257,7 @@ void SpriteState::addAnimation(LvkAnimation& ani)
     _animations.insert(ani.id, ani);
 }
 
-void SpriteState::addAframe(LvkAframe& aframe, Id aniId)
-{
+void SpriteState::addAframe(LvkAframe &aframe, Id aniId) {
     if (aframe.id == NullId) {
         aframe.id = _aframeId++;
     } else {
@@ -276,11 +273,10 @@ void SpriteState::addAframe(LvkAframe& aframe, Id aniId)
     _animations[aniId]._aframes.append(aframe);
 }
 
-void SpriteState::clear()
-{
-    _imgId    = 0;
-    _frameId  = 0;
-    _aniId    = 0;
+void SpriteState::clear() {
+    _imgId = 0;
+    _frameId = 0;
+    _aniId = 0;
     _aframeId = 0;
 
     _images.clear();
@@ -297,15 +293,13 @@ void SpriteState::clear()
     _loadedVersion = LvkVersion::V_04;
 }
 
-bool SpriteState::save(const QString& filename, SpriteStateError* err)
-{
+bool SpriteState::save(const QString &filename, SpriteStateError *err) {
     setError(err, ErrNone);
 
     QFile file(filename);
 
     if (!file.open(QFile::WriteOnly | QFile::Text)) {
-        qDebug() <<  "Error: SpriteState::save(): could not open"
-                 << filename << "in rw mode";
+        qDebug() << "Error: SpriteState::save(): could not open" << filename << "in rw mode";
         setError(err, ErrCantOpenReadWriteMode);
         return false;
     }
@@ -317,11 +311,9 @@ bool SpriteState::save(const QString& filename, SpriteStateError* err)
     // moved forward.
     const LvkVersion target = std::max(_loadedVersion, minimumVersion());
     if (target > _loadedVersion) {
-        qWarning().noquote()
-            << "Note:" << filename
-            << "uses features requiring" << headerLiteral(target)
-            << "(was" << headerLiteral(_loadedVersion) << ");"
-            << "auto-bumping the saved header to preserve data fidelity.";
+        qWarning().noquote() << "Note:" << filename << "uses features requiring"
+                             << headerLiteral(target) << "(was" << headerLiteral(_loadedVersion)
+                             << ");" << "auto-bumping the saved header to preserve data fidelity.";
     }
 
     QTextStream stream(&file);
@@ -339,7 +331,7 @@ bool SpriteState::save(const QString& filename, SpriteStateError* err)
     stream << "images(\n";
     for (QMapIterator<Id, InputImage> it(_images); it.hasNext();) {
         it.next();
-        stream << "\t" <<  it.value().toString(target) << "\n";
+        stream << "\t" << it.value().toString(target) << "\n";
     }
     stream << ")\n\n";
 
@@ -391,10 +383,8 @@ bool SpriteState::save(const QString& filename, SpriteStateError* err)
     {
         QString headerOut = _customHeader;
         while (!headerOut.isEmpty() &&
-               (headerOut.endsWith(QLatin1Char('\n')) ||
-                headerOut.endsWith(QLatin1Char('\r')) ||
-                headerOut.endsWith(QLatin1Char(' ')) ||
-                headerOut.endsWith(QLatin1Char('\t')))) {
+               (headerOut.endsWith(QLatin1Char('\n')) || headerOut.endsWith(QLatin1Char('\r')) ||
+                headerOut.endsWith(QLatin1Char(' ')) || headerOut.endsWith(QLatin1Char('\t')))) {
             headerOut.chop(1);
         }
         if (!headerOut.isEmpty()) {
@@ -410,8 +400,7 @@ bool SpriteState::save(const QString& filename, SpriteStateError* err)
     return true;
 }
 
-bool SpriteState::load(const QString& filename, SpriteStateError* err)
-{
+bool SpriteState::load(const QString &filename, SpriteStateError *err) {
     setError(err, ErrNone);
 
     if (filename.isEmpty()) {
@@ -427,8 +416,7 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
     }
 
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
-        qDebug() <<  "Error: SpriteState::load(): could not open"
-                 << filename << "in ro mode";
+        qDebug() << "Error: SpriteState::load(): could not open" << filename << "in ro mode";
         setError(err, ErrCantOpenReadMode);
         return false;
     }
@@ -436,26 +424,26 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
     clear();
 
     enum {
-        StCheckVersion    = 0,
-        StNoToken         = 1,
-        StTokenImages     = 2,
-        StTokenFrames     = 3,
+        StCheckVersion = 0,
+        StNoToken = 1,
+        StTokenImages = 2,
+        StTokenFrames = 3,
         StTokenAnimations = 4,
-        StTokenAframes    = 5,
-        StTokenHeader     = 6,
-        StError           = 999,
+        StTokenAframes = 5,
+        StTokenHeader = 6,
+        StError = 999,
     } state = StCheckVersion;
 
     QTextStream stream(&file);
-    QString     line;
+    QString line;
     QStringList tokens;
 
     int lineNumber = -1;
 
-    InputImage   tmpImage;
-    LvkFrame     tmpFrame;
+    InputImage tmpImage;
+    LvkFrame tmpFrame;
     LvkAnimation tmpAni;
-    LvkAframe    tmpAframe;
+    LvkAframe tmpAframe;
 
     Id currentAniId = NullId;
 
@@ -494,8 +482,8 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
                 state = StNoToken;
                 continue;
             } else {
-                qDebug() << "Error: SpriteState::load(): Invalid LvkSprite file format"
-                         << "at line" << lineNumber;
+                qDebug() << "Error: SpriteState::load(): Invalid LvkSprite file format" << "at line"
+                         << lineNumber;
                 setError(err, ErrInvalidFormat);
                 state = StError;
                 break;
@@ -513,13 +501,13 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
             } else if (line == "custom_header(") {
                 state = StTokenHeader;
             } else if (line == "aframes(") {
-                qDebug() << "Error: SpriteState::load(): Unspected token"
-                         << line << "at line" << lineNumber;
+                qDebug() << "Error: SpriteState::load(): Unspected token" << line << "at line"
+                         << lineNumber;
                 setError(err, ErrInvalidFormat);
                 state = StError;
             } else {
-                qDebug() << "Error: SpriteState::load(): Unknown token"
-                         << line << "at line" << lineNumber;
+                qDebug() << "Error: SpriteState::load(): Unknown token" << line << "at line"
+                         << lineNumber;
                 setError(err, ErrInvalidFormat);
                 state = StError;
             }
@@ -533,8 +521,8 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
                     emit(loadProgress(tr("Image ") + tmpImage.filename));
                     addImage(tmpImage);
                 } else {
-                    qDebug() << "Error: SpriteState::load(): invalid image entry"
-                             << line << "at line" << lineNumber;
+                    qDebug() << "Error: SpriteState::load(): invalid image entry" << line
+                             << "at line" << lineNumber;
                     setError(err, ErrInvalidFormat);
                     state = StError;
                 }
@@ -549,8 +537,8 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
                     addFrame(tmpFrame);
                     emit(loadProgress(tr("Frame ") + tmpImage.filename));
                 } else {
-                    qDebug() << "Error: SpriteState::load(): invalid frame entry"
-                             << line << "at line" << lineNumber;
+                    qDebug() << "Error: SpriteState::load(): invalid frame entry" << line
+                             << "at line" << lineNumber;
                     setError(err, ErrInvalidFormat);
                     state = StError;
                 }
@@ -565,8 +553,8 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
                 if (currentAniId != NullId) {
                     state = StTokenAframes;
                 } else {
-                    qDebug() << "Error: SpriteState::load(): null animation id"
-                             << "at line" << lineNumber;
+                    qDebug() << "Error: SpriteState::load(): null animation id" << "at line"
+                             << lineNumber;
                     setError(err, ErrInvalidFormat);
                     state = StError;
                 }
@@ -576,8 +564,8 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
                     addAnimation(tmpAni);
                     emit(loadProgress(tr("Animation ") + tmpAni.name));
                 } else {
-                    qDebug() << "Error: SpriteState::load(): invalid animation entry"
-                             << line << "at line" << lineNumber;
+                    qDebug() << "Error: SpriteState::load(): invalid animation entry" << line
+                             << "at line" << lineNumber;
                     setError(err, ErrInvalidFormat);
                     state = StError;
                 }
@@ -591,8 +579,8 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
                 if (tmpAframe.fromString(line)) {
                     addAframe(tmpAframe, currentAniId);
                 } else {
-                    qDebug() << "Error: SpriteState::load(): invalid aframe entry"
-                             << line << "at line" << lineNumber;
+                    qDebug() << "Error: SpriteState::load(): invalid aframe entry" << line
+                             << "at line" << lineNumber;
                     setError(err, ErrInvalidFormat);
                     state = StError;
                 }
@@ -608,8 +596,8 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
             break;
 
         default:
-            qDebug() << "Warning: SpriteState::load(): Unhandled state "
-                     << (int)state << "at line" << lineNumber;
+            qDebug() << "Warning: SpriteState::load(): Unhandled state " << (int)state << "at line"
+                     << lineNumber;
             break;
         }
     } while (true);
@@ -622,9 +610,9 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
     // the historical QList::insert(id, ...) semantics where the key was
     // used as a sort position (modulo the OOB bug fixed in Bug #4).
     for (auto it = _animations.begin(); it != _animations.end(); ++it) {
-        QList<LvkAframe>& aframes = it.value()._aframes;
+        QList<LvkAframe> &aframes = it.value()._aframes;
         std::sort(aframes.begin(), aframes.end(),
-                  [](const LvkAframe& a, const LvkAframe& b) { return a.id < b.id; });
+                  [](const LvkAframe &a, const LvkAframe &b) { return a.id < b.id; });
     }
 
     return (state != StError);
@@ -653,12 +641,11 @@ bool SpriteState::load(const QString& filename, SpriteStateError* err)
 //   - outputDir that does not exist / cannot canonicalize,
 //   - resolved candidate path that escapes canonicalised outputDir.
 // Returns true on safe; false on unsafe (with reasonOut optionally set).
-static bool isSafeExportPath(const QString& sourceFilename,
-                             const QString& outputDir,
-                             QString*       reasonOut)
-{
-    auto fail = [&](const QString& reason) {
-        if (reasonOut) *reasonOut = reason;
+static bool isSafeExportPath(const QString &sourceFilename, const QString &outputDir,
+                             QString *reasonOut) {
+    auto fail = [&](const QString &reason) {
+        if (reasonOut)
+            *reasonOut = reason;
         qDebug() << "isSafeExportPath: REJECTED -" << reason;
         return false;
     };
@@ -686,15 +673,13 @@ static bool isSafeExportPath(const QString& sourceFilename,
     // attack ("a\\..\\..\\b") still gets split into its components on a
     // POSIX build (where QDir::separator is '/').
     const QString cleaned = QDir::cleanPath(sourceFilename);
-    const QString filenameOnly =
-        cleaned.section(QRegularExpression(QStringLiteral("[\\\\/]")), -1,
-                        -1, QString::SectionSkipEmpty);
+    const QString filenameOnly = cleaned.section(QRegularExpression(QStringLiteral("[\\\\/]")), -1,
+                                                 -1, QString::SectionSkipEmpty);
 
     if (filenameOnly.isEmpty()) {
         return fail(QStringLiteral("filename is empty after cleanPath: ") + sourceFilename);
     }
-    if (filenameOnly.contains(QLatin1Char('/')) ||
-        filenameOnly.contains(QLatin1Char('\\'))) {
+    if (filenameOnly.contains(QLatin1Char('/')) || filenameOnly.contains(QLatin1Char('\\'))) {
         // Belt-and-braces: the section() above should have stripped these,
         // but a defense-in-depth check is cheap.
         return fail(QStringLiteral("filename contains a path separator: ") + filenameOnly);
@@ -710,12 +695,14 @@ static bool isSafeExportPath(const QString& sourceFilename,
     // operator-confusion attacks like "/tmp/safe -> /etc".
     const QString canonicalOutputDir = QDir(outputDir).canonicalPath();
     if (canonicalOutputDir.isEmpty()) {
-        return fail(QStringLiteral("could not canonicalize outputDir (missing or broken symlink): ") + outputDir);
+        return fail(
+            QStringLiteral("could not canonicalize outputDir (missing or broken symlink): ") +
+            outputDir);
     }
     QFileInfo canonOutInfo(canonicalOutputDir);
     if (!canonOutInfo.exists() || !canonOutInfo.isDir()) {
-        return fail(QStringLiteral("canonical outputDir does not exist or is not a directory: ")
-                    + canonicalOutputDir);
+        return fail(QStringLiteral("canonical outputDir does not exist or is not a directory: ") +
+                    canonicalOutputDir);
     }
 
     // 3. Build the candidate output path and verify it stays inside
@@ -727,17 +714,15 @@ static bool isSafeExportPath(const QString& sourceFilename,
     const QString sep = QDir::separator();
     const QString canonOutWithSep = canonicalOutputDir + sep;
     const QString candidate = QDir::cleanPath(canonicalOutputDir + sep + filenameOnly);
-    if (!candidate.startsWith(canonOutWithSep) &&
-        candidate != canonicalOutputDir) {
+    if (!candidate.startsWith(canonOutWithSep) && candidate != canonicalOutputDir) {
         return fail(QStringLiteral("resolved path escapes outputDir: ") + candidate);
     }
     return true;
 }
 
-bool SpriteState::exportSprite(const QString& filename, const QString& outputDir_,
+bool SpriteState::exportSprite(const QString &filename, const QString &outputDir_,
                                const QString &postpScript, ExportFormat format,
-                               SpriteStateError* err) const
-{
+                               SpriteStateError *err) const {
     setError(err, ErrNone);
 
     QFileInfo fileInfo(filename);
@@ -767,8 +752,7 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
         // A filename like "...lvks" has baseName "" -- still trigger the
         // safe-path rejection so we don't open(outputDir + "" + ".lkob")
         // which writes to the directory itself.
-        qDebug() << "SpriteState::exportSprite(): baseName is empty for"
-                 << filename;
+        qDebug() << "SpriteState::exportSprite(): baseName is empty for" << filename;
         setError(err, ErrUnsafeOutputPath);
         return false;
     }
@@ -777,7 +761,7 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
     // The Cocos2d path below is the original behavior (preserved for
     // byte-equivalence of the .lkob / .lkot / .h artifacts).
     const bool wantCocos2d = (format & Cocos2d) != 0;
-    const bool wantJson    = (format & Json)    != 0;
+    const bool wantJson = (format & Json) != 0;
 
     if (!wantCocos2d && !wantJson) {
         qDebug() << "SpriteState::exportSprite(): no format flags set";
@@ -786,12 +770,10 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
 
     if (wantJson) {
         JsonAtlasExporter jsonExp;
-        const QString jsonBase =
-            QDir::cleanPath(QFileInfo(outputDir).canonicalFilePath() +
-                            QDir::separator() + baseName);
+        const QString jsonBase = QDir::cleanPath(QFileInfo(outputDir).canonicalFilePath() +
+                                                 QDir::separator() + baseName);
         if (!jsonExp.exportAtlas(jsonBase, *this)) {
-            qDebug() << "SpriteState::exportSprite(): JSON atlas export failed for"
-                     << jsonBase;
+            qDebug() << "SpriteState::exportSprite(): JSON atlas export failed for" << jsonBase;
             setError(err, ErrCantOpenReadWriteMode);
             return false;
         }
@@ -800,7 +782,7 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
         }
     }
 
-    QString binFileName  = outputDir + QDir::separator() + baseName + ".lkob";
+    QString binFileName = outputDir + QDir::separator() + baseName + ".lkob";
     QString textFileName = outputDir + QDir::separator() + baseName + ".lkot";
     QString headerFileName = outputDir + QDir::separator() + "AnimNameDef_" + baseName + ".h";
 
@@ -810,30 +792,30 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
 
     if (binOutput.exists()) {
         if (!binOutput.remove()) {
-            qDebug() <<  "Error: SpriteState::exportSprite():"
-                     << binOutput.fileName() << "already exists and cannot be removed";
+            qDebug() << "Error: SpriteState::exportSprite():" << binOutput.fileName()
+                     << "already exists and cannot be removed";
             setError(err, ErrCantOpenReadWriteMode);
             return false;
         }
     }
 
     if (!binOutput.open(QFile::WriteOnly | QFile::Append)) {
-        qDebug() <<  "Error: SpriteState::exportSprite(): could not open "
-                 << binOutput.fileName() << " in WriteOnly mode";
+        qDebug() << "Error: SpriteState::exportSprite(): could not open " << binOutput.fileName()
+                 << " in WriteOnly mode";
         setError(err, ErrCantOpenReadWriteMode);
         return false;
     }
 
     if (!textOutput.open(QFile::WriteOnly | QFile::Text)) {
-        qDebug() <<  "Error: SpriteState::exportSprite(): could not open "
-                 << textOutput.fileName() << " in WriteOnly mode";
+        qDebug() << "Error: SpriteState::exportSprite(): could not open " << textOutput.fileName()
+                 << " in WriteOnly mode";
         setError(err, ErrCantOpenReadWriteMode);
         return false;
     }
 
     if (!headerOutput.open(QFile::WriteOnly | QFile::Text)) {
-        qDebug() <<  "Error: SpriteState::exportSprite(): could not open "
-                 << headerOutput.fileName() << " in WriteOnly mode";
+        qDebug() << "Error: SpriteState::exportSprite(): could not open " << headerOutput.fileName()
+                 << " in WriteOnly mode";
         setError(err, ErrCantOpenReadWriteMode);
         return false;
     }
@@ -860,10 +842,9 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
             prevOffset = offset;
             writeImageWithPostprocessing(binOutput, frame, postpScript);
             offset = binOutput.size();
-            textStream << "\t" <<  frame.id << "," <<  prevOffset << "," << (offset - prevOffset) << "\n";
-        }
-        else
-        {
+            textStream << "\t" << frame.id << "," << prevOffset << "," << (offset - prevOffset)
+                       << "\n";
+        } else {
             qDebug() << "Omitting unused frame " << frame.id;
         }
     }
@@ -917,7 +898,8 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
         }
         usedMacroNames.insert(uniq);
         headerStream << "#define ANIM_" << uniq << "\t\t\t\"" << it.value().name << "\"\n";
-        headerStream << "#define ANIM_" << uniq << "_FLAGS\t\t\t 0x" << QString::number(it.value().flags, 16) << "\n";
+        headerStream << "#define ANIM_" << uniq << "_FLAGS\t\t\t 0x"
+                     << QString::number(it.value().flags, 16) << "\n";
     }
     headerStream << "\n";
 
@@ -950,15 +932,13 @@ bool SpriteState::exportSprite(const QString& filename, const QString& outputDir
 // file to outlive this helper so that the postprocessing subprocess can read
 // it. The caller MUST remove the file itself; see the RAII guard in
 // writeImageWithPostprocessing().
-static bool writeTempImage(QString &tmpImgFilename, const QImage &image)
-{
+static bool writeTempImage(QString &tmpImgFilename, const QImage &image) {
     const int IMG_COMPRESSION = 9; // min:0, max:9
 
     QTemporaryFile tmp(QDir::tempPath() + QDir::separator() + "lvk-frame-XXXXXX.png");
     tmp.setAutoRemove(false);
     if (!tmp.open()) {
-        qDebug() << "writeTempImage: could not create secure temp file in"
-                 << QDir::tempPath();
+        qDebug() << "writeTempImage: could not create secure temp file in" << QDir::tempPath();
         return false;
     }
     tmpImgFilename = tmp.fileName();
@@ -967,8 +947,8 @@ static bool writeTempImage(QString &tmpImgFilename, const QImage &image)
     QImageWriter imgWriter(tmpImgFilename, QByteArray("png"));
     imgWriter.setCompression(IMG_COMPRESSION);
     if (!imgWriter.write(image)) {
-        qDebug() << "writeTempImage: failed to encode PNG to" << tmpImgFilename
-                 << "-" << imgWriter.errorString();
+        qDebug() << "writeTempImage: failed to encode PNG to" << tmpImgFilename << "-"
+                 << imgWriter.errorString();
         QFile::remove(tmpImgFilename);
         tmpImgFilename.clear();
         return false;
@@ -984,14 +964,12 @@ static bool writeTempImage(QString &tmpImgFilename, const QImage &image)
 // portion (the first token of the tokenised command). If that token is a
 // relative or absolute path, it must exist and be executable. If it's a bare
 // name (e.g. "convert"), it must resolve via PATH.
-static bool resolvePostprocessingProgram(const QString &postpScriptCmd,
-                                         QString *resolvedProgram,
-                                         QStringList *extraArgs,
-                                         QString *errorOut)
-{
+static bool resolvePostprocessingProgram(const QString &postpScriptCmd, QString *resolvedProgram,
+                                         QStringList *extraArgs, QString *errorOut) {
     const QStringList tokens = QProcess::splitCommand(postpScriptCmd);
     if (tokens.isEmpty()) {
-        if (errorOut) *errorOut = QStringLiteral("postprocessing script command is empty");
+        if (errorOut)
+            *errorOut = QStringLiteral("postprocessing script command is empty");
         return false;
     }
 
@@ -1016,7 +994,8 @@ static bool resolvePostprocessingProgram(const QString &postpScriptCmd,
         // Path-like: must exist on disk exactly as given.
         if (!fi.exists() || !fi.isFile()) {
             if (errorOut) {
-                *errorOut = QStringLiteral("postprocessing script '%1' does not exist").arg(program);
+                *errorOut =
+                    QStringLiteral("postprocessing script '%1' does not exist").arg(program);
             }
             return false;
         }
@@ -1026,7 +1005,8 @@ static bool resolvePostprocessingProgram(const QString &postpScriptCmd,
             // symlink in the chain is broken. We already proved existence
             // above; an empty result here means a broken symlink.
             if (errorOut) {
-                *errorOut = QStringLiteral("postprocessing script '%1' has a broken symlink chain").arg(program);
+                *errorOut = QStringLiteral("postprocessing script '%1' has a broken symlink chain")
+                                .arg(program);
             }
             return false;
         }
@@ -1035,7 +1015,8 @@ static bool resolvePostprocessingProgram(const QString &postpScriptCmd,
         const QString pathResolved = QStandardPaths::findExecutable(program);
         if (pathResolved.isEmpty()) {
             if (errorOut) {
-                *errorOut = QStringLiteral("postprocessing script '%1' not found on PATH").arg(program);
+                *errorOut =
+                    QStringLiteral("postprocessing script '%1' not found on PATH").arg(program);
             }
             return false;
         }
@@ -1045,7 +1026,9 @@ static bool resolvePostprocessingProgram(const QString &postpScriptCmd,
             // (broken symlink). Reject rather than execute the dangling
             // target.
             if (errorOut) {
-                *errorOut = QStringLiteral("postprocessing script '%1' has a broken symlink chain on PATH").arg(program);
+                *errorOut =
+                    QStringLiteral("postprocessing script '%1' has a broken symlink chain on PATH")
+                        .arg(program);
             }
             return false;
         }
@@ -1055,13 +1038,16 @@ static bool resolvePostprocessingProgram(const QString &postpScriptCmd,
     QFileInfo resolvedInfo(resolved);
     if (!resolvedInfo.isExecutable()) {
         if (errorOut) {
-            *errorOut = QStringLiteral("postprocessing script '%1' is not executable").arg(resolved);
+            *errorOut =
+                QStringLiteral("postprocessing script '%1' is not executable").arg(resolved);
         }
         return false;
     }
 
-    if (resolvedProgram) *resolvedProgram = resolved;
-    if (extraArgs)       *extraArgs       = args;
+    if (resolvedProgram)
+        *resolvedProgram = resolved;
+    if (extraArgs)
+        *extraArgs = args;
     return true;
 }
 
@@ -1070,16 +1056,13 @@ static bool resolvePostprocessingProgram(const QString &postpScriptCmd,
 //
 // Returns true iff the script ran AND exited successfully (exit code 0,
 // normal exit).
-static bool runPostprocessingScript(const QString &postpScriptCmd,
-                                    const QString &inputImg,
-                                    const QString &outputImg)
-{
-    const int TIMEOUT_START  = 3;
+static bool runPostprocessingScript(const QString &postpScriptCmd, const QString &inputImg,
+                                    const QString &outputImg) {
+    const int TIMEOUT_START = 3;
     const int TIMEOUT_FINISH = 30;
 
     if (QFile::exists(outputImg) && !QFile::remove(outputImg)) {
-        qDebug() << "runPostprocessingScript: could not remove stale output"
-                 << outputImg;
+        qDebug() << "runPostprocessingScript: could not remove stale output" << outputImg;
         return false;
     }
 
@@ -1096,8 +1079,7 @@ static bool runPostprocessingScript(const QString &postpScriptCmd,
     // execve() on POSIX (and a CreateProcess()-with-quoting on Windows).
     args << inputImg << outputImg;
 
-    qDebug() << "runPostprocessingScript: program=" << program
-             << " argc=" << args.size();
+    qDebug() << "runPostprocessingScript: program=" << program << " argc=" << args.size();
 
     QProcess postpScript;
     postpScript.start(program, args);
@@ -1112,11 +1094,8 @@ static bool runPostprocessingScript(const QString &postpScriptCmd,
         postpScript.waitForFinished(1000);
         return false;
     }
-    if (postpScript.exitStatus() != QProcess::NormalExit
-        || postpScript.exitCode() != 0)
-    {
-        qDebug() << "Postprocessing script exited with status="
-                 << postpScript.exitStatus()
+    if (postpScript.exitStatus() != QProcess::NormalExit || postpScript.exitCode() != 0) {
+        qDebug() << "Postprocessing script exited with status=" << postpScript.exitStatus()
                  << "code=" << postpScript.exitCode();
         return false;
     }
@@ -1124,8 +1103,7 @@ static bool runPostprocessingScript(const QString &postpScriptCmd,
     return true;
 }
 
-static bool writePostprocImage(QFile &binOutput, const QString &postprocImgFilename)
-{
+static bool writePostprocImage(QFile &binOutput, const QString &postprocImgFilename) {
     QFile postprocImg(postprocImgFilename);
     if (!postprocImg.open(QFile::ReadOnly)) {
         qDebug() << "Could not open postprocessed image" << postprocImgFilename;
@@ -1139,8 +1117,8 @@ static bool writePostprocImage(QFile &binOutput, const QString &postprocImgFilen
     return true;
 }
 
-bool SpriteState::writeImageWithPostprocessing(QFile &binOutput, const LvkFrame &frame, const QString &postpScript) const
-{
+bool SpriteState::writeImageWithPostprocessing(QFile &binOutput, const LvkFrame &frame,
+                                               const QString &postpScript) const {
     // create temp image from frame pixmap data
 
     std::cout << "Exporting frame " << frame.id << "..." << std::endl;
@@ -1157,8 +1135,10 @@ bool SpriteState::writeImageWithPostprocessing(QFile &binOutput, const LvkFrame 
     struct TempCleanup {
         QString a, b;
         ~TempCleanup() {
-            if (!a.isEmpty()) QFile::remove(a);
-            if (!b.isEmpty()) QFile::remove(b);
+            if (!a.isEmpty())
+                QFile::remove(a);
+            if (!b.isEmpty())
+                QFile::remove(b);
         }
     };
     TempCleanup cleanup{tmpImgFilename, QString()};
@@ -1174,10 +1154,9 @@ bool SpriteState::writeImageWithPostprocessing(QFile &binOutput, const LvkFrame 
     // we'll read it back, and the surrounding TempCleanup will unlink it).
     QString postpImgFilename;
     {
-        const QString tmplDir = QStandardPaths::writableLocation(
-                                    QStandardPaths::TempLocation);
-        QTemporaryFile postpTmp(tmplDir + QDir::separator()
-                                + QStringLiteral("lvk-export-XXXXXX.ppi"));
+        const QString tmplDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+        QTemporaryFile postpTmp(tmplDir + QDir::separator() +
+                                QStringLiteral("lvk-export-XXXXXX.ppi"));
         postpTmp.setAutoRemove(false);
         if (!postpTmp.open()) {
             qDebug() << "writeImageWithPostprocessing: could not create secure "
@@ -1212,8 +1191,7 @@ bool SpriteState::writeImageWithPostprocessing(QFile &binOutput, const LvkFrame 
     return true;
 }
 
-void SpriteState::reloadFramePixmap(const LvkFrame& frame)
-{
+void SpriteState::reloadFramePixmap(const LvkFrame &frame) {
     if (frame.id != NullId) {
         QPixmap tmp(ipixmap(frame.imgId));
         QPixmap fpixmap(tmp.copy(frame.ox, frame.oy, frame.w, frame.h));
@@ -1221,35 +1199,30 @@ void SpriteState::reloadFramePixmap(const LvkFrame& frame)
     }
 }
 
-
-void SpriteState::reloadImagePixmap(Id imgId)
-{
+void SpriteState::reloadImagePixmap(Id imgId) {
     if (imgId != NullId) {
         _images[imgId].reloadImage();
     }
 }
 
-void SpriteState::reloadImagePixmaps()
-{
+void SpriteState::reloadImagePixmaps() {
     for (QMutableMapIterator<Id, InputImage> it(_images); it.hasNext();) {
         it.next();
         reloadImagePixmap(it.value().id);
     }
 }
 
-void SpriteState::reloadFramePixmaps(Id imgId)
-{
+void SpriteState::reloadFramePixmaps(Id imgId) {
     for (QMapIterator<Id, LvkFrame> it(_frames); it.hasNext();) {
         it.next();
-        const LvkFrame& frame =  it.value();
+        const LvkFrame &frame = it.value();
         if (imgId == NullId || frame.imgId == imgId) {
             reloadFramePixmap(frame);
         }
     }
 }
 
-bool SpriteState::isFrameUnused(Id frameId) const
-{
+bool SpriteState::isFrameUnused(Id frameId) const {
     bool isUnused = true;
 
     QMapIterator<Id, LvkAnimation> aniIt(_animations);
@@ -1266,16 +1239,16 @@ bool SpriteState::isFrameUnused(Id frameId) const
     return isUnused;
 }
 
-const QString& SpriteState::errorMessage(SpriteStateError err)
-{
-    static const QString strErrNone                 = tr("No error");
-    static const QString strErrCantOpenReadMode     = tr("Cannot read file");
-    static const QString strErrOpenReadWriteMode    = tr("Cannot write file");
-    static const QString strErrInvalidFormat        = tr("The file has an invalid sprite format");
-    static const QString strErrNullFilename         = tr("Empty filename");
-    static const QString strErrFileDoesNotExist     = tr("File does not exist");
-    static const QString strErrUnsafeOutputPath     = tr("Output path escapes the destination directory");
-    static const QString strErrUnknown              = tr("Unknown error");
+const QString &SpriteState::errorMessage(SpriteStateError err) {
+    static const QString strErrNone = tr("No error");
+    static const QString strErrCantOpenReadMode = tr("Cannot read file");
+    static const QString strErrOpenReadWriteMode = tr("Cannot write file");
+    static const QString strErrInvalidFormat = tr("The file has an invalid sprite format");
+    static const QString strErrNullFilename = tr("Empty filename");
+    static const QString strErrFileDoesNotExist = tr("File does not exist");
+    static const QString strErrUnsafeOutputPath =
+        tr("Output path escapes the destination directory");
+    static const QString strErrUnknown = tr("Unknown error");
 
     switch (err) {
     case ErrNone:
@@ -1297,12 +1270,12 @@ const QString& SpriteState::errorMessage(SpriteStateError err)
     }
 }
 
-SpriteState::ExportFormat SpriteState::parseFormat(const QString& s)
-{
+SpriteState::ExportFormat SpriteState::parseFormat(const QString &s) {
     const QString v = s.trimmed().toLower();
-    if (v == QStringLiteral("json"))    return Json;
-    if (v == QStringLiteral("all"))     return All;
+    if (v == QStringLiteral("json"))
+        return Json;
+    if (v == QStringLiteral("all"))
+        return All;
     // "cocos2d" or unknown -> Cocos2d (legacy default).
     return Cocos2d;
 }
-

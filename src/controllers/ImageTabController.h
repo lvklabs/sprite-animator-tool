@@ -20,22 +20,23 @@
 #define LVK_CONTROLLERS_IMAGE_TAB_CONTROLLER_H
 
 #include <QObject>
-#include <QString>
 #include <QRect>
+#include <QString>
 
 #include "types.h"
 
 class MainWindow;
 class SpriteState2;
-namespace Ui { class MainWindow; }
+namespace Ui {
+class MainWindow;
+}
 class InputImage;
 
-class ImageTabController : public QObject
-{
+class ImageTabController : public QObject {
     Q_OBJECT
 public:
-    ImageTabController(MainWindow* mw, Ui::MainWindow* ui, SpriteState2* state,
-                       QObject* parent = nullptr);
+    ImageTabController(MainWindow *mw, Ui::MainWindow *ui, SpriteState2 *state,
+                       QObject *parent = nullptr);
     ~ImageTabController() override = default;
 
     /// Wire UI signals (buttons + table) into our slots. Called by
@@ -47,17 +48,17 @@ public:
     void refreshTable();
 
     // ---- helpers used by other controllers / MainWindow ----
-    Id   getImageId(int row) const;
-    Id   selectedImgId() const;
-    Id   addImage(const InputImage& image);
-    void addImage_ui(const InputImage& image);
+    Id getImageId(int row) const;
+    Id selectedImgId() const;
+    Id addImage(const InputImage &image);
+    void addImage_ui(const InputImage &image);
     void showSelImage(int row);
     void showImage(Id imgId, bool clearPixmapCache = false);
-    void showSelImageWithFrameRect(int row, const QRect& rect);
+    void showSelImageWithFrameRect(int row, const QRect &rect);
     void reloadImage(Id imgId);
     void removeImage(int row);
 
-    QString toRelativePath(const QString& filePath) const;
+    QString toRelativePath(const QString &filePath) const;
 
 signals:
     void imageRemoved(Id imgId);
@@ -80,9 +81,9 @@ public slots:
 private:
     bool hasImagesChecked() const;
 
-    MainWindow*     m_mw    = nullptr;
-    Ui::MainWindow* m_ui    = nullptr;
-    SpriteState2*   m_state = nullptr;
+    MainWindow *m_mw = nullptr;
+    Ui::MainWindow *m_ui = nullptr;
+    SpriteState2 *m_state = nullptr;
 };
 
 #endif // LVK_CONTROLLERS_IMAGE_TAB_CONTROLLER_H

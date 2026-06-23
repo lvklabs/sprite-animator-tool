@@ -1,25 +1,24 @@
 #ifndef LVKANIMATION_H
 #define LVKANIMATION_H
 
-#include <QString>
 #include <QList>
+#include <QString>
 
-#include "types.h"
 #include "lvkaframe.h"
+#include "types.h"
 
 enum class LvkVersion;
 
 /// Animation abstraction. An animation basically consists in a name
 /// and an ordered list of animation frames (aframes for short)
-struct LvkAnimation
-{
-    LvkAnimation(Id id = NullId, const QString& name = "", unsigned flags = 0);
-    LvkAnimation(const QString& str);
+struct LvkAnimation {
+    LvkAnimation(Id id = NullId, const QString &name = "", unsigned flags = 0);
+    LvkAnimation(const QString &str);
 
     // TODO move this as private members
-    Id           id;         /* animation id */
-    QString      name;       /* animation name */
-    unsigned     flags;      /* animation flags */
+    Id id;          /* animation id */
+    QString name;   /* animation name */
+    unsigned flags; /* animation flags */
 
     /// returns the latest-version (V_04) string representation.
     /// Equivalent to toString(LvkVersion::V_04).
@@ -30,17 +29,17 @@ struct LvkAnimation
     QString toString(LvkVersion v) const;
 
     /// initializes the current instance from the string @param str
-    bool fromString(const QString& str);
+    bool fromString(const QString &str);
 
     ///  get aframe with id aframeId
-    LvkAframe& aframe(Id aframeId);
+    LvkAframe &aframe(Id aframeId);
 
     /// @overload - const variant returns a const reference; needed for
     /// SpriteState::const_aframe() to be const-correct (Agent 7).
-    const LvkAframe& aframe(Id aframeId) const;
+    const LvkAframe &aframe(Id aframeId) const;
 
     /// add aframe
-    void addAframe(const LvkAframe& aframe);
+    void addAframe(const LvkAframe &aframe);
 
     /// remove aframe
     void removeAframe(Id aframeId);
@@ -49,8 +48,9 @@ struct LvkAnimation
     void swapAframes(Id aframeId1, Id aframeId2);
 
     /// operator ==
-    bool operator==(const LvkAnimation& ani) const
-    { return id == ani.id && name == ani.name && _aframes == ani._aframes && flags == ani.flags; }
+    bool operator==(const LvkAnimation &ani) const {
+        return id == ani.id && name == ani.name && _aframes == ani._aframes && flags == ani.flags;
+    }
 
     QList<LvkAframe> _aframes;
 };

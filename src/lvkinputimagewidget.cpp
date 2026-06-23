@@ -1,44 +1,38 @@
-#include <QPainter>
 #include <QDebug>
 #include <QMouseEvent>
+#include <QPainter>
 #include <QScrollBar>
-#include <QDebug>
 #include <cmath>
 #include <memory>
 
 #include "lvkinputimagewidget.h"
 
-QRect operator*(const QRect& rect, int c)
-{
+QRect operator*(const QRect &rect, int c) {
     QRect tmp;
-    tmp.setX(rect.x()*c);
-    tmp.setY(rect.y()*c);
-    tmp.setWidth(rect.width()*c);
-    tmp.setHeight(rect.height()*c);
+    tmp.setX(rect.x() * c);
+    tmp.setY(rect.y() * c);
+    tmp.setWidth(rect.width() * c);
+    tmp.setHeight(rect.height() * c);
     return tmp;
 }
 
-QRect operator/(const QRect& rect, int c)
-{
+QRect operator/(const QRect &rect, int c) {
     QRect tmp;
-    tmp.setX(rect.x()/c);
-    tmp.setY(rect.y()/c);
-    tmp.setWidth(rect.width()/c);
-    tmp.setHeight(rect.height()/c);
+    tmp.setX(rect.x() / c);
+    tmp.setY(rect.y() / c);
+    tmp.setWidth(rect.width() / c);
+    tmp.setHeight(rect.height() / c);
     return tmp;
 }
 
 LvkInputImageWidget::LvkInputImageWidget(QWidget *parent)
-        : QWidget(parent),
-        _mouseX(-1), _mouseY(-1), _zoom(0), _scroll(0), _cacheId(NullId),
-        _pCache(PCACHE_CAPACITY)
-{
+    : QWidget(parent), _mouseX(-1), _mouseY(-1), _zoom(0), _scroll(0), _cacheId(NullId),
+      _pCache(PCACHE_CAPACITY) {
     _c = pow(ZOOM_FACTOR, _zoom);
     setMouseTracking(true);
 }
 
-void LvkInputImageWidget::clear()
-{
+void LvkInputImageWidget::clear() {
     _pixmap = QPixmap();
     _zoom = 0;
     _c = pow(ZOOM_FACTOR, _zoom);
@@ -46,14 +40,12 @@ void LvkInputImageWidget::clear()
     clearPixmapCache();
 }
 
-void LvkInputImageWidget::clearPixmapCache()
-{
+void LvkInputImageWidget::clearPixmapCache() {
     _pCache.clear();
     _cacheId = NullId;
 }
 
-void LvkInputImageWidget::clearPixmapCache(Id cacheId)
-{
+void LvkInputImageWidget::clearPixmapCache(Id cacheId) {
     // Drop every entry whose key.first matches cacheId. We iterate the
     // small set of zoom levels rather than scanning the whole cache.
     for (int z = 0; z < PCACHE_COL_SIZE; ++z) {
@@ -61,8 +53,7 @@ void LvkInputImageWidget::clearPixmapCache(Id cacheId)
     }
 }
 
-void LvkInputImageWidget::setPixmap(const QPixmap &pixmap, Id useCacheId)
-{
+void LvkInputImageWidget::setPixmap(const QPixmap &pixmap, Id useCacheId) {
     if (useCacheId != NullId) {
         if (useCacheId < 0) {
             qDebug() << "WARNING: LvkInputImageWidget::setPixmap() useCacheId negative, using 0";
@@ -73,82 +64,73 @@ void LvkInputImageWidget::setPixmap(const QPixmap &pixmap, Id useCacheId)
 
     _pixmap = pixmap;
 
-    resize(_pixmap.width()*_c + 1, _pixmap.height()*_c + 1);
+    resize(_pixmap.width() * _c + 1, _pixmap.height() * _c + 1);
 }
 
-void LvkInputImageWidget::setBlendPixmap(const QPixmap &pixmap)
-{
+void LvkInputImageWidget::setBlendPixmap(const QPixmap &pixmap) {
     _blendPixmap = pixmap;
 }
 
-void LvkInputImageWidget::setBackground(const QPixmap& bg)
-{
+void LvkInputImageWidget::setBackground(const QPixmap &bg) {
     _bg = bg;
     _bgBrush = QBrush(bg);
 }
 
-void LvkInputImageWidget::registerRect(QRect * rect)
-{
+void LvkInputImageWidget::registerRect(QRect *rect) {
     _regRects.append(rect);
 }
 
-void LvkInputImageWidget::unregisterRect(QRect * rect)
-{
+void LvkInputImageWidget::unregisterRect(QRect *rect) {
     _regRects.removeOne(rect);
 }
 
-void LvkInputImageWidget::updateRegRects(int level)
-{
+void LvkInputImageWidget::updateRegRects(int level) {
     int zoom = _zoom;
 
     if (zoom < level) {
         do {
             for (int i = 0; i < _regRects.size(); ++i) {
-                *_regRects.at(i) = *_regRects.at(i)*2;
+                *_regRects.at(i) = *_regRects.at(i) * 2;
             }
         } while (++zoom < level);
     } else if (zoom > level) {
         do {
             for (int i = 0; i < _regRects.size(); ++i) {
-                *_regRects.at(i) = *_regRects.at(i)/2;
+                *_regRects.at(i) = *_regRects.at(i) / 2;
             }
         } while (--zoom > level);
     }
 }
 
-#define SET_ZOOM(level)  updateRegRects(level);\
-                         _zoom = (level);\
-                         _c = pow(ZOOM_FACTOR, _zoom);\
-                         resize(_pixmap.width()*_c + 1, _pixmap.height()*_c + 1);
+#define SET_ZOOM(level)                                                                            \
+    updateRegRects(level);                                                                         \
+    _zoom = (level);                                                                               \
+    _c = pow(ZOOM_FACTOR, _zoom);                                                                  \
+    resize(_pixmap.width() * _c + 1, _pixmap.height() * _c + 1);
 
-void LvkInputImageWidget::zoomIn()
-{
+void LvkInputImageWidget::zoomIn() {
     if (_zoom < ZOOM_MAX) {
         SET_ZOOM(_zoom + 1);
     }
 }
 
-void LvkInputImageWidget::zoomOut()
-{
+void LvkInputImageWidget::zoomOut() {
     if (_zoom > ZOOM_MIN) {
         SET_ZOOM(_zoom - 1);
     }
 }
 
-void LvkInputImageWidget::setZoom(int level)
-{
+void LvkInputImageWidget::setZoom(int level) {
     if (level >= ZOOM_MIN && level <= ZOOM_MAX && level != _zoom) {
-       SET_ZOOM(level);
+        SET_ZOOM(level);
     }
 }
 
-int LvkInputImageWidget::zoom()
-{
+int LvkInputImageWidget::zoom() {
     return _zoom;
 }
 
-QRect LvkInputImageWidget::ztor(const QRect& rect) const
-{
+QRect LvkInputImageWidget::ztor(const QRect &rect) const {
     QRect tmp;
     tmp.setX(ztor(rect.x()));
     tmp.setY(ztor(rect.y()));
@@ -157,8 +139,7 @@ QRect LvkInputImageWidget::ztor(const QRect& rect) const
     return tmp;
 }
 
-QRect LvkInputImageWidget::rtoz(const QRect& rect) const
-{
+QRect LvkInputImageWidget::rtoz(const QRect &rect) const {
     QRect tmp;
     tmp.setX(rtoz(rect.x()));
     tmp.setY(rtoz(rect.y()));
@@ -167,13 +148,11 @@ QRect LvkInputImageWidget::rtoz(const QRect& rect) const
     return tmp;
 }
 
-void LvkInputImageWidget::setScrollArea(QScrollArea *scroll)
-{
+void LvkInputImageWidget::setScrollArea(QScrollArea *scroll) {
     _scroll = scroll;
 }
 
-void LvkInputImageWidget::fillBackground(QPainter& painter, int x, int y, int w, int h)
-{
+void LvkInputImageWidget::fillBackground(QPainter &painter, int x, int y, int w, int h) {
     if (!_bg.isNull()) {
         if (w >= width()) {
             w = width() - 1;
@@ -188,8 +167,7 @@ void LvkInputImageWidget::fillBackground(QPainter& painter, int x, int y, int w,
     }
 }
 
-void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
-{
+void LvkInputImageWidget::paintEvent(QPaintEvent * /*event*/) {
     QPainter painter(this);
 
     if (_pixmap.isNull()) {
@@ -213,7 +191,8 @@ void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
 
         if (!_blendPixmap.isNull()) {
             painter.setOpacity(0.5);
-            painter.drawPixmap(0, 0, _blendPixmap.width()*_c, _blendPixmap.height()*_c, _blendPixmap);
+            painter.drawPixmap(0, 0, _blendPixmap.width() * _c, _blendPixmap.height() * _c,
+                               _blendPixmap);
         }
 
         if (_cacheId != NullId) {
@@ -234,7 +213,7 @@ void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
                     // Insert failed — `raw` was already deleted by QCache.
                     // Fall back to a single-shot scaled draw.
                     painter.drawPixmap(hval, vval, w, h,
-                                       _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c),
+                                       _pixmap.scaled(_pixmap.width() * _c, _pixmap.height() * _c),
                                        hval, vval, w, h);
                 }
             }
@@ -243,30 +222,25 @@ void LvkInputImageWidget::paintEvent(QPaintEvent */*event*/)
             }
         } else {
             painter.drawPixmap(hval, vval, w, h,
-                               _pixmap.scaled(_pixmap.width()*_c, _pixmap.height()*_c),
-                               hval, vval, w, h);
+                               _pixmap.scaled(_pixmap.width() * _c, _pixmap.height() * _c), hval,
+                               vval, w, h);
         }
     } else {
         if (!_blendPixmap.isNull()) {
             painter.setOpacity(0.5);
-            painter.drawPixmap(0, 0, _blendPixmap.width()*_c, _blendPixmap.height()*_c, _blendPixmap);
+            painter.drawPixmap(0, 0, _blendPixmap.width() * _c, _blendPixmap.height() * _c,
+                               _blendPixmap);
         }
 
-        painter.drawPixmap(0, 0, _pixmap.width()*_c, _pixmap.height()*_c, _pixmap);
+        painter.drawPixmap(0, 0, _pixmap.width() * _c, _pixmap.height() * _c, _pixmap);
     }
 }
 
-void LvkInputImageWidget::mousePressEvent(QMouseEvent */*event*/)
-{
-}
+void LvkInputImageWidget::mousePressEvent(QMouseEvent * /*event*/) {}
 
-void LvkInputImageWidget::mouseReleaseEvent(QMouseEvent */*event*/)
-{
-}
+void LvkInputImageWidget::mouseReleaseEvent(QMouseEvent * /*event*/) {}
 
-
-void LvkInputImageWidget::mouseMoveEvent(QMouseEvent *event)
-{
+void LvkInputImageWidget::mouseMoveEvent(QMouseEvent *event) {
     // Qt6: QMouseEvent::x()/y() are deprecated; use position() (returns QPointF).
     const QPoint p = event->position().toPoint();
     _mouseX = p.x();
@@ -275,8 +249,7 @@ void LvkInputImageWidget::mouseMoveEvent(QMouseEvent *event)
     emit mousePositionChanged(ztor(_mouseX), ztor(_mouseY));
 }
 
-void LvkInputImageWidget::wheelEvent(QWheelEvent *event)
-{
+void LvkInputImageWidget::wheelEvent(QWheelEvent *event) {
     if (ctrlKey()) {
         const int dy = event->angleDelta().y();
         if (dy > 0) {
@@ -289,27 +262,23 @@ void LvkInputImageWidget::wheelEvent(QWheelEvent *event)
     event->ignore();
 }
 
-void LvkInputImageWidget::keyPressEvent(QKeyEvent *event)
-{
+void LvkInputImageWidget::keyPressEvent(QKeyEvent *event) {
     if (event->key() == Qt::Key_1) {
         setZoom(0);
     }
 }
 
-void LvkInputImageWidget::resize(const QSize &size)
-{
+void LvkInputImageWidget::resize(const QSize &size) {
     QWidget::resize(size);
     updateGeometry();
     update();
 }
 
-void LvkInputImageWidget::resize(int w, int h)
-{
+void LvkInputImageWidget::resize(int w, int h) {
     resize(QSize(w, h));
 }
 
-LvkInputImageWidget::~LvkInputImageWidget()
-{
+LvkInputImageWidget::~LvkInputImageWidget() {
     // QCache owns its entries and clears them on destruction; no manual
     // delete loop needed.
 }

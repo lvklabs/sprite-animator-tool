@@ -1,8 +1,8 @@
 #ifndef INPUTIMAGE_H
 #define INPUTIMAGE_H
 
-#include <QString>
 #include <QPixmap>
+#include <QString>
 
 #include "types.h"
 
@@ -11,17 +11,18 @@
 enum class LvkVersion;
 
 /// Input image abstraction
-struct InputImage
-{
-    InputImage(Id id = NullId, const QString& filename = "", double scale = 1.0);
-    InputImage(const QString& str);
+struct InputImage {
+    InputImage(Id id = NullId, const QString &filename = "", double scale = 1.0);
+    InputImage(const QString &str);
 
-    enum { PNG,  };
+    enum {
+        PNG,
+    };
 
     // TODO move this as private members
-    Id      id;         /* image id */
-    QString filename;   /* image filename */
-    QPixmap pixmap;     /* image pixmap */
+    Id id;            /* image id */
+    QString filename; /* image filename */
+    QPixmap pixmap;   /* image pixmap */
 
     /// returns the latest-version string representation (currently V_04).
     /// Equivalent to toString(LvkVersion::V_04).
@@ -32,7 +33,7 @@ struct InputImage
     QString toString(LvkVersion v) const;
 
     /// initializes the current instance from the string @param str
-    bool fromString(const QString& str);
+    bool fromString(const QString &str);
 
     /// force pixmap reload
     void reloadImage();
@@ -45,11 +46,12 @@ struct InputImage
     double scale() const;
 
     /// operator ==
-    bool operator==(const InputImage& img) const
-    { return id == img.id && filename == img.filename && _scale == img._scale; }
+    bool operator==(const InputImage &img) const {
+        return id == img.id && filename == img.filename && _scale == img._scale;
+    }
 
 private:
-    double  _scale;      /* image scale */
+    double _scale; /* image scale */
 };
 
 #endif // INPUTIMAGE_H

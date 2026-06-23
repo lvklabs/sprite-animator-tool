@@ -20,8 +20,7 @@
 
 class SpriteState;
 
-class JsonAtlasExporter
-{
+class JsonAtlasExporter {
 public:
     JsonAtlasExporter() = default;
 
@@ -31,7 +30,7 @@ public:
     /// @param state source sprite data; we read frames(), animations(),
     ///        fpixmaps() and isFrameUnused().
     /// Returns true on success.
-    bool exportAtlas(const QString& baseFilename, const SpriteState& state) const;
+    bool exportAtlas(const QString &baseFilename, const SpriteState &state) const;
 };
 
 #endif // LVK_EXPORTERS_JSON_ATLAS_EXPORTER_H

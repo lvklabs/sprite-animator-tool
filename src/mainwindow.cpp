@@ -4,33 +4,33 @@
 // file open/save/close, recent files, status bar, undo/redo.
 // Pre-refactor LOC: 2,528. Target: <= 600.
 
-#include <QString>
-#include <QStringList>
-#include <QFileDialog>
+#include "mainwindow.h"
+#include "controllers/AnimationTabController.h"
+#include "controllers/ExportController.h"
+#include "controllers/FrameTabController.h"
+#include "controllers/ImageTabController.h"
+#include "controllers/TransitionTabController.h"
+#include "inputimage.h"
+#include "lvkaction.h"
+#include "lvkaframe.h"
+#include "lvkframe.h"
+#include "settings.h"
+#include "ui_mainwindow.h"
+#include <QCloseEvent>
+#include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QFileDialog>
 #include <QFileInfo>
-#include <QDebug>
-#include <QPixmap>
-#include <QMessageBox>
-#include <QWhatsThis>
-#include <QKeySequence>
-#include <QShortcut>
-#include <QHeaderView>
 #include <QFontMetrics>
-#include <QCloseEvent>
-#include "mainwindow.h"
-#include "ui_mainwindow.h"
-#include "lvkaction.h"
-#include "inputimage.h"
-#include "lvkframe.h"
-#include "lvkaframe.h"
-#include "settings.h"
-#include "controllers/ImageTabController.h"
-#include "controllers/FrameTabController.h"
-#include "controllers/AnimationTabController.h"
-#include "controllers/TransitionTabController.h"
-#include "controllers/ExportController.h"
+#include <QHeaderView>
+#include <QKeySequence>
+#include <QMessageBox>
+#include <QPixmap>
+#include <QShortcut>
+#include <QString>
+#include <QStringList>
+#include <QWhatsThis>
 
 // Column count enums kept here so initTables() (which configures all four
 // data tables) stays self-contained without #include'ing the controllers.
@@ -43,25 +43,22 @@ enum { BlendFrameId = 3 };
 enum { BlendNone = 0 };
 
 #ifdef MAC_OS_X
-static QString convertToMacKeys(const QString& str)
-{
+static QString convertToMacKeys(const QString &str) {
     QString tmp = str;
     tmp.replace("Shift + ", QString(QChar(0x21e7)), Qt::CaseInsensitive);
-    tmp.replace("Ctrl + ",  QString(QChar(0x2318)), Qt::CaseInsensitive);
-    tmp.replace("Alt + ",   QString(QChar(0x2325)), Qt::CaseInsensitive);
-    tmp.replace("Shift",    QString(QChar(0x21e7)), Qt::CaseInsensitive);
-    tmp.replace("Ctrl",     QString(QChar(0x2318)), Qt::CaseInsensitive);
-    tmp.replace("Alt",      QString(QChar(0x2325)), Qt::CaseInsensitive);
-    tmp.replace("F2",       QString(QChar(0x21a9)), Qt::CaseInsensitive);
+    tmp.replace("Ctrl + ", QString(QChar(0x2318)), Qt::CaseInsensitive);
+    tmp.replace("Alt + ", QString(QChar(0x2325)), Qt::CaseInsensitive);
+    tmp.replace("Shift", QString(QChar(0x21e7)), Qt::CaseInsensitive);
+    tmp.replace("Ctrl", QString(QChar(0x2318)), Qt::CaseInsensitive);
+    tmp.replace("Alt", QString(QChar(0x2325)), Qt::CaseInsensitive);
+    tmp.replace("F2", QString(QChar(0x21a9)), Qt::CaseInsensitive);
     return tmp;
 }
 #endif // MAC_OS_X
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow),
-      statusBarMousePos(new QLabel(this)),
-      statusBarRectSize(new QLabel(this))
-{
+    : QMainWindow(parent), ui(new Ui::MainWindow), statusBarMousePos(new QLabel(this)),
+      statusBarRectSize(new QLabel(this)) {
     ui->setupUi(this);
     ui->statusBar->addWidget(statusBarMousePos);
     ui->statusBar->addWidget(statusBarRectSize);
@@ -109,11 +106,11 @@ MainWindow::MainWindow(QWidget *parent)
     // their slots (e.g. ImageTabController::removeImage forwards to
     // FrameTabController) -- the slots run after the constructor returns,
     // so by-name lookup via m_mw->frames() etc. is safe.
-    _imageCtl      = std::make_unique<ImageTabController>(this, ui.get(), &_sprState, this);
-    _frameCtl      = std::make_unique<FrameTabController>(this, ui.get(), &_sprState, this);
-    _animationCtl  = std::make_unique<AnimationTabController>(this, ui.get(), &_sprState, this);
+    _imageCtl = std::make_unique<ImageTabController>(this, ui.get(), &_sprState, this);
+    _frameCtl = std::make_unique<FrameTabController>(this, ui.get(), &_sprState, this);
+    _animationCtl = std::make_unique<AnimationTabController>(this, ui.get(), &_sprState, this);
     _transitionCtl = std::make_unique<TransitionTabController>(this, ui.get(), &_sprState, this);
-    _exportCtl     = std::make_unique<ExportController>(this, ui.get(), &_sprState, this);
+    _exportCtl = std::make_unique<ExportController>(this, ui.get(), &_sprState, this);
 
     initSignals();
     initTables();
@@ -130,8 +127,8 @@ MainWindow::MainWindow(QWidget *parent)
     // doing this last keeps FrameTabController::blendFrameRect (preview
     // repaint) ahead of showMouseRect (status-bar update), matching the
     // master branch's behavior and avoiding transient flicker.
-    connect(ui->imgPreview, &LvkFrameDefWidget::mouseRectChangeFinished,
-            this, &MainWindow::showMouseRect);
+    connect(ui->imgPreview, &LvkFrameDefWidget::mouseRectChangeFinished, this,
+            &MainWindow::showMouseRect);
 
     showFramesTab();
     _frameCtl->hideFramePreview();
@@ -141,11 +138,13 @@ MainWindow::MainWindow(QWidget *parent)
     // Fall back to the Agent-9 80%-of-screen heuristic on first launch
     // (or after QSettings is cleared). Org/app name are set in main.cpp
     // so the QSettings lookup resolves to a stable per-user store.
-    const QByteArray savedGeo   = settings.value(QStringLiteral("ui/mainwindow/geometry")).toByteArray();
-    const QByteArray savedState = settings.value(QStringLiteral("ui/mainwindow/state")).toByteArray();
+    const QByteArray savedGeo =
+        settings.value(QStringLiteral("ui/mainwindow/geometry")).toByteArray();
+    const QByteArray savedState =
+        settings.value(QStringLiteral("ui/mainwindow/state")).toByteArray();
     if (!savedGeo.isEmpty()) {
         restoreGeometry(savedGeo);
-    } else if (QScreen* scr = screen()) {
+    } else if (QScreen *scr = screen()) {
         const QRect avail = scr->availableGeometry();
         const int w = std::max(1204, static_cast<int>(avail.width() * 0.8));
         const int h = std::max(768, static_cast<int>(avail.height() * 0.8));
@@ -169,25 +168,23 @@ MainWindow::MainWindow(QWidget *parent)
     }
 }
 
-MainWindow::~MainWindow()
-{
+MainWindow::~MainWindow() {
     // ui is unique_ptr; statusBar* labels are Qt-parented to this.
 }
 
-void MainWindow::initSignals()
-{
+void MainWindow::initSignals() {
     // Wire only the slots that are NOT owned by a controller. The
     // controllers connect their own UI signals in wireSignals().
     connect(&_sprState, &SpriteState2::loadProgress, this, &MainWindow::showLoadProgress);
 
-    connect(ui->actionSave,   &QAction::triggered, this, [this](bool){ saveFile(); });
-    connect(ui->actionSaveAs, &QAction::triggered, this, [this](bool){ saveAsFile(); });
-    connect(ui->actionOpen,   &QAction::triggered, this, &MainWindow::openFileDialog);
-    connect(ui->actionClose,  &QAction::triggered, this, &MainWindow::closeFile_checkUnsaved);
-    connect(ui->actionUndo,   &QAction::triggered, this, &MainWindow::undo);
-    connect(ui->actionRedo,   &QAction::triggered, this, &MainWindow::redo);
-    connect(ui->actionExit,   &QAction::triggered, this, &MainWindow::exit);
-    connect(ui->actionAbout,  &QAction::triggered, this, &MainWindow::about);
+    connect(ui->actionSave, &QAction::triggered, this, [this](bool) { saveFile(); });
+    connect(ui->actionSaveAs, &QAction::triggered, this, [this](bool) { saveAsFile(); });
+    connect(ui->actionOpen, &QAction::triggered, this, &MainWindow::openFileDialog);
+    connect(ui->actionClose, &QAction::triggered, this, &MainWindow::closeFile_checkUnsaved);
+    connect(ui->actionUndo, &QAction::triggered, this, &MainWindow::undo);
+    connect(ui->actionRedo, &QAction::triggered, this, &MainWindow::redo);
+    connect(ui->actionExit, &QAction::triggered, this, &MainWindow::exit);
+    connect(ui->actionAbout, &QAction::triggered, this, &MainWindow::about);
     connect(ui->actionWhatsThis, &QAction::triggered, this, &MainWindow::whatsThisMode);
 
     // Phase 6a: bind the file/edit QActions to Qt's portable StandardKey
@@ -208,25 +205,35 @@ void MainWindow::initSignals()
     // for contexts where the menu action isn't currently focusable).
     ui->actionExport->setShortcut(QKeySequence(QStringLiteral("Ctrl+E")));
     ui->actionExportAs->setShortcut(QKeySequence(QStringLiteral("Ctrl+Shift+E")));
-    auto* exportShortcut = new QShortcut(QKeySequence(QStringLiteral("Ctrl+E")), this);
+    auto *exportShortcut = new QShortcut(QKeySequence(QStringLiteral("Ctrl+E")), this);
     exportShortcut->setContext(Qt::ApplicationShortcut);
-    connect(exportShortcut, &QShortcut::activated,
-            ui->actionExport, &QAction::trigger);
+    connect(exportShortcut, &QShortcut::activated, ui->actionExport, &QAction::trigger);
 
     // Zoom buttons: wire directly preview-to-preview.
-    connect(ui->imgZoomInButton,    &QAbstractButton::clicked, ui->imgPreview,    &LvkInputImageWidget::zoomIn);
-    connect(ui->imgZoomOutButton,   &QAbstractButton::clicked, ui->imgPreview,    &LvkInputImageWidget::zoomOut);
-    connect(ui->actionClearGuides,  &QAction::triggered,        ui->imgPreview,    &LvkFrameDefWidget::clearGuides);
-    connect(ui->frameZoomInButton,  &QAbstractButton::clicked, ui->framePreview,  &LvkInputImageWidget::zoomIn);
-    connect(ui->frameZoomOutButton, &QAbstractButton::clicked, ui->framePreview,  &LvkInputImageWidget::zoomOut);
-    connect(ui->aframeZoomInButton, &QAbstractButton::clicked, ui->aframePreview, &LvkInputImageWidget::zoomIn);
-    connect(ui->aframeZoomOutButton,&QAbstractButton::clicked, ui->aframePreview, &LvkInputImageWidget::zoomOut);
+    connect(ui->imgZoomInButton, &QAbstractButton::clicked, ui->imgPreview,
+            &LvkInputImageWidget::zoomIn);
+    connect(ui->imgZoomOutButton, &QAbstractButton::clicked, ui->imgPreview,
+            &LvkInputImageWidget::zoomOut);
+    connect(ui->actionClearGuides, &QAction::triggered, ui->imgPreview,
+            &LvkFrameDefWidget::clearGuides);
+    connect(ui->frameZoomInButton, &QAbstractButton::clicked, ui->framePreview,
+            &LvkInputImageWidget::zoomIn);
+    connect(ui->frameZoomOutButton, &QAbstractButton::clicked, ui->framePreview,
+            &LvkInputImageWidget::zoomOut);
+    connect(ui->aframeZoomInButton, &QAbstractButton::clicked, ui->aframePreview,
+            &LvkInputImageWidget::zoomIn);
+    connect(ui->aframeZoomOutButton, &QAbstractButton::clicked, ui->aframePreview,
+            &LvkInputImageWidget::zoomOut);
 
     // Mouse-position status bar (shared across all three preview widgets).
-    connect(ui->imgPreview,    &LvkInputImageWidget::mousePositionChanged, this, &MainWindow::showMousePosition);
-    connect(ui->framePreview,  &LvkInputImageWidget::mousePositionChanged, this, &MainWindow::showMousePosition);
-    connect(ui->aframePreview, &LvkInputImageWidget::mousePositionChanged, this, &MainWindow::showMousePosition);
-    connect(ui->imgPreview,    &LvkFrameDefWidget::mouseRectChanging,      this, &MainWindow::showMouseRect);
+    connect(ui->imgPreview, &LvkInputImageWidget::mousePositionChanged, this,
+            &MainWindow::showMousePosition);
+    connect(ui->framePreview, &LvkInputImageWidget::mousePositionChanged, this,
+            &MainWindow::showMousePosition);
+    connect(ui->aframePreview, &LvkInputImageWidget::mousePositionChanged, this,
+            &MainWindow::showMousePosition);
+    connect(ui->imgPreview, &LvkFrameDefWidget::mouseRectChanging, this,
+            &MainWindow::showMouseRect);
     // showMouseRect/mouseRectChangeFinished is wired in the constructor
     // AFTER controllers' wireSignals(), so FrameTabController::blendFrameRect
     // (which repaints the preview) runs before showMouseRect (which only
@@ -235,12 +242,13 @@ void MainWindow::initSignals()
 
     // Custom header save/restore lives at the MainWindow level (it's a
     // sprite-state field, not a tab-scoped concern).
-    connect(ui->saveCustomHeaderButton,    &QAbstractButton::clicked, this, &MainWindow::saveCustomHeader);
-    connect(ui->restoreCustomHeaderButton, &QAbstractButton::clicked, this, &MainWindow::restoreCustomHeader);
+    connect(ui->saveCustomHeaderButton, &QAbstractButton::clicked, this,
+            &MainWindow::saveCustomHeader);
+    connect(ui->restoreCustomHeaderButton, &QAbstractButton::clicked, this,
+            &MainWindow::restoreCustomHeader);
 }
 
-void MainWindow::initTables()
-{
+void MainWindow::initTables() {
     QStringList headersList;
 
     // Phase 6a (HiDPI): Convert the legacy fixed-pixel column widths
@@ -250,7 +258,7 @@ void MainWindow::initTables()
     // wider name columns use ResizeToContents on the stretchable trailing
     // section. The previous 30/40/50px constants were burned in for the
     // 96-dpi Qt 4 era and clip badly at 200%+ scaling.
-    const auto colWidthFor = [this](const QString& header) {
+    const auto colWidthFor = [this](const QString &header) {
         const QFontMetrics fm = fontMetrics();
         return fm.horizontalAdvance(header + QStringLiteral("MM"));
     };
@@ -282,7 +290,8 @@ void MainWindow::initTables()
     ui->framesTableWidget->setColumnWidth(6, colWidthFor(tr("Img Id")));
     ui->framesTableWidget->ignoreColumn(1);
     ui->framesTableWidget->ignoreColumn(6);
-    headersList << tr("Id") << tr("Id") << tr("ox") << tr("oy") << tr("w") << tr("h") << tr("Img Id") << tr("Name");
+    headersList << tr("Id") << tr("Id") << tr("ox") << tr("oy") << tr("w") << tr("h")
+                << tr("Img Id") << tr("Name");
     ui->framesTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
 #ifndef DEBUG_SHOW_ID_COLS
@@ -312,7 +321,8 @@ void MainWindow::initTables()
     ui->aframesTableWidget->setColumnWidth(5, colWidthFor(tr("Delay")));
     ui->aframesTableWidget->setColumnWidth(6, colWidthFor(tr("Animation Id")));
     ui->aframesTableWidget->ignoreColumn(1);
-    headersList << tr("Id") << tr("Frame Id") << tr("ox") << tr("oy") << tr("Sticky") << tr("Delay") << tr("Animation Id");
+    headersList << tr("Id") << tr("Frame Id") << tr("ox") << tr("oy") << tr("Sticky") << tr("Delay")
+                << tr("Animation Id");
     ui->aframesTableWidget->setHorizontalHeaderLabels(headersList);
     headersList.clear();
 #ifndef DEBUG_SHOW_ID_COLS
@@ -333,9 +343,9 @@ void MainWindow::initTables()
 #endif
 }
 
-bool MainWindow::saveFile()
-{
-    if (_filename.isEmpty()) return saveAsFile();
+bool MainWindow::saveFile() {
+    if (_filename.isEmpty())
+        return saveAsFile();
     SpriteStateError err;
     if (!_sprState.save(_filename, &err)) {
         infoDialog(tr("Cannot save") + _filename + ". " + SpriteState::errorMessage(err));
@@ -344,13 +354,12 @@ bool MainWindow::saveFile()
     return true;
 }
 
-bool MainWindow::saveAsFile()
-{
+bool MainWindow::saveAsFile() {
     static QString lastDir = "";
-    QString filename = QFileDialog::getSaveFileName(
-            this, tr("Save file"), lastDir,
-            tr("Lvks files (*.lvks);;All files (*)"));
-    if (filename.isNull()) return false;
+    QString filename = QFileDialog::getSaveFileName(this, tr("Save file"), lastDir,
+                                                    tr("Lvks files (*.lvks);;All files (*)"));
+    if (filename.isNull())
+        return false;
     lastDir = QFileInfo(filename).absolutePath();
 
     SpriteStateError err;
@@ -362,8 +371,7 @@ bool MainWindow::saveAsFile()
     return true;
 }
 
-DialogButton MainWindow::saveChangesDialog()
-{
+DialogButton MainWindow::saveChangesDialog() {
     QString msg = _filename.isEmpty()
                       ? tr("Save changes to file before closing?")
                       : tr("Save changes to file '") + _filename + tr("' before closing?");
@@ -379,31 +387,29 @@ DialogButton MainWindow::saveChangesDialog()
     return button;
 }
 
-void MainWindow::openFileDialog()
-{
+void MainWindow::openFileDialog() {
     if (_sprState.hasUnsavedChanges()) {
-        if (saveChangesDialog() == CancelButton) return;
+        if (saveChangesDialog() == CancelButton)
+            return;
     }
     static QString lastDir = "";
-    QString filename = QFileDialog::getOpenFileName(
-            this, tr("Open file"), lastDir,
-            tr("Lvks files (*.lvks);;All files (*)"));
+    QString filename = QFileDialog::getOpenFileName(this, tr("Open file"), lastDir,
+                                                    tr("Lvks files (*.lvks);;All files (*)"));
     if (!filename.isNull()) {
         lastDir = QFileInfo(filename).absolutePath();
         openFile(filename);
     }
 }
 
-bool MainWindow::openFile_checkUnsaved(const QString& filename)
-{
+bool MainWindow::openFile_checkUnsaved(const QString &filename) {
     if (_sprState.hasUnsavedChanges()) {
-        if (saveChangesDialog() == CancelButton) return false;
+        if (saveChangesDialog() == CancelButton)
+            return false;
     }
     return openFile(filename);
 }
 
-bool MainWindow::openFile(const QString& filename)
-{
+bool MainWindow::openFile(const QString &filename) {
     SpriteStateError err;
     if (!openFile_(filename, &err)) {
         infoDialog(tr("Cannot open ") + filename + ". " + SpriteState::errorMessage(err));
@@ -412,10 +418,10 @@ bool MainWindow::openFile(const QString& filename)
     return true;
 }
 
-bool MainWindow::openFile_(const QString& filename_, SpriteStateError* err)
-{
+bool MainWindow::openFile_(const QString &filename_, SpriteStateError *err) {
     if (!QFile::exists(filename_)) {
-        if (err) *err = SpriteState::ErrFileDoesNotExist;
+        if (err)
+            *err = SpriteState::ErrFileDoesNotExist;
         return false;
     }
     QString filename = QFileInfo(filename_).absoluteFilePath();
@@ -462,18 +468,18 @@ bool MainWindow::openFile_(const QString& filename_, SpriteStateError* err)
     return true;
 }
 
-void MainWindow::refreshAll()
-{
+void MainWindow::refreshAll() {
     _imageCtl->refreshTable();
     _frameCtl->refreshTable();
     _animationCtl->refreshTables();
 
-    if (ui->aniPreview->isPlaying())   _animationCtl->previewAnimation();
-    if (ui->transPreview->isPlaying()) _transitionCtl->previewTransition();
+    if (ui->aniPreview->isPlaying())
+        _animationCtl->previewAnimation();
+    if (ui->transPreview->isPlaying())
+        _transitionCtl->previewTransition();
 }
 
-void MainWindow::refreshPreviews()
-{
+void MainWindow::refreshPreviews() {
     _imageCtl->showSelImage(ui->imgTableWidget->currentRow());
     _frameCtl->showSelFrame(ui->framesTableWidget->currentRow());
     _animationCtl->showSelAframe(ui->aframesTableWidget->currentRow());
@@ -481,16 +487,23 @@ void MainWindow::refreshPreviews()
     _transitionCtl->previewTransition();
 }
 
-void MainWindow::storeRecentFile(const QString& filename)
-{
-    #define makeKey(str, i) { str = KEY_RECENT_FILE; str.append(QString::number(i)); }
+void MainWindow::storeRecentFile(const QString &filename) {
+#define makeKey(str, i)                                                                            \
+    {                                                                                              \
+        str = KEY_RECENT_FILE;                                                                     \
+        str.append(QString::number(i));                                                            \
+    }
     QString key;
     int found = -1;
     for (int i = 0; i < MAX_RECENT_FILES; ++i) {
         makeKey(key, i);
-        if (filename == settings.value(key).toString()) { found = i; break; }
+        if (filename == settings.value(key).toString()) {
+            found = i;
+            break;
+        }
     }
-    if (found == 0) return;
+    if (found == 0)
+        return;
     if (found == -1) {
         found = MAX_RECENT_FILES - 1;
         makeKey(key, found);
@@ -500,27 +513,26 @@ void MainWindow::storeRecentFile(const QString& filename)
     for (int i = found; i > 0; --i) {
         makeKey(key, i);
         makeKey(key_, i - 1);
-        QString r  = settings.value(key).toString();
+        QString r = settings.value(key).toString();
         QString r2 = settings.value(key_).toString();
         settings.setValue(key_, r);
         settings.setValue(key, r2);
     }
-    #undef makeKey
+#undef makeKey
 }
 
-void MainWindow::initRecentFilesMenu()
-{
+void MainWindow::initRecentFilesMenu() {
     QString baseKey(KEY_RECENT_FILE);
     for (int i = 0; i < MAX_RECENT_FILES; ++i) {
         QString key = baseKey;
         key.append(QString::number(i));
         QString recentFile = settings.value(key).toString();
-        if (!recentFile.isEmpty()) addRecentFileMenu(recentFile);
+        if (!recentFile.isEmpty())
+            addRecentFileMenu(recentFile);
     }
 }
 
-void MainWindow::addRecentFileMenu(const QString& filename)
-{
+void MainWindow::addRecentFileMenu(const QString &filename) {
     ui->actionNoRecentFiles->setVisible(false);
     // Parent to the QMenu (actionOpenRecent) rather than MainWindow. The
     // recent-files list is rebuilt on every setCurrentFile() via
@@ -528,22 +540,21 @@ void MainWindow::addRecentFileMenu(const QString& filename)
     // itself. With MainWindow as the parent, clear() unhooked the actions
     // from the menu but left them alive on the MainWindow until shutdown,
     // leaking O(opens) LvkAction instances per session.
-    LvkAction* action = new LvkAction(filename, ui->actionOpenRecent);
+    LvkAction *action = new LvkAction(filename, ui->actionOpenRecent);
     ui->actionOpenRecent->addAction(action);
-    connect(action, QOverload<const QString&>::of(&LvkAction::triggered),
-            this, [this](const QString& f){ openFile_checkUnsaved(f); });
+    connect(action, QOverload<const QString &>::of(&LvkAction::triggered), this,
+            [this](const QString &f) { openFile_checkUnsaved(f); });
 }
 
-void MainWindow::closeFile_checkUnsaved()
-{
+void MainWindow::closeFile_checkUnsaved() {
     if (_sprState.hasUnsavedChanges()) {
-        if (saveChangesDialog() == CancelButton) return;
+        if (saveChangesDialog() == CancelButton)
+            return;
     }
     closeFile();
 }
 
-void MainWindow::closeFile()
-{
+void MainWindow::closeFile() {
     _sprState.clear();
     setCurrentFile("");
 
@@ -572,8 +583,7 @@ void MainWindow::closeFile()
     _transitionCtl->clearPreviewTransition();
 }
 
-void MainWindow::setCurrentFile(const QString& filename)
-{
+void MainWindow::setCurrentFile(const QString &filename) {
     // Re-opening the same .lvks must NOT clobber the user's export target:
     // the export filename is a per-document preference, and a no-op
     // "open" (e.g. from the recent-files menu, or open-while-already-open)
@@ -601,45 +611,43 @@ void MainWindow::setCurrentFile(const QString& filename)
     }
 }
 
-void MainWindow::showFramesTab()     { ui->tabWidget->setCurrentWidget(ui->framesTab); }
-void MainWindow::showAnimationsTab() { ui->tabWidget->setCurrentWidget(ui->animationsTab); }
+void MainWindow::showFramesTab() {
+    ui->tabWidget->setCurrentWidget(ui->framesTab);
+}
+void MainWindow::showAnimationsTab() {
+    ui->tabWidget->setCurrentWidget(ui->animationsTab);
+}
 
-void MainWindow::showMousePosition(int x, int y)
-{
+void MainWindow::showMousePosition(int x, int y) {
     statusBarMousePos->setText(tr("Mouse x,y: ") + QString::number(x) + "," + QString::number(y));
 }
 
-void MainWindow::showMouseRect(const QRect& rect)
-{
+void MainWindow::showMouseRect(const QRect &rect) {
     int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
     if (w == 0 && h == 0) {
         statusBarRectSize->setText("");
     } else {
-        statusBarRectSize->setText(tr("  Rect: x,y,w,h: ") +
-                                   QString::number(x) + "," + QString::number(y) + "," +
-                                   QString::number(w) + "," + QString::number(h));
+        statusBarRectSize->setText(tr("  Rect: x,y,w,h: ") + QString::number(x) + "," +
+                                   QString::number(y) + "," + QString::number(w) + "," +
+                                   QString::number(h));
     }
 }
 
-void MainWindow::saveCustomHeader()
-{
+void MainWindow::saveCustomHeader() {
     _sprState.setCustomHeader(ui->customHeaderText->toPlainText());
 }
 
-void MainWindow::restoreCustomHeader()
-{
+void MainWindow::restoreCustomHeader() {
     ui->customHeaderText->setPlainText(_sprState.getCustomHeader());
 }
 
-void MainWindow::showLoadProgress(const QString& progress)
-{
+void MainWindow::showLoadProgress(const QString &progress) {
     statusBarRectSize->setFixedWidth(500);
     statusBarRectSize->setText(tr("Loading %1").arg(progress));
     statusBarRectSize->repaint();
 }
 
-void MainWindow::undo()
-{
+void MainWindow::undo() {
     if (ui->tabWidget->currentWidget() == ui->transitionsTab) {
         infoDialog(tr("Actions in the \"Transitions\" tab cannot be undone or redone"));
     } else if (_sprState.canUndo()) {
@@ -648,8 +656,7 @@ void MainWindow::undo()
     }
 }
 
-void MainWindow::redo()
-{
+void MainWindow::redo() {
     if (ui->tabWidget->currentWidget() == ui->transitionsTab) {
         infoDialog(tr("Actions in the \"Transitions\" tab cannot be undone or redone"));
     } else if (_sprState.canRedo()) {
@@ -658,49 +665,45 @@ void MainWindow::redo()
     }
 }
 
-void MainWindow::whatsThisMode()
-{
+void MainWindow::whatsThisMode() {
     QWhatsThis::enterWhatsThisMode();
 }
 
-void MainWindow::about()
-{
+void MainWindow::about() {
     QMessageBox msg;
     msg.setWindowTitle(tr("About %1").arg(APP_NAME));
-    msg.setText(QString(APP_ABOUT) + "\n\n" +
-                tr("Modernized 2026 — Qt 6 port, 10-agent upgrade."));
+    msg.setText(QString(APP_ABOUT) + "\n\n" + tr("Modernized 2026 — Qt 6 port, 10-agent upgrade."));
     msg.setIconPixmap(QPixmap(":/icons/app-icon-128x128"));
     msg.exec();
 }
 
-void MainWindow::exit()
-{
+void MainWindow::exit() {
     if (_sprState.hasUnsavedChanges()) {
-        if (saveChangesDialog() == CancelButton) return;
+        if (saveChangesDialog() == CancelButton)
+            return;
     }
     QCoreApplication::exit(0);
 }
 
-void MainWindow::closeEvent(QCloseEvent* event)
-{
+void MainWindow::closeEvent(QCloseEvent *event) {
     // Phase 6a: snapshot the window placement before consulting the
     // unsaved-changes dialog. This way, a user who hits Cancel on the
     // "Save changes?" prompt still gets their final geometry persisted
     // on the *next* clean close. saveGeometry/saveState are cheap, and
     // QSettings::setValue is buffered until ~QSettings.
     settings.setValue(QStringLiteral("ui/mainwindow/geometry"), saveGeometry());
-    settings.setValue(QStringLiteral("ui/mainwindow/state"),    saveState());
+    settings.setValue(QStringLiteral("ui/mainwindow/state"), saveState());
 
     event->ignore();
     exit();
 }
 
-void MainWindow::keyPressEvent(QKeyEvent* event)
-{
-    if (event->modifiers() & Qt::ControlModifier) ui->imgPreview->update();
+void MainWindow::keyPressEvent(QKeyEvent *event) {
+    if (event->modifiers() & Qt::ControlModifier)
+        ui->imgPreview->update();
 }
 
-void MainWindow::keyReleaseEvent(QKeyEvent* event)
-{
-    if (event->modifiers() & Qt::ControlModifier) ui->imgPreview->update();
+void MainWindow::keyReleaseEvent(QKeyEvent *event) {
+    if (event->modifiers() & Qt::ControlModifier)
+        ui->imgPreview->update();
 }

@@ -12,19 +12,20 @@
 
 class MainWindow;
 class SpriteState2;
-namespace Ui { class MainWindow; }
+namespace Ui {
+class MainWindow;
+}
 
-class ExportController : public QObject
-{
+class ExportController : public QObject {
     Q_OBJECT
 public:
-    ExportController(MainWindow* mw, Ui::MainWindow* ui, SpriteState2* state,
-                     QObject* parent = nullptr);
+    ExportController(MainWindow *mw, Ui::MainWindow *ui, SpriteState2 *state,
+                     QObject *parent = nullptr);
     ~ExportController() override = default;
 
     void wireSignals();
 
-    void setCurrentExportFile(const QString& exportFileName);
+    void setCurrentExportFile(const QString &exportFileName);
     QString currentExportFile() const { return m_exportFileName; }
 
 public slots:
@@ -39,12 +40,12 @@ public slots:
     void exportAllFormats();
 
 private:
-    void runExport(const QString& filename, int format);
+    void runExport(const QString &filename, int format);
 
-    MainWindow*     m_mw    = nullptr;
-    Ui::MainWindow* m_ui    = nullptr;
-    SpriteState2*   m_state = nullptr;
-    QString         m_exportFileName;
+    MainWindow *m_mw = nullptr;
+    Ui::MainWindow *m_ui = nullptr;
+    SpriteState2 *m_state = nullptr;
+    QString m_exportFileName;
 };
 
 #endif // LVK_CONTROLLERS_EXPORT_CONTROLLER_H

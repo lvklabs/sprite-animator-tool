@@ -8,26 +8,26 @@
 
 #include "controllers/ImageTabController.h"
 
-#include "mainwindow.h"
-#include "ui_mainwindow.h"
-#include "controllers/FrameTabController.h"
 #include "controllers/AnimationTabController.h"
+#include "controllers/FrameTabController.h"
 #include "dialogs.h"
 #include "lvkinputimagewidget.h"
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
 
 #include <QByteArray>
+#include <QDebug>
+#include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QDir>
 #include <QImage>
 #include <QImageReader>
 #include <QInputDialog>
+#include <QMapIterator>
 #include <QSet>
 #include <QSignalBlocker>
 #include <QTableWidget>
 #include <QTableWidgetItem>
-#include <QMapIterator>
-#include <QDebug>
 
 namespace {
 
@@ -42,37 +42,42 @@ enum {
     ColImageTotal,
 };
 
+} // namespace
+
+ImageTabController::ImageTabController(MainWindow *mw, Ui::MainWindow *ui, SpriteState2 *state,
+                                       QObject *parent)
+    : QObject(parent), m_mw(mw), m_ui(ui), m_state(state) {}
+
+void ImageTabController::wireSignals() {
+    connect(m_ui->actionAddImage, &QAction::triggered, this, &ImageTabController::addImageDialog);
+    connect(m_ui->actionRemoveImage, &QAction::triggered, this,
+            &ImageTabController::removeSelImage);
+
+    connect(m_ui->addImageButton, &QAbstractButton::clicked, this,
+            &ImageTabController::addImageDialog);
+    connect(m_ui->removeImageButton, &QAbstractButton::clicked, this,
+            &ImageTabController::removeSelImage);
+    connect(m_ui->refreshImgButton, &QAbstractButton::clicked, this,
+            &ImageTabController::reloadSelImage);
+
+    connect(m_ui->scaleImageButton, &QAbstractButton::clicked, this,
+            &ImageTabController::scaleCheckedImages);
+    connect(m_ui->quickModeButton, &QAbstractButton::clicked, this,
+            &ImageTabController::switchQuickMode);
+    connect(m_ui->checkAllImagesButton, &QAbstractButton::clicked, this,
+            &ImageTabController::checkAllImages);
+    connect(m_ui->invertCheckedImagesButton, &QAbstractButton::clicked, this,
+            &ImageTabController::invertCheckedImages);
+    connect(m_ui->createQuickAniButton, &QAbstractButton::clicked, this,
+            &ImageTabController::createQuickAnimation);
+
+    connect(m_ui->imgTableWidget, &QTableWidget::currentCellChanged, this,
+            [this](int row, int, int, int) { showSelImage(row); });
+    connect(m_ui->imgTableWidget, &QTableWidget::cellChanged, this,
+            &ImageTabController::updateImgTable);
 }
 
-ImageTabController::ImageTabController(MainWindow* mw, Ui::MainWindow* ui,
-                                       SpriteState2* state, QObject* parent)
-    : QObject(parent), m_mw(mw), m_ui(ui), m_state(state)
-{
-}
-
-void ImageTabController::wireSignals()
-{
-    connect(m_ui->actionAddImage,    &QAction::triggered, this, &ImageTabController::addImageDialog);
-    connect(m_ui->actionRemoveImage, &QAction::triggered, this, &ImageTabController::removeSelImage);
-
-    connect(m_ui->addImageButton,    &QAbstractButton::clicked, this, &ImageTabController::addImageDialog);
-    connect(m_ui->removeImageButton, &QAbstractButton::clicked, this, &ImageTabController::removeSelImage);
-    connect(m_ui->refreshImgButton,  &QAbstractButton::clicked, this, &ImageTabController::reloadSelImage);
-
-    connect(m_ui->scaleImageButton,         &QAbstractButton::clicked, this, &ImageTabController::scaleCheckedImages);
-    connect(m_ui->quickModeButton,          &QAbstractButton::clicked, this, &ImageTabController::switchQuickMode);
-    connect(m_ui->checkAllImagesButton,     &QAbstractButton::clicked, this, &ImageTabController::checkAllImages);
-    connect(m_ui->invertCheckedImagesButton,&QAbstractButton::clicked, this, &ImageTabController::invertCheckedImages);
-    connect(m_ui->createQuickAniButton,     &QAbstractButton::clicked, this, &ImageTabController::createQuickAnimation);
-
-    connect(m_ui->imgTableWidget, &QTableWidget::currentCellChanged,
-            this, [this](int row, int, int, int){ showSelImage(row); });
-    connect(m_ui->imgTableWidget, &QTableWidget::cellChanged,
-            this, &ImageTabController::updateImgTable);
-}
-
-void ImageTabController::refreshTable()
-{
+void ImageTabController::refreshTable() {
     QSignalBlocker blocker(m_ui->imgTableWidget);
 
     int row = m_ui->imgTableWidget->currentRow();
@@ -83,26 +88,23 @@ void ImageTabController::refreshTable()
 
     for (QMapIterator<Id, InputImage> it(m_state->images()); it.hasNext();) {
         it.next();
-        const InputImage& image = it.value();
+        const InputImage &image = it.value();
         addImage_ui(image);
     }
 
     m_ui->imgTableWidget->setCurrentCell(row, col);
 }
 
-Id ImageTabController::getImageId(int row) const
-{
-    const QTableWidget* t = m_ui->imgTableWidget;
+Id ImageTabController::getImageId(int row) const {
+    const QTableWidget *t = m_ui->imgTableWidget;
     return (row >= 0 && row < t->rowCount()) ? t->item(row, ColImageId)->text().toInt() : NullId;
 }
 
-Id ImageTabController::selectedImgId() const
-{
+Id ImageTabController::selectedImgId() const {
     return getImageId(m_ui->imgTableWidget->currentRow());
 }
 
-QString ImageTabController::toRelativePath(const QString& filePath) const
-{
+QString ImageTabController::toRelativePath(const QString &filePath) const {
     const QString sep = QDir::separator();
     QFileInfo fileInfo(filePath);
     QStringList dirs1 = fileInfo.absolutePath().split(sep, Qt::SkipEmptyParts);
@@ -112,7 +114,8 @@ QString ImageTabController::toRelativePath(const QString& filePath) const
     int i = 0;
     int minSize = std::min(dirs1.size(), dirs2.size());
 
-    for (; i < minSize && dirs1[i] == dirs2[i]; ++i) {}
+    for (; i < minSize && dirs1[i] == dirs2[i]; ++i) {
+    }
     for (int j = i; j < dirs2.size(); ++j) {
         relFilePath.append(".." + sep);
     }
@@ -123,15 +126,14 @@ QString ImageTabController::toRelativePath(const QString& filePath) const
     return relFilePath;
 }
 
-void ImageTabController::addImageDialog()
-{
+void ImageTabController::addImageDialog() {
     m_mw->showFramesTab();
 
     static QString lastDir = "";
 
     QStringList filenames = QFileDialog::getOpenFileNames(
-            m_mw, tr("Add Image"), lastDir,
-            tr("Images (*.png *.jpg *.jpeg *.xpm *.xbm *.bmp *.tif *.tiff);;All files (*)"));
+        m_mw, tr("Add Image"), lastDir,
+        tr("Images (*.png *.jpg *.jpeg *.xpm *.xbm *.bmp *.tif *.tiff);;All files (*)"));
 
     if (filenames.size() > 0) {
         lastDir = QFileInfo(filenames[0]).absolutePath();
@@ -144,8 +146,7 @@ void ImageTabController::addImageDialog()
     }
 }
 
-Id ImageTabController::addImage(const InputImage& image)
-{
+Id ImageTabController::addImage(const InputImage &image) {
     InputImage image_ = image;
     if (!image_.filename.isEmpty()) {
         m_state->addImage(image_);
@@ -154,8 +155,7 @@ Id ImageTabController::addImage(const InputImage& image)
     return image_.id;
 }
 
-void ImageTabController::addImage_ui(const InputImage& image)
-{
+void ImageTabController::addImage_ui(const InputImage &image) {
     QString filename(image.filename);
 
     if (filename.isEmpty()) {
@@ -173,17 +173,13 @@ void ImageTabController::addImage_ui(const InputImage& image)
         QImageReader reader(filename);
         const QByteArray fmt = reader.format().toLower();
         static const QSet<QByteArray> allowed = {
-            QByteArrayLiteral("png"),
-            QByteArrayLiteral("jpg"),
-            QByteArrayLiteral("jpeg"),
-            QByteArrayLiteral("bmp"),
-            QByteArrayLiteral("gif"),
-            QByteArrayLiteral("webp"),
+            QByteArrayLiteral("png"), QByteArrayLiteral("jpg"), QByteArrayLiteral("jpeg"),
+            QByteArrayLiteral("bmp"), QByteArrayLiteral("gif"), QByteArrayLiteral("webp"),
             QByteArrayLiteral("svg"),
         };
         if (!allowed.contains(fmt)) {
-            infoDialog(filename + tr(" has an unsupported image format: ")
-                       + QString::fromUtf8(fmt));
+            infoDialog(filename + tr(" has an unsupported image format: ") +
+                       QString::fromUtf8(fmt));
         } else if (QImage(filename).isNull()) {
             infoDialog(filename + tr(" has an invalid image format"));
         }
@@ -191,52 +187,48 @@ void ImageTabController::addImage_ui(const InputImage& image)
 
     int rows = m_ui->imgTableWidget->rowCount();
 
-    QTableWidgetItem* item_id        = new QTableWidgetItem(QString::number(image.id));
-    QTableWidgetItem* item_checkable = new QTableWidgetItem();
-    QTableWidgetItem* item_vid       = new QTableWidgetItem(QString::number(image.id));
-    QTableWidgetItem* item_filename  = new QTableWidgetItem(filename);
-    QTableWidgetItem* item_scale     = new QTableWidgetItem(QString::number(image.scale()));
+    QTableWidgetItem *item_id = new QTableWidgetItem(QString::number(image.id));
+    QTableWidgetItem *item_checkable = new QTableWidgetItem();
+    QTableWidgetItem *item_vid = new QTableWidgetItem(QString::number(image.id));
+    QTableWidgetItem *item_filename = new QTableWidgetItem(filename);
+    QTableWidgetItem *item_scale = new QTableWidgetItem(QString::number(image.scale()));
 
     item_checkable->setCheckState(Qt::Unchecked);
 
     {
         QSignalBlocker blocker(m_ui->imgTableWidget);
         m_ui->imgTableWidget->setRowCount(rows + 1);
-        m_ui->imgTableWidget->setItem(rows, ColImageId,        item_id);
+        m_ui->imgTableWidget->setItem(rows, ColImageId, item_id);
         m_ui->imgTableWidget->setItem(rows, ColImageCheckable, item_checkable);
         m_ui->imgTableWidget->setItem(rows, ColImageVisibleId, item_vid);
-        m_ui->imgTableWidget->setItem(rows, ColImageFilename,  item_filename);
-        m_ui->imgTableWidget->setItem(rows, ColImageScale,     item_scale);
+        m_ui->imgTableWidget->setItem(rows, ColImageFilename, item_filename);
+        m_ui->imgTableWidget->setItem(rows, ColImageScale, item_scale);
         m_ui->imgTableWidget->setCurrentItem(item_id);
     }
 
     showImage(image.id);
 }
 
-void ImageTabController::showSelImage(int row)
-{
+void ImageTabController::showSelImage(int row) {
     Id imgId = (row == -1) ? NullId : getImageId(row);
     showImage(imgId);
 }
 
-void ImageTabController::showImage(Id imgId, bool clearPixmapCache)
-{
+void ImageTabController::showImage(Id imgId, bool clearPixmapCache) {
     if (clearPixmapCache) {
         m_ui->imgPreview->clearPixmapCache(imgId);
         m_ui->imgPreview->clear(); // FIXME
     }
-    const QPixmap& selPixmap = m_state->ipixmap(imgId);
+    const QPixmap &selPixmap = m_state->ipixmap(imgId);
     m_ui->imgPreview->setPixmap(selPixmap, imgId);
 }
 
-void ImageTabController::showSelImageWithFrameRect(int row, const QRect& rect)
-{
+void ImageTabController::showSelImageWithFrameRect(int row, const QRect &rect) {
     showSelImage(row);
     m_ui->imgPreview->setFrameRect(rect);
 }
 
-void ImageTabController::removeSelImage()
-{
+void ImageTabController::removeSelImage() {
     m_mw->showFramesTab();
 
     int currentRow = m_ui->imgTableWidget->currentRow();
@@ -252,8 +244,7 @@ void ImageTabController::removeSelImage()
     m_ui->imgPreview->setPixmap(QPixmap());
 }
 
-void ImageTabController::removeImage(int row)
-{
+void ImageTabController::removeImage(int row) {
     Id imgId = getImageId(row);
     qDebug() << m_ui->imgTableWidget->item(row, ColImageId)->text();
     qDebug() << m_ui->imgTableWidget->item(row, ColImageId)->text().toInt();
@@ -266,9 +257,10 @@ void ImageTabController::removeImage(int row)
     m_state->removeImage(imgId);
 
     // remove frames that use this image
-    FrameTabController* frames = m_mw->frames();
+    FrameTabController *frames = m_mw->frames();
     for (int r = 0; r < m_ui->framesTableWidget->rowCount(); ++r) {
-        qDebug() << "row " << r << " -- frameImgId " << frames->getFrameImgId(r) << " == imgId " << imgId;
+        qDebug() << "row " << r << " -- frameImgId " << frames->getFrameImgId(r) << " == imgId "
+                 << imgId;
         if (frames->getFrameImgId(r) == imgId) {
             frames->removeFrame(r);
         }
@@ -277,16 +269,14 @@ void ImageTabController::removeImage(int row)
     emit imageRemoved(imgId);
 }
 
-void ImageTabController::reloadSelImage()
-{
+void ImageTabController::reloadSelImage() {
     if (m_ui->imgTableWidget->currentRow() == -1) {
         return;
     }
     reloadImage(selectedImgId());
 }
 
-void ImageTabController::reloadImage(Id imgId)
-{
+void ImageTabController::reloadImage(Id imgId) {
     m_state->reloadImagePixmap(imgId);
     m_state->reloadFramePixmaps(imgId);
 
@@ -294,22 +284,21 @@ void ImageTabController::reloadImage(Id imgId)
     m_mw->refreshPreviews();
 }
 
-void ImageTabController::updateImgTable(int row, int col)
-{
-    QTableWidget* table = m_ui->imgTableWidget;
+void ImageTabController::updateImgTable(int row, int col) {
+    QTableWidget *table = m_ui->imgTableWidget;
     QString newValue = table->item(row, col)->text();
-    Id     imgId    = table->item(row, ColImageId)->text().toInt();
-    InputImage img  = m_state->const_image(imgId);
+    Id imgId = table->item(row, ColImageId)->text().toInt();
+    InputImage img = m_state->const_image(imgId);
 
-    auto setCellInt = [&](int c, int v){
+    auto setCellInt = [&](int c, int v) {
         QSignalBlocker blocker(table);
         table->item(row, c)->setText(QString::number(v));
     };
-    auto setCellStr = [&](int c, const QString& v){
+    auto setCellStr = [&](int c, const QString &v) {
         QSignalBlocker blocker(table);
         table->item(row, c)->setText(v);
     };
-    auto setCellDbl = [&](int c, double v){
+    auto setCellDbl = [&](int c, double v) {
         QSignalBlocker blocker(table);
         table->item(row, c)->setText(QString::number(v));
     };
@@ -372,8 +361,7 @@ void ImageTabController::updateImgTable(int row, int col)
     }
 }
 
-void ImageTabController::switchQuickMode()
-{
+void ImageTabController::switchQuickMode() {
     if (m_ui->quickModeButton->isChecked()) {
         m_ui->imgTableWidget->setColumnHidden(ColImageCheckable, false);
         m_ui->createQuickAniButton->setVisible(true);
@@ -389,23 +377,20 @@ void ImageTabController::switchQuickMode()
     }
 }
 
-void ImageTabController::checkAllImages()
-{
+void ImageTabController::checkAllImages() {
     for (int row = 0; row < m_ui->imgTableWidget->rowCount(); ++row) {
         m_ui->imgTableWidget->item(row, ColImageCheckable)->setCheckState(Qt::Checked);
     }
 }
 
-void ImageTabController::invertCheckedImages()
-{
+void ImageTabController::invertCheckedImages() {
     for (int row = 0; row < m_ui->imgTableWidget->rowCount(); ++row) {
-        QTableWidgetItem* item = m_ui->imgTableWidget->item(row, ColImageCheckable);
+        QTableWidgetItem *item = m_ui->imgTableWidget->item(row, ColImageCheckable);
         item->setCheckState(item->checkState() == Qt::Checked ? Qt::Unchecked : Qt::Checked);
     }
 }
 
-bool ImageTabController::hasImagesChecked() const
-{
+bool ImageTabController::hasImagesChecked() const {
     for (int row = 0; row < m_ui->imgTableWidget->rowCount(); ++row) {
         if (m_ui->imgTableWidget->item(row, ColImageCheckable)->checkState() == Qt::Checked) {
             return true;
@@ -414,8 +399,7 @@ bool ImageTabController::hasImagesChecked() const
     return false;
 }
 
-void ImageTabController::scaleCheckedImages()
-{
+void ImageTabController::scaleCheckedImages() {
     if (!hasImagesChecked()) {
         infoDialog(tr("This operation requires at least one image selected"));
         return;
@@ -429,7 +413,8 @@ void ImageTabController::scaleCheckedImages()
     }
     double scale = input.toDouble(&ok);
     if (!ok || scale <= 0) {
-        infoDialog(tr("Invalid scale. The scale must be a floating point number greater than zero."));
+        infoDialog(
+            tr("Invalid scale. The scale must be a floating point number greater than zero."));
         return;
     }
 
@@ -448,8 +433,7 @@ void ImageTabController::scaleCheckedImages()
     m_mw->refreshPreviews();
 }
 
-void ImageTabController::createQuickAnimation()
-{
+void ImageTabController::createQuickAnimation() {
     if (!hasImagesChecked()) {
         infoDialog(tr("This operation requires at least one image selected"));
         return;
@@ -473,8 +457,8 @@ void ImageTabController::createQuickAnimation()
     Id aniId = m_mw->animations()->addAnimation(LvkAnimation(NullId, aniName));
 
     QList<Id> newFrameIds;
-    FrameTabController* frames = m_mw->frames();
-    AnimationTabController* anis = m_mw->animations();
+    FrameTabController *frames = m_mw->frames();
+    AnimationTabController *anis = m_mw->animations();
 
     for (int row = 0; row < m_ui->imgTableWidget->rowCount(); ++row) {
         if (m_ui->imgTableWidget->item(row, ColImageCheckable)->checkState() == Qt::Checked) {

@@ -1,12 +1,11 @@
 #ifndef LVKTABLEWIDGET_H
 #define LVKTABLEWIDGET_H
 
-#include <QTableWidget>
 #include <QKeyEvent>
 #include <QSet>
+#include <QTableWidget>
 
-class LvkTableWidget : public QTableWidget
-{
+class LvkTableWidget : public QTableWidget {
     Q_OBJECT
 
 public:

@@ -6,18 +6,16 @@
 #include <memory>
 
 #include "inputimage.h"
-#include "lvkframe.h"
-#include "lvkanimation.h"
 #include "lvkaframe.h"
+#include "lvkanimation.h"
+#include "lvkframe.h"
 #include "settings.h"
 
 /// This is an implementation of a circular buffer that stores changes in the sprite state.
 /// This is a helper class used in StateSprite2 to implement undo and redo.
 /// It also allows to mark an state as saved.
-class StateCircularBuffer
-{
+class StateCircularBuffer {
 public:
-
     enum StateChangeType {
         st_null,
         st_updateImage,
@@ -37,37 +35,30 @@ public:
     };
 
     struct Data {
-        InputImage   old_img;
-        LvkFrame     old_frame;
+        InputImage old_img;
+        LvkFrame old_frame;
         LvkAnimation old_ani;
-        LvkAframe    old_aframe;
+        LvkAframe old_aframe;
 
-        InputImage   img;
-        LvkFrame     frame;
+        InputImage img;
+        LvkFrame frame;
         LvkAnimation ani;
-        LvkAframe    aframe;
+        LvkAframe aframe;
 
-        bool operator==(const Data& d)
-        {
-            return old_img    == d.old_img    &&
-                   old_frame  == d.old_frame  &&
-                   old_ani    == d.old_ani    &&
-                   old_aframe == d.old_aframe &&
-                   img        == d.img        &&
-                   frame      == d.frame      &&
-                   ani        == d.ani        &&
-                   aframe     == d.aframe;
+        bool operator==(const Data &d) {
+            return old_img == d.old_img && old_frame == d.old_frame && old_ani == d.old_ani &&
+                   old_aframe == d.old_aframe && img == d.img && frame == d.frame && ani == d.ani &&
+                   aframe == d.aframe;
         }
     };
 
     struct StateChange {
-        StateChange() : type(st_null) { }
+        StateChange() : type(st_null) {}
 
         StateChangeType type;
-        Data            data;
+        Data data;
 
-        bool operator==(const StateChange& st)
-        { return type == st.type && data == st.data; }
+        bool operator==(const StateChange &st) { return type == st.type && data == st.data; }
     };
 
     static const int BUFF_SIZE = MAX_UNDO_TIMES;
@@ -75,7 +66,7 @@ public:
     StateCircularBuffer();
     ~StateCircularBuffer();
 
-    void addState(const StateChange& st);
+    void addState(const StateChange &st);
     StateChange currentState() const;
     bool hasNextState() const;
     bool hasPrevState() const;
@@ -93,17 +84,15 @@ public:
     QString toString() const;
 
 private:
-
     // Agent 7: was `StateChange *_buf;` with manual new[]/delete[].
     // Switched to std::unique_ptr<StateChange[]> so the BUFF_SIZE-element
     // ring buffer is freed automatically and we lose the manual dtor.
     std::unique_ptr<StateChange[]> _buf;
-    int          _i;      /* index to implement a circular buffer */
-    int          _first;  /* first position in the buffer */
-    int          _saved;  /* saved position in the buffer, -1 if not saved */
+    int _i;     /* index to implement a circular buffer */
+    int _first; /* first position in the buffer */
+    int _saved; /* saved position in the buffer, -1 if not saved */
 
-    inline int inc(int& i) const
-    {
+    inline int inc(int &i) const {
         i = (i + 1) % BUFF_SIZE;
         if (i < 0) {
             i += BUFF_SIZE;
@@ -111,8 +100,7 @@ private:
         return i;
     }
 
-    inline int dec(int& i) const
-    {
+    inline int dec(int &i) const {
         i = (i - 1) % BUFF_SIZE;
         if (i < 0) {
             i += BUFF_SIZE;

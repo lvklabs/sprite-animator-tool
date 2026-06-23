@@ -14,47 +14,48 @@
 #define LVK_CONTROLLERS_FRAME_TAB_CONTROLLER_H
 
 #include <QObject>
-#include <QString>
 #include <QRect>
+#include <QString>
 
 #include "types.h"
 
 class MainWindow;
 class SpriteState2;
-namespace Ui { class MainWindow; }
+namespace Ui {
+class MainWindow;
+}
 class LvkFrame;
 
-class FrameTabController : public QObject
-{
+class FrameTabController : public QObject {
     Q_OBJECT
 public:
-    FrameTabController(MainWindow* mw, Ui::MainWindow* ui, SpriteState2* state,
-                       QObject* parent = nullptr);
+    FrameTabController(MainWindow *mw, Ui::MainWindow *ui, SpriteState2 *state,
+                       QObject *parent = nullptr);
     ~FrameTabController() override = default;
 
     void wireSignals();
     void refreshTable();
 
     // ---- helpers ----
-    Id   getFrameId(int row) const;
-    Id   getFrameImgId(int row) const;
-    Id   selectedFrameId() const;
-    bool addFrameDialog(const QString& defaultName = QString(), bool promptName = true);
-    Id   addFrameFromMouseRect(Id imgId, const QString& name);
-    Id   addFrame(const LvkFrame& frame);
-    void addFrame_ui(const LvkFrame& frame);
+    Id getFrameId(int row) const;
+    Id getFrameImgId(int row) const;
+    Id selectedFrameId() const;
+    bool addFrameDialog(const QString &defaultName = QString(), bool promptName = true);
+    Id addFrameFromMouseRect(Id imgId, const QString &name);
+    Id addFrame(const LvkFrame &frame);
+    void addFrame_ui(const LvkFrame &frame);
     void showSelFrame(int row);
     void showFrame(Id frameId);
     void removeFrame(int row);
 
     /// Used by AnimationTabController to pick a frame interactively.
-    Id getFrameDialog(const QString& title);
+    Id getFrameDialog(const QString &title);
 
 public slots:
     void removeSelFrame();
     void removeAllUnusedFrames();
-    void updateCurrentFrame(const QRect& rect);
-    void updateCurrentFrame_ui(const QRect& rect);
+    void updateCurrentFrame(const QRect &rect);
+    void updateCurrentFrame_ui(const QRect &rect);
 
     void hideFramePreview();
     void showFramePreview();
@@ -72,10 +73,10 @@ public slots:
     void blendComboBoxSignals(bool connected);
 
 private:
-    MainWindow*     m_mw    = nullptr;
-    Ui::MainWindow* m_ui    = nullptr;
-    SpriteState2*   m_state = nullptr;
-    Id              m_blendFrameId; // current blend selection
+    MainWindow *m_mw = nullptr;
+    Ui::MainWindow *m_ui = nullptr;
+    SpriteState2 *m_state = nullptr;
+    Id m_blendFrameId; // current blend selection
 };
 
 #endif // LVK_CONTROLLERS_FRAME_TAB_CONTROLLER_H

@@ -1,29 +1,27 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QMainWindow>
-#include <QImage>
-#include <QPixmap>
+#include <QCloseEvent>
 #include <QHash>
+#include <QImage>
+#include <QLabel>
+#include <QMainWindow>
+#include <QPixmap>
 #include <QSettings>
 #include <QTableWidget>
-#include <QLabel>
-#include <QCloseEvent>
 
 #include <memory>
 
-#include "types.h"
-#include "inputimage.h"
-#include "lvkframe.h"
-#include "lvkanimation.h"
-#include "lvkaframe.h"
-#include "spritestate2.h"
 #include "dialogs.h"
+#include "inputimage.h"
+#include "lvkaframe.h"
+#include "lvkanimation.h"
+#include "lvkframe.h"
+#include "spritestate2.h"
+#include "types.h"
 
-
-namespace Ui
-{
-    class MainWindow;
+namespace Ui {
+class MainWindow;
 }
 
 class ImageTabController;
@@ -32,8 +30,7 @@ class AnimationTabController;
 class TransitionTabController;
 class ExportController;
 
-class MainWindow : public QMainWindow
-{
+class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
@@ -43,7 +40,7 @@ public:
 public slots:
     /// Opens an sprite file
     /// @returns true if success, false otherwise
-    bool openFile(const QString& filename);
+    bool openFile(const QString &filename);
 
 public:
     // Public helpers used by controllers ------------------------------------
@@ -63,22 +60,22 @@ public:
 
     /// Status-bar helpers (called from frame-def-widget signals).
     void showMousePosition(int x, int y);
-    void showMouseRect(const QRect& rect);
+    void showMouseRect(const QRect &rect);
 
     /// Refresh small previews after a frame edit (called by ImageTabController
     /// when an image is reloaded / scaled).
     void refreshPreviews();
 
     // Accessors -------------------------------------------------------------
-    SpriteState2&       state()       { return _sprState; }
-    const SpriteState2& state() const { return _sprState; }
-    Ui::MainWindow*     uiPtr()       { return ui.get(); }
+    SpriteState2 &state() { return _sprState; }
+    const SpriteState2 &state() const { return _sprState; }
+    Ui::MainWindow *uiPtr() { return ui.get(); }
 
-    ImageTabController*       images()      { return _imageCtl.get(); }
-    FrameTabController*       frames()      { return _frameCtl.get(); }
-    AnimationTabController*   animations()  { return _animationCtl.get(); }
-    TransitionTabController*  transitions() { return _transitionCtl.get(); }
-    ExportController*         exporter()    { return _exportCtl.get(); }
+    ImageTabController *images() { return _imageCtl.get(); }
+    FrameTabController *frames() { return _frameCtl.get(); }
+    AnimationTabController *animations() { return _animationCtl.get(); }
+    TransitionTabController *transitions() { return _transitionCtl.get(); }
+    ExportController *exporter() { return _exportCtl.get(); }
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -92,30 +89,30 @@ private:
     std::unique_ptr<Ui::MainWindow> ui;
 
     /// current file open
-    QString  _filename;
+    QString _filename;
 
     /// app settings
     QSettings settings;
 
     /// sets current file and updates the main window title.
     /// The filename will be stored in the recent files section in the config file
-    void setCurrentFile(const QString& filename);
+    void setCurrentFile(const QString &filename);
 
     /// current sprite state
     SpriteState2 _sprState;
 
     /// Labels to show information in the status bar
-    QLabel* statusBarMousePos;
-    QLabel* statusBarRectSize;
+    QLabel *statusBarMousePos;
+    QLabel *statusBarRectSize;
 
     // Agent 8 (Phase 3 refactor): MainWindow now delegates tab logic to
     // five thin controllers. Each is owned via unique_ptr so destruction
     // ordering is well-defined (controllers go before ui/_sprState).
-    std::unique_ptr<ImageTabController>      _imageCtl;
-    std::unique_ptr<FrameTabController>      _frameCtl;
-    std::unique_ptr<AnimationTabController>  _animationCtl;
+    std::unique_ptr<ImageTabController> _imageCtl;
+    std::unique_ptr<FrameTabController> _frameCtl;
+    std::unique_ptr<AnimationTabController> _animationCtl;
     std::unique_ptr<TransitionTabController> _transitionCtl;
-    std::unique_ptr<ExportController>        _exportCtl;
+    std::unique_ptr<ExportController> _exportCtl;
 
     /// initialize recent files menu
     void initRecentFilesMenu();
@@ -128,7 +125,7 @@ private:
     void initTables();
 
     /// opens an sprite file, returns the error in @param err if not a null pointer
-    bool openFile_(const QString& filename, SpriteState::SpriteStateError* err = 0);
+    bool openFile_(const QString &filename, SpriteState::SpriteStateError *err = 0);
 
 private slots:
     bool saveFile();
@@ -140,7 +137,7 @@ private slots:
     void showLoadProgress(const QString &progress);
 
     DialogButton saveChangesDialog();
-    bool openFile_checkUnsaved(const QString& filename);
+    bool openFile_checkUnsaved(const QString &filename);
     void closeFile_checkUnsaved();
 
     void undo();
@@ -149,8 +146,8 @@ private slots:
     void whatsThisMode();
     void about();
 
-    void addRecentFileMenu(const QString& filename);
-    void storeRecentFile(const QString& filename);
+    void addRecentFileMenu(const QString &filename);
+    void storeRecentFile(const QString &filename);
 
     void saveCustomHeader();
     void restoreCustomHeader();

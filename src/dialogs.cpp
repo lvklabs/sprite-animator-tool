@@ -1,23 +1,21 @@
-#include <QString>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QString>
 
 #include "dialogs.h"
 
-void infoDialog(const QString& str)
-{
+void infoDialog(const QString &str) {
     QMessageBox msg;
 
     msg.setText(str);
     msg.exec();
 }
 
-bool yesNoDialog(const QString& str)
-{
+bool yesNoDialog(const QString &str) {
     QMessageBox msg;
 
-    QPushButton *yes    = msg.addButton(QMessageBox::Yes);
-    QPushButton *no     = msg.addButton(QMessageBox::No);
+    QPushButton *yes = msg.addButton(QMessageBox::Yes);
+    QPushButton *no = msg.addButton(QMessageBox::No);
 
     msg.setText(str);
     msg.exec();
@@ -31,12 +29,11 @@ bool yesNoDialog(const QString& str)
     return false;
 }
 
-DialogButton yesNoCancelDialog(const QString& str)
-{
+DialogButton yesNoCancelDialog(const QString &str) {
     QMessageBox msg;
 
-    QPushButton *yes    = msg.addButton(QMessageBox::Yes);
-    QPushButton *no     = msg.addButton(QMessageBox::No);
+    QPushButton *yes = msg.addButton(QMessageBox::Yes);
+    QPushButton *no = msg.addButton(QMessageBox::No);
     QPushButton *cancel = msg.addButton(QMessageBox::Cancel);
 
     msg.setText(str);

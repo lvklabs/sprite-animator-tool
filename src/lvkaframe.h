@@ -11,20 +11,19 @@ enum class LvkVersion;
 /// ordinary frame with a time delay. We do not replicate all the
 /// information that contains a frame (ox, oy, w, h, etc.), instead
 /// we only store the frame Id
-struct LvkAframe
-{
+struct LvkAframe {
     LvkAframe(Id id = NullId, Id frameId = NullId, int delay = 200, int ox = 0, int oy = 0,
               bool sticky = false);
 
-    LvkAframe(const QString& str);
+    LvkAframe(const QString &str);
 
     // TODO move this as private members
-    Id     id;            /* Aframe id */
-    Id     frameId;       /* frame id */
-    int    delay;         /* time delay in milliseconds */
-    int    ox;            /* offset x */
-    int    oy;            /* offset y */
-    bool   sticky;        /* Sticky, i.e. display always */
+    Id id;       /* Aframe id */
+    Id frameId;  /* frame id */
+    int delay;   /* time delay in milliseconds */
+    int ox;      /* offset x */
+    int oy;      /* offset y */
+    bool sticky; /* Sticky, i.e. display always */
 
     /// returns the latest-version (V_04) string representation.
     /// Equivalent to toString(LvkVersion::V_04).
@@ -37,17 +36,12 @@ struct LvkAframe
     QString toString(LvkVersion v) const;
 
     /// initializes the current instance from the string @param str
-    bool fromString(const QString& str);
+    bool fromString(const QString &str);
 
     /// operator ==
-    bool operator==(const LvkAframe& f) const
-    {
-        return id      == f.id      &&
-               frameId == f.frameId &&
-               ox      == f.ox      &&
-               oy      == f.oy      &&
-               delay   == f.delay   &&
-               sticky  == f.sticky;
+    bool operator==(const LvkAframe &f) const {
+        return id == f.id && frameId == f.frameId && ox == f.ox && oy == f.oy && delay == f.delay &&
+               sticky == f.sticky;
     }
 };
 
