@@ -22,7 +22,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04
+          # Linux runner must be ubuntu-latest (currently 24.04), not 22.04:
+          # CMakeLists.txt requires Qt6 6.4+ (find_package(Qt6 6.4 REQUIRED ...))
+          # but apt on Ubuntu 22.04 ships Qt 6.2.4, so configure hard-fails and
+          # the Linux release artifact never publishes. 24.04's apt ships
+          # 6.4.2, which satisfies the requirement and matches build.yml.
+          - os: ubuntu-latest
             preset: linux
           - os: macos-latest
             preset: macos

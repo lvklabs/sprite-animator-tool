@@ -92,7 +92,11 @@ void LvkAnimationWidget::nextFrame() {
 void LvkAnimationWidget::timerEvent(QTimerEvent * /*event*/) {
     killTimer(_currentTimer);
     nextFrame();
-    _currentTimer = startTimer(_delays[_currentFrame]);
+    // Clamp to a 16ms minimum (~60fps). A new aframe defaults to delay=0,
+    // and startTimer(0) refires on every event-loop tick, pegging the CPU
+    // and freezing the UI. 16ms is the standard 60fps floor.
+    const int delayMs = qMax(_delays[_currentFrame], 16);
+    _currentTimer = startTimer(delayMs);
 }
 
 void LvkAnimationWidget::paintEvent(QPaintEvent * /*event*/) {
@@ -134,7 +138,10 @@ void LvkAnimationWidget::mouseReleaseEvent(QMouseEvent * /*event*/) {
 void LvkAnimationWidget::play() {
     if (_fpixmaps.size() > 0) {
         nextFrame();
-        _currentTimer = startTimer(_delays[_currentFrame]);
+        // See timerEvent() above: clamp to a 16ms minimum so an aframe with
+        // the default delay=0 doesn't spin the event loop.
+        const int delayMs = qMax(_delays[_currentFrame], 16);
+        _currentTimer = startTimer(delayMs);
         _isPlaying = true;
     }
 

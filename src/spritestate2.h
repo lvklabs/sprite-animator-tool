@@ -53,6 +53,11 @@ public:
 private:
     StateCircularBuffer _stBuffer;
     bool headerHasChanged;
+    // Depth-count transaction begin/end so re-entrant callers don't push
+    // duplicate markers into the ring buffer. With duplicates, undo() walks
+    // back to the inner st_transactionStart and leaves the outer transaction
+    // half-undone. Only the outermost start/end pair writes to the buffer.
+    int _transactionDepth = 0;
 
     bool undo(StateChange &st);
     bool redo(StateChange &st);

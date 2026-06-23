@@ -63,6 +63,32 @@ set_tests_properties(tst_spritestate_crud PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
 
+# Team H1.2: SpriteState2 transaction depth-counting + undo/redo
+# termination guards. Exercises the re-entrant transaction marker
+# collapse and the iteration cap that prevents infinite loops when a
+# transaction marker has been evicted from the ring buffer.
+lvk_add_test(tst_spritestate2_transactions
+    SOURCES
+        tst_spritestate2_transactions.cpp
+        ${SRC_DIR}/spritestate.cpp
+        ${SRC_DIR}/spritestate2.cpp
+        ${SRC_DIR}/statecircularbuffer.cpp
+        ${SRC_DIR}/inputimage.cpp
+        ${SRC_DIR}/lvkframe.cpp
+        ${SRC_DIR}/lvkanimation.cpp
+        ${SRC_DIR}/lvkaframe.cpp
+        ${SRC_DIR}/image_validation.cpp
+        ${SRC_DIR}/exporters/JsonAtlasExporter.cpp
+    LINKS
+        Qt6::Widgets
+)
+set_tests_properties(tst_spritestate2_transactions PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    # Defense in depth: if a future regression brings back the infinite
+    # loop, fail fast rather than block CI for the default test timeout.
+    TIMEOUT 30
+)
+
 # Phase 5b: controller + MainWindow construction tests. ------------------
 #
 # These tests instantiate the full MainWindow (and through it the five tab

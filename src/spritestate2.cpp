@@ -19,10 +19,25 @@ bool SpriteState2::undo() {
     _stBuffer.prevState();
 
     if (st.type == StateCircularBuffer::st_transactionEnd) {
+        // Cap the walk at the ring-buffer capacity. If the matching
+        // st_transactionStart was evicted by the circular buffer (its older
+        // half rolled off when newer states pushed in), prevState() stops
+        // advancing once we hit _first and currentState() keeps returning
+        // the same head state forever -- which used to lock the UI in an
+        // infinite loop. Bail with a warning instead.
+        int iterations = 0;
+        const int maxIterations = StateCircularBuffer::BUFF_SIZE;
         do {
             st = _stBuffer.currentState();
             _stBuffer.prevState();
             undo(st);
+            ++iterations;
+            if (iterations >= maxIterations) {
+                qWarning() << "SpriteState2::undo: transaction start marker"
+                              " not found within buffer capacity; transaction"
+                              " marker likely evicted from circular buffer";
+                break;
+            }
         } while (st.type != StateCircularBuffer::st_transactionStart);
     } else {
         undo(st);
@@ -98,10 +113,22 @@ bool SpriteState2::redo() {
     StateChange st = _stBuffer.currentState();
 
     if (st.type == StateCircularBuffer::st_transactionStart) {
+        // Mirror undo()'s guard: if the matching st_transactionEnd was
+        // evicted, nextState() stops advancing and currentState() pins to
+        // the head -- bail rather than spin the UI thread.
+        int iterations = 0;
+        const int maxIterations = StateCircularBuffer::BUFF_SIZE;
         do {
             _stBuffer.nextState();
             st = _stBuffer.currentState();
             redo(st);
+            ++iterations;
+            if (iterations >= maxIterations) {
+                qWarning() << "SpriteState2::redo: transaction end marker"
+                              " not found within buffer capacity; transaction"
+                              " marker likely evicted from circular buffer";
+                break;
+            }
         } while (st.type != StateCircularBuffer::st_transactionEnd);
     } else {
         redo(st);
@@ -177,15 +204,28 @@ bool SpriteState2::hasUnsavedChanges() const {
 }
 
 void SpriteState2::startTransaction() {
-    StateChange st;
-    st.type = StateCircularBuffer::st_transactionStart;
-    _stBuffer.addState(st);
+    // Re-entrant: only the outermost startTransaction pushes a marker. If we
+    // pushed on every call, nested callers would write multiple
+    // st_transactionStart markers, and undo() would stop at the innermost
+    // one, leaving the outer transaction half-undone.
+    if (_transactionDepth++ == 0) {
+        StateChange st;
+        st.type = StateCircularBuffer::st_transactionStart;
+        _stBuffer.addState(st);
+    }
 }
 
 void SpriteState2::endTransaction() {
-    StateChange st;
-    st.type = StateCircularBuffer::st_transactionEnd;
-    _stBuffer.addState(st);
+    // Re-entrant: only the outermost endTransaction pushes a marker, pairing
+    // with the outermost startTransaction. Underflow (more ends than starts)
+    // is a programming error -- clamp at zero so we don't push a stray end
+    // marker without a matching start.
+    Q_ASSERT(_transactionDepth > 0);
+    if (_transactionDepth > 0 && --_transactionDepth == 0) {
+        StateChange st;
+        st.type = StateCircularBuffer::st_transactionEnd;
+        _stBuffer.addState(st);
+    }
 }
 
 /* inherited methods */
