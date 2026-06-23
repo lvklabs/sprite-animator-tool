@@ -433,8 +433,7 @@ bool MainWindow::openFile_(const QString &filename_, SpriteStateError *err) {
     // front so we can restore the export filename when this is a same-file
     // reopen, preserving the user's per-document Export-As selection.
     const QString previousFile = _filename;
-    const QString savedExportFile =
-        _exportCtl ? _exportCtl->currentExportFile() : QString();
+    const QString savedExportFile = _exportCtl ? _exportCtl->currentExportFile() : QString();
 
     closeFile();
     setCurrentFile(filename);

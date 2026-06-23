@@ -194,15 +194,14 @@ bool ImageTabController::validateImageFile(const QString &filename, QString *err
     QImageReader reader(filename);
     const QByteArray fmt = reader.format().toLower();
     static const QSet<QByteArray> allowed = {
-        QByteArrayLiteral("png"),  QByteArrayLiteral("jpg"),  QByteArrayLiteral("jpeg"),
-        QByteArrayLiteral("bmp"),  QByteArrayLiteral("gif"),  QByteArrayLiteral("webp"),
-        QByteArrayLiteral("svg"),  QByteArrayLiteral("xpm"),  QByteArrayLiteral("xbm"),
-        QByteArrayLiteral("tif"),  QByteArrayLiteral("tiff"),
+        QByteArrayLiteral("png"), QByteArrayLiteral("jpg"),  QByteArrayLiteral("jpeg"),
+        QByteArrayLiteral("bmp"), QByteArrayLiteral("gif"),  QByteArrayLiteral("webp"),
+        QByteArrayLiteral("svg"), QByteArrayLiteral("xpm"),  QByteArrayLiteral("xbm"),
+        QByteArrayLiteral("tif"), QByteArrayLiteral("tiff"),
     };
     if (!allowed.contains(fmt)) {
         if (errMsg) {
-            *errMsg = filename + tr(" has an unsupported image format: ") +
-                      QString::fromUtf8(fmt);
+            *errMsg = filename + tr(" has an unsupported image format: ") + QString::fromUtf8(fmt);
         }
         return false;
     }

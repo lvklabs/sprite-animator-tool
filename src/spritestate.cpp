@@ -864,8 +864,8 @@ bool SpriteState::exportSprite(const QString &filename, const QString &outputDir
         // on Windows. Mixing them produced a path like "C:/safe\base"
         // that QFile::write would still open but that broke any consumer
         // doing prefix comparisons against the canonical form. Use '/'.
-        const QString jsonBase = QDir::cleanPath(QFileInfo(outputDir).canonicalFilePath() +
-                                                 QLatin1Char('/') + baseName);
+        const QString jsonBase =
+            QDir::cleanPath(QFileInfo(outputDir).canonicalFilePath() + QLatin1Char('/') + baseName);
         if (!jsonExp.exportAtlas(jsonBase, *this)) {
             qDebug() << "SpriteState::exportSprite(): JSON atlas export failed for" << jsonBase;
             setError(err, ErrCantOpenReadWriteMode);

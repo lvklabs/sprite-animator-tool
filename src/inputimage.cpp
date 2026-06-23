@@ -133,8 +133,7 @@ bool InputImage::fromString(const QString &str) {
         if (pixmap.isNull()) {
             // Team B3: qWarning so a missing-on-disk asset reaches the
             // CLI user; this is the "silent data loss" half of B3.3.
-            qWarning() << "InputImage::fromString: null pixmap loaded for file:"
-                       << filename;
+            qWarning() << "InputImage::fromString: null pixmap loaded for file:" << filename;
         }
         return true;
     } else {

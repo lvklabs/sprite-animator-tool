@@ -50,8 +50,7 @@ bool LvkFrame::fromString(const QString &str) {
             // surface it to the GUI loader as a banner so users see
             // partial-load results.
             qWarning() << "LvkFrame::fromString: rejected out-of-range frame dimensions"
-                       << "w=" << parsedW << "h=" << parsedH
-                       << "(name was:" << list.at(1) << ")";
+                       << "w=" << parsedW << "h=" << parsedH << "(name was:" << list.at(1) << ")";
             id = NullId;
             imgId = NullId;
             ox = oy = w = h = 0;
