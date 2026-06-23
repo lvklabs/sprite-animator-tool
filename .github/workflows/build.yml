@@ -157,6 +157,10 @@ jobs:
 
       - name: cpack DEB + install (Linux)
         if: runner.os == 'Linux'
+        env:
+          # The installed binary is launched headless; without this it
+          # tries to load the xcb plugin and aborts (no DISPLAY).
+          QT_QPA_PLATFORM: offscreen
         run: |
           cd build && cpack -G DEB
           ls -la *.deb
