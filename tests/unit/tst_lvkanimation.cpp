@@ -23,6 +23,7 @@ private slots:
     void testFromStringRejectsArityFour();
     void testAddAframeAndLookup();
     void testRemoveAframe();
+    void testRemoveAframeRemovesSingleMatchOnly();
     void testSwapAframes();
     void testEqualityOperator();
 };
@@ -97,6 +98,36 @@ void TestLvkAnimation::testRemoveAframe()
     // remaining ids should be 0 and 2
     QCOMPARE(ani._aframes.at(0).id, 0);
     QCOMPARE(ani._aframes.at(1).id, 2);
+}
+
+void TestLvkAnimation::testRemoveAframeRemovesSingleMatchOnly()
+{
+    // The API name removeAframe (singular) documents single-removal
+    // semantics. Pre-fix the loop kept iterating after removeAt() and the
+    // post-increment skipped the now-shifted element -- meaning duplicate
+    // ids would have one match removed and a second silently skipped.
+    // Deliberately violate id-uniqueness here (production code prevents
+    // duplicates, but the helper itself must behave per its contract).
+    LvkAnimation ani(1, "spin", 0);
+    LvkAframe dup1, dup2, other;
+    dup1.id = 5;
+    dup1.frameId = 100;
+    dup2.id = 5;
+    dup2.frameId = 101;
+    other.id = 9;
+    other.frameId = 200;
+    ani.addAframe(dup1);
+    ani.addAframe(dup2);
+    ani.addAframe(other);
+    QCOMPARE(ani._aframes.size(), 3);
+
+    ani.removeAframe(5);
+
+    // Exactly one of the two id=5 entries should remain; total size drops
+    // by one (not two).
+    QCOMPARE(ani._aframes.size(), 2);
+    // The unrelated id=9 aframe must still be present.
+    QCOMPARE(ani.aframe(9).frameId, 200);
 }
 
 void TestLvkAnimation::testSwapAframes()

@@ -98,6 +98,11 @@ lvk_add_test(tst_spritestate2_transactions
     LINKS
         Qt6::Widgets
 )
+# Build the transaction tests with DEBUG_UNDO so BUFF_SIZE collapses to 5
+# and we can construct an exactly-full transaction (start + 3 ops + end =
+# 5 entries). The full-buffer test then exercises the off-by-one iteration
+# cap fix without having to spin up a 200-entry transaction.
+target_compile_definitions(tst_spritestate2_transactions PRIVATE DEBUG_UNDO)
 set_tests_properties(tst_spritestate2_transactions PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
     # Defense in depth: if a future regression brings back the infinite

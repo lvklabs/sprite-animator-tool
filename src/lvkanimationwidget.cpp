@@ -92,10 +92,17 @@ void LvkAnimationWidget::nextFrame() {
 void LvkAnimationWidget::timerEvent(QTimerEvent * /*event*/) {
     killTimer(_currentTimer);
     nextFrame();
-    // Clamp to a 16ms minimum (~60fps). A new aframe defaults to delay=0,
-    // and startTimer(0) refires on every event-loop tick, pegging the CPU
-    // and freezing the UI. 16ms is the standard 60fps floor.
-    const int delayMs = qMax(_delays[_currentFrame], 16);
+    // Only the delay=0 default (and defensive negatives) gets clamped to
+    // 16ms. A naive qMax(delay, 16) silently slowed user-authored 1-15ms
+    // delays to 16ms (e.g. a 10ms animation ran at ~60% of its intended
+    // speed). The original intent was just to avoid startTimer(0), which
+    // refires on every event-loop tick and pegs the CPU. Honor positive
+    // user delays exactly; substitute 16ms only when the value is non-
+    // positive.
+    int delayMs = _delays[_currentFrame];
+    if (delayMs <= 0) {
+        delayMs = 16;  // treat 0 (default for new aframe) as "play as fast as Qt can"
+    }
     _currentTimer = startTimer(delayMs);
 }
 
@@ -138,9 +145,14 @@ void LvkAnimationWidget::mouseReleaseEvent(QMouseEvent * /*event*/) {
 void LvkAnimationWidget::play() {
     if (_fpixmaps.size() > 0) {
         nextFrame();
-        // See timerEvent() above: clamp to a 16ms minimum so an aframe with
-        // the default delay=0 doesn't spin the event loop.
-        const int delayMs = qMax(_delays[_currentFrame], 16);
+        // See timerEvent() above: only substitute 16ms when the delay is
+        // non-positive (default 0 / defensive negative). Honor positive
+        // user-authored delays exactly so a 10ms-delay animation doesn't
+        // silently run at 16ms.
+        int delayMs = _delays[_currentFrame];
+        if (delayMs <= 0) {
+            delayMs = 16;  // treat 0 (default for new aframe) as "play as fast as Qt can"
+        }
         _currentTimer = startTimer(delayMs);
         _isPlaying = true;
     }

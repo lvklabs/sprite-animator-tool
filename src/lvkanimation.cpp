@@ -85,9 +85,16 @@ void LvkAnimation::addAframe(const LvkAframe &aframe) {
 }
 
 void LvkAnimation::removeAframe(Id aframeId) {
+    // Single-removal semantics ("the" aframe with this id). Without the
+    // break, after removeAt(i) shifts the tail down, the loop's ++i skips
+    // what is now element i (formerly i+1). For uniquely-id'd aframes this
+    // is unobservable; if duplicates ever existed (test fixtures, bad
+    // input) the second match would be silently skipped. Break after the
+    // first match so the behaviour matches the singular API name.
     for (int i = 0; i < _aframes.size(); ++i) {
         if (_aframes[i].id == aframeId) {
             _aframes.removeAt(i);
+            break;
         }
     }
 }

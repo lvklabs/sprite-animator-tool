@@ -25,8 +25,15 @@ bool SpriteState2::undo() {
         // advancing once we hit _first and currentState() keeps returning
         // the same head state forever -- which used to lock the UI in an
         // infinite loop. Bail with a warning instead.
+        //
+        // BUFF_SIZE + 2: a legitimate full-buffer transaction holds the
+        // start marker, BUFF_SIZE-2 ops, and the end marker. The end marker
+        // is consumed by the caller before the loop runs, so the loop must
+        // visit (BUFF_SIZE - 2 ops) + (1 start marker) = BUFF_SIZE - 1
+        // entries minimum. We add +2 slack on top of BUFF_SIZE so the start
+        // + end marker iterations themselves don't trip the cap spuriously.
         int iterations = 0;
-        const int maxIterations = StateCircularBuffer::BUFF_SIZE;
+        const int maxIterations = StateCircularBuffer::BUFF_SIZE + 2;
         do {
             st = _stBuffer.currentState();
             _stBuffer.prevState();
@@ -121,8 +128,12 @@ bool SpriteState2::redo() {
         // Mirror undo()'s guard: if the matching st_transactionEnd was
         // evicted, nextState() stops advancing and currentState() pins to
         // the head -- bail rather than spin the UI thread.
+        //
+        // BUFF_SIZE + 2: see undo() for the derivation -- the cap has to
+        // account for the start + end marker iterations themselves so a
+        // legitimate full-buffer transaction doesn't trip the warning.
         int iterations = 0;
-        const int maxIterations = StateCircularBuffer::BUFF_SIZE;
+        const int maxIterations = StateCircularBuffer::BUFF_SIZE + 2;
         do {
             _stBuffer.nextState();
             st = _stBuffer.currentState();
@@ -267,6 +278,13 @@ bool SpriteState2::load(const QString &filename, SpriteStateError *err, int *rej
     if (success) {
         _stBuffer.clear();
         headerHasChanged = false;
+        // Reset transaction depth: if a caller is mid-transaction when
+        // load() runs (e.g. file dialog reopen mid-edit) the counter would
+        // stay > 0 forever -- the next startTransaction would increment to
+        // 2 without pushing a marker, and the next endTransaction would
+        // decrement to 1 without pushing one either, silently un-bracketing
+        // every subsequent transaction and breaking undo.
+        _transactionDepth = 0;
     }
 
     return success;
@@ -276,6 +294,11 @@ void SpriteState2::clear() {
     _stBuffer.clear();
     SpriteState::clear();
     headerHasChanged = false;
+    // Reset transaction depth alongside the buffer; otherwise a mid-edit
+    // clear() (e.g. File > New) would leave the depth counter pinned and
+    // silently break the next transaction's undo bracketing. See load()
+    // above for the same reasoning.
+    _transactionDepth = 0;
 }
 
 // update *******************************************************************
