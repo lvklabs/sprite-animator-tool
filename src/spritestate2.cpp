@@ -36,6 +36,11 @@ bool SpriteState2::undo() {
                 qWarning() << "SpriteState2::undo: transaction start marker"
                               " not found within buffer capacity; transaction"
                               " marker likely evicted from circular buffer";
+                // J3.3: bump the public counter so MainWindow can pop an
+                // errorDialog. The stderr qWarning above is invisible to
+                // a normal GUI user; without this the only signal that an
+                // undo went sideways was the on-screen scramble itself.
+                ++_undoRedoWarnings;
                 break;
             }
         } while (st.type != StateCircularBuffer::st_transactionStart);
@@ -127,6 +132,9 @@ bool SpriteState2::redo() {
                 qWarning() << "SpriteState2::redo: transaction end marker"
                               " not found within buffer capacity; transaction"
                               " marker likely evicted from circular buffer";
+                // J3.3: see undo() above -- bump the public counter so the
+                // GUI can surface an errorDialog for a corrupt-history redo.
+                ++_undoRedoWarnings;
                 break;
             }
         } while (st.type != StateCircularBuffer::st_transactionEnd);

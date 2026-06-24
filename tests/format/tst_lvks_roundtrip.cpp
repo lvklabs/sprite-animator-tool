@@ -47,6 +47,13 @@ private slots:
     void roundtripSyntheticCanonical();
     void roundtripPreservesCustomHeader();
     void emptyStateRoundtrips();
+    // J3.1: Save-As (different filename) of a transitions-bearing source
+    // must NOT plant the "intentionally dropped" breadcrumb in the
+    // derived file. Same-file Save must still keep the breadcrumb.
+    void saveAsDropsTransitionsBreadcrumb();
+    // J3.2: a transitions(...) block in the source file must bump
+    // rejectedCount so the GUI and the CLI exit code surface the drop.
+    void transitionsBlockBumpsRejectedCount();
 
 private:
     // Locate a sample file. We try, in order:
@@ -444,6 +451,190 @@ void TstLvksRoundtrip::emptyStateRoundtrips()
     QCOMPARE(reloaded2.images().size(),     0);
     QCOMPARE(reloaded2.frames().size(),     0);
     QCOMPARE(reloaded2.animations().size(), 0);
+}
+
+void TstLvksRoundtrip::saveAsDropsTransitionsBreadcrumb()
+{
+    // J3.1: Pre-fix, _loadedTransitions was set from the LOADED file
+    // and the breadcrumb was emitted on every save() that followed --
+    // including Save-As to a brand-new filename. That made every
+    // derived file ("File > Save As..." in the GUI, second-arg path
+    // in the CLI) carry "# transitions intentionally dropped" even
+    // though the derived file is a fresh document the user never
+    // associated with the source's transitions data.
+    //
+    // The fix compares the canonical save path against the canonical
+    // load path: only same-file saves inherit the flag. This test
+    // covers both branches.
+
+    QTemporaryDir tmpDir;
+    QVERIFY(tmpDir.isValid());
+
+    // Author a fixture with a transitions block. The loader recognises
+    // and drops it; the breadcrumb decision is what we're locking in.
+    const QString src = tmpDir.path() + QDir::separator()
+                        + QStringLiteral("with_transitions.lvks");
+    {
+        QFile f(src);
+        QVERIFY(f.open(QFile::WriteOnly | QFile::Text));
+        QTextStream ts(&f);
+        ts << "### LvkSprite ##\n";
+        ts << "LvkSprite version 0.4\n\n";
+        ts << "images(\n";
+        ts << "\t0,nonexistent.png,1\n";
+        ts << ")\n\n";
+        ts << "frames(\n";
+        ts << "\t0,solo,0,0,0,16,16\n";
+        ts << ")\n\n";
+        ts << "animations(\n";
+        ts << "\t0,a,0\n";
+        ts << "\taframes(\n";
+        ts << "\t\t0,0,200,0,0,0\n";
+        ts << "\t)\n";
+        ts << ")\n\n";
+        ts << "transitions(\n";
+        ts << "\t# some content the loader will drop\n";
+        ts << "\t0,0,1,100\n";
+        ts << ")\n\n";
+    }
+
+    SpriteState state;
+    SpriteStateError err = SpriteState::ErrNone;
+    QVERIFY2(state.load(src, &err),
+             qPrintable(QString("Failed to load transitions fixture: %1")
+                            .arg(SpriteState::errorMessage(err))));
+    QCOMPARE(err, SpriteState::ErrNone);
+
+    auto fileContains = [](const QString &path, const QString &needle) -> bool {
+        QFile f(path);
+        if (!f.open(QFile::ReadOnly | QFile::Text)) {
+            return false;
+        }
+        const QString text = QString::fromUtf8(f.readAll());
+        return text.contains(needle);
+    };
+    const QString needle = QStringLiteral(
+        "transitions intentionally dropped");
+
+    // Branch 1 -- same-file Save (overwrite of the loaded file): the
+    // breadcrumb still belongs because *this* file's transitions are
+    // being dropped on disk.
+    QVERIFY(state.save(src, &err));
+    QCOMPARE(err, SpriteState::ErrNone);
+    QVERIFY2(fileContains(src, needle),
+             "Same-file save must still emit the transitions breadcrumb "
+             "(this is the file whose transitions data was dropped).");
+
+    // Branch 2 -- Save-As to a NEW filename. The destination is a fresh
+    // derived document; emitting the "intentionally dropped" comment
+    // there would mislead a future reader into thinking the derived
+    // file once had transitions of its own. Must NOT contain the line.
+    const QString derived = tmpDir.path() + QDir::separator()
+                            + QStringLiteral("derived.lvks");
+    QVERIFY(state.save(derived, &err));
+    QCOMPARE(err, SpriteState::ErrNone);
+    QVERIFY2(!fileContains(derived, needle),
+             "Save-As to a new filename must NOT emit the transitions "
+             "breadcrumb -- derived file never carried a transitions "
+             "block of its own.");
+
+    // The derived file is, by construction, a legitimate brand-new
+    // .lvks; reloading it must succeed with zero rejected records and
+    // an unset _loadedTransitions (no transitions block to find).
+    SpriteState reloaded;
+    int rejected = -1;
+    QVERIFY(reloaded.load(derived, &err, &rejected));
+    QCOMPARE(err, SpriteState::ErrNone);
+    QCOMPARE(rejected, 0);
+
+    // ...and saving the reloaded derived file MUST also not regrow a
+    // breadcrumb (fixed point under Save-As).
+    const QString derived2 = tmpDir.path() + QDir::separator()
+                             + QStringLiteral("derived2.lvks");
+    QVERIFY(reloaded.save(derived2, &err));
+    QCOMPARE(err, SpriteState::ErrNone);
+    QVERIFY2(!fileContains(derived2, needle),
+             "Save of a reloaded derived file must remain breadcrumb-free.");
+}
+
+void TstLvksRoundtrip::transitionsBlockBumpsRejectedCount()
+{
+    // J3.2: a `transitions(...)` block at load time used to qWarning() to
+    // stderr only. The GUI's MainWindow::openFile_ surfaces partial-load
+    // via the rejectedCount outparam (statusBar + infoDialog), so a
+    // silent transitions drop appeared to the user as a clean load. The
+    // fix bumps rejectedCount for the transitions block so the same
+    // surfacing fires uniformly across image / frame / transitions
+    // rejections, and so the CLI --export non-zero exit code (also gated
+    // on rejectedCount) lights up.
+
+    QTemporaryDir tmpDir;
+    QVERIFY(tmpDir.isValid());
+
+    // No-transitions baseline: must NOT bump rejectedCount.
+    const QString clean = tmpDir.path() + QDir::separator()
+                          + QStringLiteral("clean.lvks");
+    {
+        QFile f(clean);
+        QVERIFY(f.open(QFile::WriteOnly | QFile::Text));
+        QTextStream ts(&f);
+        ts << "### LvkSprite ##\n";
+        ts << "LvkSprite version 0.4\n\n";
+        ts << "images(\n";
+        ts << "\t0,nonexistent.png,1\n";
+        ts << ")\n\n";
+        ts << "frames(\n";
+        ts << "\t0,solo,0,0,0,16,16\n";
+        ts << ")\n\n";
+        ts << "animations(\n";
+        ts << "\t0,a,0\n";
+        ts << "\taframes(\n";
+        ts << "\t\t0,0,200,0,0,0\n";
+        ts << "\t)\n";
+        ts << ")\n\n";
+    }
+
+    // With-transitions file: same shape, with an additional dropped block.
+    const QString withTrans = tmpDir.path() + QDir::separator()
+                              + QStringLiteral("with_transitions.lvks");
+    {
+        QFile f(withTrans);
+        QVERIFY(f.open(QFile::WriteOnly | QFile::Text));
+        QTextStream ts(&f);
+        ts << "### LvkSprite ##\n";
+        ts << "LvkSprite version 0.4\n\n";
+        ts << "images(\n";
+        ts << "\t0,nonexistent.png,1\n";
+        ts << ")\n\n";
+        ts << "frames(\n";
+        ts << "\t0,solo,0,0,0,16,16\n";
+        ts << ")\n\n";
+        ts << "animations(\n";
+        ts << "\t0,a,0\n";
+        ts << "\taframes(\n";
+        ts << "\t\t0,0,200,0,0,0\n";
+        ts << "\t)\n";
+        ts << ")\n\n";
+        ts << "transitions(\n";
+        ts << "\t0,0,1,100\n";
+        ts << ")\n\n";
+    }
+
+    SpriteState a;
+    int rejectedA = -1;
+    SpriteStateError err = SpriteState::ErrNone;
+    QVERIFY(a.load(clean, &err, &rejectedA));
+    QCOMPARE(err, SpriteState::ErrNone);
+    QCOMPARE(rejectedA, 0);
+
+    SpriteState b;
+    int rejectedB = -1;
+    err = SpriteState::ErrNone;
+    QVERIFY(b.load(withTrans, &err, &rejectedB));
+    QCOMPARE(err, SpriteState::ErrNone);
+    QVERIFY2(rejectedB >= 1,
+             qPrintable(QString("transitions block must bump rejectedCount; "
+                                "got %1").arg(rejectedB)));
 }
 
 QTEST_MAIN(TstLvksRoundtrip)

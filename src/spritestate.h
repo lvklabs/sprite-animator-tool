@@ -357,6 +357,14 @@ protected:
     /// (no spurious comment line is gained).
     bool _loadedTransitions = false;
 
+    /// Absolute path of the most recently loaded file. Used by save() to
+    /// detect Save-As: when save() is called with a filename different
+    /// from _loadFilename, the resulting file is a brand-new derived
+    /// document (not a re-write of the source), so the "intentionally
+    /// dropped" transitions breadcrumb must NOT leak into it.
+    /// Empty for a freshly constructed / cleared instance.
+    QString _loadFilename;
+
     // TODO (?) move this method inside LvkFrame
     /// force reload frame pixmap
     void reloadFramePixmap(const LvkFrame &frame);

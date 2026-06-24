@@ -309,6 +309,11 @@ void SpriteState::clear() {
     // load() will set this back to true if the source file contained
     // one.
     _loadedTransitions = false;
+
+    // J3.1: forget the previously-loaded source path so Save-As of a
+    // brand-new (post-clear) document doesn't inherit Save semantics
+    // from a stale identity.
+    _loadFilename.clear();
 }
 
 bool SpriteState::save(const QString &filename, SpriteStateError *err) {
@@ -550,7 +555,22 @@ bool SpriteState::save(const QString &filename, SpriteStateError *err) {
     // a noise line per round-trip cycle. The user-visible value of the
     // breadcrumb is "where did the transitions data go?" -- there's no
     // payoff in stamping that on files that never had any.
-    if (_loadedTransitions) {
+    //
+    // J3.1: additional gate -- the breadcrumb is meaningful only for an
+    // OVERWRITE of the same source file (the user saved over the file
+    // that originally contained the dropped block). For a Save-As to a
+    // different path the destination is a brand-new derived document
+    // that never carried a transitions block of its own, so emitting
+    // the comment would mislead a reader of the new file into thinking
+    // *that* file once had transitions. Compare the canonical save path
+    // against the canonical load path; only when they refer to the same
+    // file do we inherit the flag.
+    bool emitTransitionsBreadcrumb = false;
+    if (_loadedTransitions && !_loadFilename.isEmpty()) {
+        const QString saveCanon = QFileInfo(filename).absoluteFilePath();
+        emitTransitionsBreadcrumb = (saveCanon == _loadFilename);
+    }
+    if (emitTransitionsBreadcrumb) {
         stream << "# transitions intentionally dropped -- feature not implemented\n\n";
     }
 
@@ -731,6 +751,17 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err, int *reje
                            << "but transitions are not yet implemented; "
                               "block contents will be dropped on save.";
                 _loadedTransitions = true;
+                // J3.2: bump rejectedCount so the GUI surfaces the drop via
+                // the same status-bar + infoDialog plumbing that already
+                // fires for rejected image/frame records (see
+                // MainWindow::openFile_). Pre-J3 the warning was silent at
+                // stderr only -- a transitions-bearing file appeared to
+                // load cleanly in the editor and the user had no signal
+                // that data was lost. The headless CLI's --export exit
+                // code (non-zero on rejectedCount > 0) also picks this up.
+                if (rejectedCount) {
+                    ++(*rejectedCount);
+                }
                 state = StTokenTransitions;
             } else if (line == "aframes(") {
                 qDebug() << "Error: SpriteState::load(): Unspected token" << line << "at line"
@@ -925,6 +956,14 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err, int *reje
     //     loader appends in file order, so a freshly-loaded sprite has
     //     id-ordered aframes -- exactly what the legacy code achieved
     //     by sorting on load.
+
+    // J3.1: record the canonical source path for the Save-As detector
+    // in save(). Only do this on a successful parse so a half-loaded
+    // file (StError above) does not poison the next save's "is this
+    // the same file?" check.
+    if (state != StError) {
+        _loadFilename = QFileInfo(filename).absoluteFilePath();
+    }
 
     return (state != StError);
 }

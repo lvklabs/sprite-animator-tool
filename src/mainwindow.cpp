@@ -734,8 +734,20 @@ void MainWindow::undo() {
     if (ui->tabWidget->currentWidget() == ui->transitionsTab) {
         infoDialog(tr("Actions in the \"Transitions\" tab cannot be undone or redone"), this);
     } else if (_sprState.canUndo()) {
+        // J3.3: snapshot the SpriteState2 warning counter before/after so
+        // a transaction-marker eviction inside undo() surfaces in the GUI.
+        // Pre-J3 the eviction guard emitted a qWarning() to stderr only;
+        // a normal user pressing Ctrl-Z saw the on-screen state scramble
+        // (some operations reverted, some not) with no cue as to why.
+        const int warningsBefore = _sprState.undoRedoWarningCount();
         _sprState.undo();
         refreshAll();
+        if (_sprState.undoRedoWarningCount() > warningsBefore) {
+            errorDialog(tr("Undo / Redo failed: the history buffer is in an "
+                           "inconsistent state; some operations may not be "
+                           "reversible."),
+                        this);
+        }
     }
 }
 
@@ -743,8 +755,18 @@ void MainWindow::redo() {
     if (ui->tabWidget->currentWidget() == ui->transitionsTab) {
         infoDialog(tr("Actions in the \"Transitions\" tab cannot be undone or redone"), this);
     } else if (_sprState.canRedo()) {
+        // J3.3: mirror the undo() snapshot/check pattern so a redo() that
+        // hits the marker-evicted guard surfaces an errorDialog instead of
+        // silently failing.
+        const int warningsBefore = _sprState.undoRedoWarningCount();
         _sprState.redo();
         refreshAll();
+        if (_sprState.undoRedoWarningCount() > warningsBefore) {
+            errorDialog(tr("Undo / Redo failed: the history buffer is in an "
+                           "inconsistent state; some operations may not be "
+                           "reversible."),
+                        this);
+        }
     }
 }
 

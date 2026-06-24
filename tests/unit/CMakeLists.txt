@@ -174,6 +174,21 @@ function(lvk_add_full_test name)
     )
 endfunction()
 
+# Team J3.4: LvkTableWidget no longer redundantly emits cellChanged after
+# setText (the model emits it once already). The test drives Ctrl+Up /
+# Ctrl+Down and asserts the connected slot fires exactly once -- pre-J3
+# it fired twice and produced spurious undo entries.
+lvk_add_test(tst_lvktablewidget
+    SOURCES
+        tst_lvktablewidget.cpp
+        ${SRC_DIR}/lvktablewidget.cpp
+    LINKS
+        Qt6::Widgets
+)
+set_tests_properties(tst_lvktablewidget PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)
+
 lvk_add_full_test(tst_mainwindow_construction)
 lvk_add_full_test(tst_image_tab_controller)
 lvk_add_full_test(tst_export_controller)

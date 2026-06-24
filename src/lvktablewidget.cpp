@@ -54,8 +54,14 @@ void LvkTableWidget::keyReleaseEvent(QKeyEvent *event) {
             bool ok;
             int i = item->text().toInt(&ok);
             if (ok) {
+                // J1+J3: use the cached `item` pointer (J1 already
+                // null-guarded above) and drop the redundant `emit
+                // cellChanged(...)`. QTableWidgetItem::setText writes
+                // through the QTableWidgetModel which already emits
+                // cellChanged via itemChanged->setData. The earlier
+                // explicit emit fired the signal twice, producing
+                // spurious undo entries on Ctrl+Up.
                 item->setText(QString::number(i + 1));
-                emit cellChanged(currentRow(), currentColumn());
             }
         }
     } else if ((event->modifiers() & Qt::ControlModifier) && event->key() == Qt::Key_Down) {
@@ -63,8 +69,8 @@ void LvkTableWidget::keyReleaseEvent(QKeyEvent *event) {
             bool ok;
             int i = item->text().toInt(&ok);
             if (ok) {
+                // J1+J3: see Ctrl+Up branch — cached `item`, no emit.
                 item->setText(QString::number(i - 1));
-                emit cellChanged(currentRow(), currentColumn());
             }
         }
     } else {

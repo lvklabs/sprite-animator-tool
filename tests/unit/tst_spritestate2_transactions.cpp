@@ -34,6 +34,10 @@ private slots:
     void testUnderflowEndTransactionIsNoOp();
     void testUndoOnEvictedTransactionTerminates();
     void testRedoOnEvictedTransactionTerminates();
+    // J3.3: SpriteState2 must expose a counter that the GUI polls so a
+    // marker-evicted undo()/redo() can surface as an errorDialog instead
+    // of a silent stderr-only qWarning.
+    void testUndoEvictionBumpsWarningCounter();
 };
 
 void TestSpriteState2Transactions::testNestedTransactionsCollapseToSinglePair()
@@ -151,6 +155,35 @@ void TestSpriteState2Transactions::testRedoOnEvictedTransactionTerminates()
         QVERIFY(result);
     }
     // Implicit assertion: we made it past redo() without hanging.
+}
+
+void TestSpriteState2Transactions::testUndoEvictionBumpsWarningCounter()
+{
+    // J3.3: build the same eviction scenario as
+    // testUndoOnEvictedTransactionTerminates and verify
+    // undoRedoWarningCount() increments when the guard fires. The
+    // MainWindow undo/redo handler snapshots this value pre-call and
+    // re-checks post-call; a positive delta triggers an errorDialog.
+    SpriteState2 s;
+    const int overflow = StateCircularBuffer::BUFF_SIZE + 10;
+
+    s.startTransaction();
+    for (int i = 0; i < overflow; ++i) {
+        LvkFrame f;
+        f.w = i + 1;
+        f.h = i + 1;
+        s.addFrame(f);
+    }
+    s.endTransaction();
+
+    const int before = s.undoRedoWarningCount();
+    s.undo();
+    const int after = s.undoRedoWarningCount();
+    QVERIFY2(after > before,
+             qPrintable(QString("undo() on an evicted transaction must "
+                                "increment undoRedoWarningCount(); "
+                                "before=%1 after=%2")
+                            .arg(before).arg(after)));
 }
 
 QTEST_MAIN(TestSpriteState2Transactions)
