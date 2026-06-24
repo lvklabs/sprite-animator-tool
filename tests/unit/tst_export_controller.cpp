@@ -30,6 +30,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QScopeGuard>
 
 #include "mainwindow.h"
 #include "controllers/ExportController.h"
@@ -75,6 +76,7 @@ void TestExportController::testCocos2dExportThroughController()
 
     // Load mario.lvks; relative image paths in the .lvks resolve from CWD.
     const QString savedCwd = QDir::currentPath();
+    auto restoreCwd = qScopeGuard([savedCwd]() { QDir::setCurrent(savedCwd); });
     QVERIFY(QDir::setCurrent(examplesDir()));
 
     MainWindow mw;
@@ -102,8 +104,6 @@ void TestExportController::testCocos2dExportThroughController()
     QVERIFY2(QFile::exists(lkot),   qPrintable("missing: " + lkot));
     QVERIFY2(QFile::exists(header), qPrintable("missing: " + header));
     QVERIFY(QFileInfo(lkob).size() > 0);
-
-    QDir::setCurrent(savedCwd);
 }
 
 void TestExportController::testJsonAtlasExportShape()
@@ -117,6 +117,7 @@ void TestExportController::testJsonAtlasExportShape()
     QVERIFY2(QFile::exists(src), qPrintable("missing fixture: " + src));
 
     const QString savedCwd = QDir::currentPath();
+    auto restoreCwd = qScopeGuard([savedCwd]() { QDir::setCurrent(savedCwd); });
     QVERIFY(QDir::setCurrent(examplesDir()));
 
     MainWindow mw;
@@ -165,8 +166,6 @@ void TestExportController::testJsonAtlasExportShape()
         QVERIFY(it.value().isArray());
         QVERIFY(it.value().toArray().size() > 0);
     }
-
-    QDir::setCurrent(savedCwd);
 }
 
 void TestExportController::testCurrentExportFileRoundTrip()
@@ -210,6 +209,7 @@ void TestExportController::testReopenSameFilePreservesExportTarget()
     QVERIFY2(QFile::exists(src), qPrintable("missing fixture: " + src));
 
     const QString savedCwd = QDir::currentPath();
+    auto restoreCwd = qScopeGuard([savedCwd]() { QDir::setCurrent(savedCwd); });
     QVERIFY(QDir::setCurrent(examplesDir()));
 
     MainWindow mw;
@@ -255,8 +255,6 @@ void TestExportController::testReopenSameFilePreservesExportTarget()
     QVERIFY2(exporter->currentExportFile().isEmpty(),
              qPrintable("opening a different file must clear the export target; "
                         "got '" + exporter->currentExportFile() + "'"));
-
-    QDir::setCurrent(savedCwd);
 }
 
 void TestExportController::testIsAllFilesFilterLocaleSafe()

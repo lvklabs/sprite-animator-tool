@@ -18,6 +18,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QScopeGuard>
 #include <QString>
 #include <QTemporaryDir>
 
@@ -76,6 +77,11 @@ void TestUndoSaveIntegration::undoAddImageSavesAndReloadsToOriginal() {
     // this slot so mario1.png etc. resolve.
     const QString examples = QString::fromUtf8(LVK_EXAMPLES_DIR);
     const QString savedCwd = QDir::currentPath();
+    // RAII restore: any QVERIFY/QCOMPARE failure below aborts the slot
+    // without reaching the manual setCurrent at the end. The scope guard
+    // restores CWD regardless so subsequent test slots don't inherit the
+    // examples/ directory as their working dir.
+    auto restoreCwd = qScopeGuard([savedCwd]() { QDir::setCurrent(savedCwd); });
     QVERIFY(QDir::setCurrent(examples));
 
     SpriteState2 mutated;
@@ -137,8 +143,6 @@ void TestUndoSaveIntegration::undoAddImageSavesAndReloadsToOriginal() {
     // Stage 4: structural equality with the original mario.lvks.
     assertImageSetsMatch(reference, reloaded,
                          QStringLiteral("undo->save->reload vs original"));
-
-    QDir::setCurrent(savedCwd);
 }
 
 QTEST_MAIN(TestUndoSaveIntegration)

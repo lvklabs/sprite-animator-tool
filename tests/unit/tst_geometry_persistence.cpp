@@ -21,8 +21,11 @@
 #include <QApplication>
 #include <QByteArray>
 #include <QCoreApplication>
+#include <QFile>
+#include <QMainWindow>
 #include <QSettings>
 #include <QSize>
+#include <QStandardPaths>
 
 #include "mainwindow.h"
 
@@ -39,6 +42,7 @@ class TestGeometryPersistence : public QObject {
 
 private slots:
     void initTestCase();
+    void cleanupTestCase();
     void init();
     void cleanup();
 
@@ -49,11 +53,29 @@ private:
 };
 
 void TestGeometryPersistence::initTestCase() {
+    // Route QSettings to a per-test scratch dir so we do not leak
+    // ~/.config/LvkLabsTest/LvkSpriteEditorTest_Geometry.conf into
+    // the developer's home directory just because they ran `ctest`
+    // locally once. Must be set BEFORE any QSettings instance is
+    // constructed (including the s.setValue call below).
+    QStandardPaths::setTestModeEnabled(true);
+
     QCoreApplication::setOrganizationName(QStringLiteral(LVK_TEST_ORG));
     QCoreApplication::setApplicationName(QStringLiteral(LVK_TEST_APP));
     QSettings s;
     s.setValue(QStringLiteral("ui/showAboutOnStartup"), false);
     s.sync();
+}
+
+void TestGeometryPersistence::cleanupTestCase() {
+    // Belt-and-braces cleanup: clear() drops every key for this
+    // org/app pair and unlinks the underlying QSettings backing file
+    // entirely, so no residue (regardless of test-mode redirection)
+    // survives the test executable.
+    QSettings s;
+    s.clear();
+    s.sync();
+    QFile::remove(s.fileName());
 }
 
 void TestGeometryPersistence::clearGeometrySettings() {
@@ -79,6 +101,7 @@ void TestGeometryPersistence::geometryRoundtripsAcrossMainWindowInstances() {
     // the dialog never opens.
     const QSize target(1234, 567);
     QByteArray persistedGeo;
+    QSize sizeAtClose;
     {
         MainWindow mw1;
         // QMainWindow needs to be shown for the platform window to honor
@@ -88,6 +111,10 @@ void TestGeometryPersistence::geometryRoundtripsAcrossMainWindowInstances() {
         QApplication::processEvents();
         mw1.resize(target);
         QApplication::processEvents();
+        // Record the actual size mw1 settled on (may differ from `target`
+        // by a pixel or two if the QPA backend snaps to a grid). This is
+        // the size mw2 must reproduce -- BYTE-EQUALLY -- after restore.
+        sizeAtClose = mw1.size();
 
         // closeEvent() persists geometry/state ONLY when hasUnsavedChanges
         // is false (no dialog) AND the event is accepted. mw1 is a fresh
@@ -106,24 +133,45 @@ void TestGeometryPersistence::geometryRoundtripsAcrossMainWindowInstances() {
              "closeEvent did not persist ui/mainwindow/geometry to QSettings");
 
     // Stage 2: a freshly constructed MainWindow MUST restore the size we
-    // saw at close. Allow a 2px tolerance per dimension: window manager
-    // decoration insets / fractional DPI can shift the inner content
-    // rect by a pixel or two even when the persisted bytes are byte-
-    // identical.
+    // saw at close. We assert two things:
+    //
+    //   (a) Strict size equality positive control: mw2.size() AFTER
+    //       restoreGeometry() must match the size mw1 had at close. The
+    //       prior 2px tolerance was too lenient -- on offscreen QPA the
+    //       default 80%-of-screen heuristic *could* land within 2px of
+    //       1234x567 by coincidence, making the test pass vacuously even
+    //       if restoreGeometry() never fired. Strict equality cannot be
+    //       satisfied by the default-size codepath.
+    //
+    //   (b) restoreGeometry must accept the persisted bytes.
+    //       restoreGeometry() returns false if the bytes are corrupt or
+    //       a version it can't parse; that's a separate failure mode
+    //       from "ctor never called restoreGeometry at all", but worth
+    //       asserting to catch a future format-version drift.
     {
         MainWindow mw2;
         mw2.show();
         QApplication::processEvents();
+
+        // (a) Strict size equality. If restoreGeometry didn't fire, the
+        //     default-size heuristic kicks in and the size will be
+        //     ~80% of the offscreen QPA's reported screen, NOT
+        //     sizeAtClose. The fixed (1234, 567) target was chosen
+        //     to be unusual enough that no plausible default landing
+        //     spot could match it byte-for-byte.
         const QSize got = mw2.size();
-        // The persisted bytes should bring us back to within ~2px of the
-        // original. Some QPA backends round the frame insets, so we
-        // tolerate up to 2 pixels in each dimension.
-        QVERIFY2(qAbs(got.width() - target.width()) <= 2,
-                 qPrintable(QStringLiteral("width drift: target=%1 got=%2")
-                                .arg(target.width()).arg(got.width())));
-        QVERIFY2(qAbs(got.height() - target.height()) <= 2,
-                 qPrintable(QStringLiteral("height drift: target=%1 got=%2")
-                                .arg(target.height()).arg(got.height())));
+        QCOMPARE(got, sizeAtClose);
+
+        // (b) The persisted bytes themselves are well-formed enough for
+        //     a fresh QMainWindow to restore from them. This catches a
+        //     format-version drift in saveGeometry / restoreGeometry
+        //     across Qt versions -- without this, a roundtrip that
+        //     silently used the default-size fallback would still
+        //     pass (a) iff sizeAtClose happens to equal the default).
+        QMainWindow probe;
+        QVERIFY2(probe.restoreGeometry(persistedGeo),
+                 "QMainWindow::restoreGeometry rejected the persisted bytes "
+                 "-- format-version drift in QSettings ui/mainwindow/geometry?");
     }
 }
 

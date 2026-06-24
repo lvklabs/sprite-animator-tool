@@ -28,6 +28,7 @@
 #include <QMenu>
 #include <QSet>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QString>
 
 #include "mainwindow.h"
@@ -50,6 +51,7 @@ class TestRecentFiles : public QObject {
 
 private slots:
     void initTestCase();
+    void cleanupTestCase();  // run once after all test slots
     void init();             // run before each test slot
     void cleanup();          // run after each test slot
 
@@ -64,6 +66,13 @@ private:
 };
 
 void TestRecentFiles::initTestCase() {
+    // Route QSettings to a per-test scratch dir so we do not leak
+    // ~/.config/LvkLabsTest/LvkSpriteEditorTest_RecentFiles.conf into
+    // the developer's home directory just because they ran `ctest`
+    // locally once. Must be set BEFORE any QSettings instance is
+    // constructed (including the s.setValue call below).
+    QStandardPaths::setTestModeEnabled(true);
+
     QCoreApplication::setOrganizationName(QStringLiteral(LVK_TEST_ORG));
     QCoreApplication::setApplicationName(QStringLiteral(LVK_TEST_APP));
     QSettings s;
@@ -71,6 +80,17 @@ void TestRecentFiles::initTestCase() {
     // constructor calls exec() and blocks the test forever.
     s.setValue(QStringLiteral("ui/showAboutOnStartup"), false);
     s.sync();
+}
+
+void TestRecentFiles::cleanupTestCase() {
+    // Belt-and-braces cleanup: clear() drops every key for this
+    // org/app pair and unlinks the underlying QSettings backing file
+    // entirely, so no residue (regardless of test-mode redirection)
+    // survives the test executable.
+    QSettings s;
+    s.clear();
+    s.sync();
+    QFile::remove(s.fileName());
 }
 
 void TestRecentFiles::init() {

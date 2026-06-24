@@ -23,6 +23,7 @@
 #include <QDir>
 #include <QFile>
 #include <QMessageBox>
+#include <QScopeGuard>
 #include <QSettings>
 #include <QTableWidget>
 #include <QTimer>
@@ -109,6 +110,7 @@ void TestTransitionTabController::testAddTransPopulatesUiTableButNotState()
     QVERIFY2(QFile::exists(src), qPrintable("missing fixture: " + src));
 
     const QString savedCwd = QDir::currentPath();
+    auto restoreCwd = qScopeGuard([savedCwd]() { QDir::setCurrent(savedCwd); });
     QVERIFY(QDir::setCurrent(examplesDir()));
 
     MainWindow mw;
@@ -153,8 +155,6 @@ void TestTransitionTabController::testAddTransPopulatesUiTableButNotState()
              "Adding a (preview-only) transition must not dirty the "
              "unsaved-changes flag -- otherwise users get spurious "
              "save prompts after using a feature that does not persist.");
-
-    QDir::setCurrent(savedCwd);
 }
 
 void TestTransitionTabController::testRemoveAllTransClearsTable()
@@ -163,6 +163,7 @@ void TestTransitionTabController::testRemoveAllTransClearsTable()
     QVERIFY2(QFile::exists(src), qPrintable("missing fixture: " + src));
 
     const QString savedCwd = QDir::currentPath();
+    auto restoreCwd = qScopeGuard([savedCwd]() { QDir::setCurrent(savedCwd); });
     QVERIFY(QDir::setCurrent(examplesDir()));
 
     MainWindow mw;
@@ -183,8 +184,6 @@ void TestTransitionTabController::testRemoveAllTransClearsTable()
 
     trans->removeAllTrans();
     QCOMPARE(table->rowCount(), 0);
-
-    QDir::setCurrent(savedCwd);
 }
 
 QTEST_MAIN(TestTransitionTabController)

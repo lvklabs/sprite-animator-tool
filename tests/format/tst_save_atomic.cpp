@@ -40,7 +40,12 @@ class TstSaveAtomic : public QObject
 private slots:
     void preservesOriginalWhenSaveFails();
     void successfulSaveProducesNoLeftoverTmpFile();
-#ifdef Q_OS_LINUX
+// Windows is excluded because QFile::link() there emits a .lnk shortcut
+// rather than a true symlink, and FAT/exFAT volumes may not support
+// symlinks at all (or require elevated privileges). The symlink-resolution
+// behaviour we are exercising is a POSIX invariant; macOS, Linux, and the
+// BSDs all share the same semantics here.
+#if defined(Q_OS_UNIX) && !defined(Q_OS_WIN)
     void saveFollowsSymlinkToTarget();
     void saveFollowsSymlinkChainToFinalTarget();
 #endif
@@ -146,7 +151,7 @@ void TstSaveAtomic::successfulSaveProducesNoLeftoverTmpFile()
     QVERIFY(bytes.contains("LvkSprite version"));
 }
 
-#ifdef Q_OS_LINUX
+#if defined(Q_OS_UNIX) && !defined(Q_OS_WIN)
 void TstSaveAtomic::saveFollowsSymlinkToTarget()
 {
     // Team H2 (H2.1): when @p filename is a symlink, save() must write to
@@ -156,12 +161,11 @@ void TstSaveAtomic::saveFollowsSymlinkToTarget()
     // breaking any consumer that pointed at the link expecting the
     // target to receive updates.
     //
-    // Linux-only because symlink semantics differ on Windows (where
-    // QFile::link emits a .lnk shortcut, not a true symlink) and on
-    // macOS where the resolution path through QFileInfo is identical
-    // but the CI bots don't run with the permissions needed to create
-    // arbitrary symlinks in /tmp. The bug, the fix, and the regression
-    // are all Linux-relevant so a Linux-only test is the right scope.
+    // Runs on every POSIX platform (Linux, macOS, BSDs). Windows is
+    // excluded: QFile::link there emits a .lnk shortcut, not a true
+    // symlink, and FAT/exFAT volumes may not support symlinks at all
+    // (or require elevated privileges). The bug, the fix, and the
+    // regression are all POSIX-relevant.
     QTemporaryDir tmpDir;
     QVERIFY(tmpDir.isValid());
 
@@ -223,6 +227,7 @@ void TstSaveAtomic::saveFollowsSymlinkToTarget()
     QVERIFY2(afterBytes.contains("LvkSprite version"),
              "target file does not contain saved sprite content");
 }
+<<<<<<< HEAD
 
 void TstSaveAtomic::saveFollowsSymlinkChainToFinalTarget()
 {
@@ -299,7 +304,7 @@ void TstSaveAtomic::saveFollowsSymlinkChainToFinalTarget()
     QVERIFY2(realBytes.contains("LvkSprite version"),
              "real (final) file does not contain saved sprite content");
 }
-#endif // Q_OS_LINUX
+#endif // Q_OS_UNIX && !Q_OS_WIN
 
 QTEST_MAIN(TstSaveAtomic)
 #include "tst_save_atomic.moc"

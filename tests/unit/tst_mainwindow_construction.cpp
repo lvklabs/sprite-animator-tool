@@ -19,6 +19,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QScopeGuard>
 
 #include "mainwindow.h"
 #include "spritestate2.h"
@@ -84,6 +85,7 @@ void TestMainWindowConstruction::testOpenFileLoadsMarioFixture()
     // Load relies on relative image paths in mario.lvks; cd into examples/
     // for the duration of this test so QFile sees them.
     const QString savedCwd = QDir::currentPath();
+    auto restoreCwd = qScopeGuard([savedCwd]() { QDir::setCurrent(savedCwd); });
     QVERIFY(QDir::setCurrent(examplesDir()));
 
     MainWindow mw;
@@ -94,8 +96,6 @@ void TestMainWindowConstruction::testOpenFileLoadsMarioFixture()
     QCOMPARE(mw.state().images().size(),     5);
     QVERIFY(mw.state().frames().size()      >= 1);
     QCOMPARE(mw.state().animations().size(), 3);
-
-    QDir::setCurrent(savedCwd);
 }
 
 QTEST_MAIN(TestMainWindowConstruction)

@@ -233,6 +233,14 @@ bool JsonAtlasExporter::exportAtlas(const QString &baseFilename, const SpriteSta
     }
 
     // -- render PNG -------------------------------------------------------
+    // J4.5: write to "<pngPath>.tmp" first; promote with QFile::rename
+    // only AFTER the JSON has been successfully written via QSaveFile.
+    // This ensures that if the JSON write fails, the PRIOR (pngPath,
+    // jsonPath) pair (if any) is left completely untouched -- the
+    // previous behaviour overwrote pngPath unconditionally and then,
+    // on JSON failure, removed it, leaving any pre-existing jsonPath
+    // referencing a now-missing PNG.
+    const QString pngTmpPath = pngPath + QStringLiteral(".tmp");
     {
         QImage atlas(atlasW, atlasH, QImage::Format_ARGB32_Premultiplied);
         atlas.fill(Qt::transparent);
@@ -242,8 +250,12 @@ bool JsonAtlasExporter::exportAtlas(const QString &baseFilename, const SpriteSta
             p.drawPixmap(pf.x, pf.y, pf.pixmap);
         }
         p.end();
-        if (!atlas.save(pngPath, "PNG")) {
-            qDebug() << "JsonAtlasExporter::exportAtlas: failed to write" << pngPath;
+        // Defensive: clear any leftover tmp from a previous failed run so
+        // QImage::save sees a clean slate.
+        QFile::remove(pngTmpPath);
+        if (!atlas.save(pngTmpPath, "PNG")) {
+            qDebug() << "JsonAtlasExporter::exportAtlas: failed to write" << pngTmpPath;
+            QFile::remove(pngTmpPath);
             return false;
         }
     }
@@ -331,38 +343,28 @@ bool JsonAtlasExporter::exportAtlas(const QString &baseFilename, const SpriteSta
     root.insert(QStringLiteral("animations"), animsObj);
     root.insert(QStringLiteral("meta"), meta);
 
-    // Team H2 (H2.5): atomic best-effort for the JSON + PNG pair.
+    // J4.5: atomic-pair publish.
     //
-    // Pre-H2 the sequence was:
-    //   1. atlas.save(pngPath, "PNG")     -- regular open+write+close
-    //   2. QFile out(jsonPath); ... write ... close()
-    // A crash, OOM, or full disk between step 1 and step 2 left the
-    // PNG on disk WITHOUT a matching JSON descriptor. Consumers that
-    // probe for both files would see a half-built export and either
-    // crash or silently render garbage.
+    // The new PNG sits in pngTmpPath. The JSON is staged through
+    // QSaveFile (which writes to its own ".XXXXXX" temp and only
+    // installs at commit()). Until BOTH writes have succeeded, neither
+    // pngPath nor jsonPath is touched -- so a pre-existing (PNG, JSON)
+    // pair survives any failure here completely intact.
     //
-    // Strategy (the "simpler alternative" called out in the task
-    // brief): keep "PNG first, JSON second" but use QSaveFile for the
-    // JSON write so the publish is atomic on the JSON side, and on a
-    // JSON failure ALSO remove the PNG so the on-disk state is
-    // "either both files or neither". Qt's QImageWriter has no
-    // QSaveFile-equivalent, so the PNG side is best-effort: a crash
-    // mid-PNG-write may leave a partial PNG, but in that case the
-    // JSON has not yet been written either, so the "neither file"
-    // invariant still holds modulo the partial-PNG corruption (no
-    // matching descriptor -> consumer treats it as absent). The
-    // window where both files are present and inconsistent shrinks
-    // from "between two normal open/write/close calls" to "between
-    // PNG-close and QSaveFile::commit() of the JSON" -- a single
-    // syscall on POSIX.
+    // The legacy "PNG first, JSON second, remove PNG on JSON failure"
+    // strategy could not honour that invariant: if a prior export had
+    // already written pngPath / jsonPath, the PNG write would clobber
+    // pngPath, and a subsequent JSON failure removed the new PNG --
+    // but the prior jsonPath remained, now pointing at a deleted
+    // sibling. Now both files are promoted together (or rolled back
+    // together).
     QJsonDocument doc(root);
     QSaveFile out(jsonPath);
     out.setDirectWriteFallback(true);
     if (!out.open(QFile::WriteOnly | QFile::Truncate)) {
         qDebug() << "JsonAtlasExporter::exportAtlas: failed to open" << jsonPath
                  << "-" << out.errorString();
-        // Roll back the orphan PNG so the (PNG, JSON) pair is "neither".
-        QFile::remove(pngPath);
+        QFile::remove(pngTmpPath); // prior pngPath / jsonPath untouched
         return false;
     }
     const QByteArray jsonBytes = doc.toJson(QJsonDocument::Indented);
@@ -370,14 +372,37 @@ bool JsonAtlasExporter::exportAtlas(const QString &baseFilename, const SpriteSta
         qDebug() << "JsonAtlasExporter::exportAtlas: short write on" << jsonPath
                  << "-" << out.errorString();
         out.cancelWriting();
-        out.commit(); // remove tmp; leaves jsonPath untouched
-        QFile::remove(pngPath);
+        out.commit(); // discards QSaveFile's internal tmp; jsonPath untouched
+        QFile::remove(pngTmpPath);
         return false;
     }
+    // Both writes successful in their temp locations. Promote.
+    //
+    // QSaveFile::commit() is a single rename(2) on POSIX which atomically
+    // installs the JSON. We do that FIRST so a commit failure leaves the
+    // prior pair intact: the new PNG is still only in pngTmpPath, and we
+    // can roll it back by removing pngTmpPath.
     if (!out.commit()) {
         qDebug() << "JsonAtlasExporter::exportAtlas: commit() failed for" << jsonPath
                  << "-" << out.errorString();
-        QFile::remove(pngPath);
+        QFile::remove(pngTmpPath); // prior pngPath / jsonPath untouched
+        return false;
+    }
+    // JSON has landed. Now promote the PNG. If a prior pngPath exists,
+    // QFile::rename will refuse to overwrite, so we remove it first.
+    // (POSIX rename(2) is atomic; the prior PNG is gone for a few syscalls
+    // until QFile::rename installs the new one.) The window where pngPath
+    // is briefly absent is the unavoidable cost of QFile's no-overwrite
+    // policy. On the unlikely rename failure we leave a stale jsonPath +
+    // pngTmpPath sidecar and warn -- the JSON has already been committed
+    // so we cannot roll back to "prior pair" without overwriting jsonPath
+    // a second time, which itself can fail.
+    QFile::remove(pngPath);
+    if (!QFile::rename(pngTmpPath, pngPath)) {
+        qDebug() << "JsonAtlasExporter::exportAtlas: failed to promote" << pngTmpPath
+                 << "to" << pngPath
+                 << "- JSON written but PNG not in place; leaving" << pngTmpPath
+                 << "behind for manual recovery";
         return false;
     }
     return true;
