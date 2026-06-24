@@ -348,15 +348,27 @@ bool SpriteState::save(const QString &filename, SpriteStateError *err) {
     // symlink (target missing or unresolvable) falls back to the
     // original path so the failure surfaces as a normal open() error
     // rather than a mysterious write to "".
+    //
+    // Team J1 (J1.1): use canonicalFilePath() rather than symLinkTarget()
+    // so a CHAIN of symlinks (entry -> proxy -> real) resolves to the
+    // final real target, not just one hop. symLinkTarget() would return
+    // "proxy" and we'd then atomic-replace the proxy link with a regular
+    // file -- the real.lvks would never be written and the proxy link
+    // would silently disappear. canonicalFilePath() walks the whole chain
+    // and returns "" for broken/dangling links, in which case we keep
+    // the original filename so open() fails visibly.
     QString targetPath = filename;
     QFileInfo fileInfo(filename);
     if (fileInfo.isSymLink()) {
-        const QString resolved = fileInfo.symLinkTarget();
-        if (!resolved.isEmpty()) {
-            targetPath = resolved;
+        // canonicalFilePath() resolves the FULL chain (entry -> proxy
+        // -> real), not just one hop. symLinkTarget() would leave us
+        // replacing the proxy.
+        const QString canonical = fileInfo.canonicalFilePath();
+        if (!canonical.isEmpty()) {
+            targetPath = canonical;
         }
-        // else: broken symlink; keep targetPath == filename so open()
-        // fails visibly instead of writing to an empty path.
+        // else: broken symlink -- write to the symlink location so
+        // open() fails visibly instead of writing to an empty path.
     }
     QSaveFile file(targetPath);
 

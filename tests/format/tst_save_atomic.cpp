@@ -42,6 +42,7 @@ private slots:
     void successfulSaveProducesNoLeftoverTmpFile();
 #ifdef Q_OS_LINUX
     void saveFollowsSymlinkToTarget();
+    void saveFollowsSymlinkChainToFinalTarget();
 #endif
 };
 
@@ -221,6 +222,82 @@ void TstSaveAtomic::saveFollowsSymlinkToTarget()
              "target file was not overwritten by save() through the link");
     QVERIFY2(afterBytes.contains("LvkSprite version"),
              "target file does not contain saved sprite content");
+}
+
+void TstSaveAtomic::saveFollowsSymlinkChainToFinalTarget()
+{
+    // Team J1 (J1.1): H2's symlink-follow fix used
+    // QFileInfo::symLinkTarget() which returns the IMMEDIATE link
+    // target -- only one hop. For a chain
+    //     entry.lvks -> proxy.lvks -> real.lvks
+    // it returns "proxy.lvks" and QSaveFile then replaces proxy with
+    // a regular file, leaving real.lvks unchanged. canonicalFilePath()
+    // walks the whole chain, so save() lands on real.lvks where the
+    // user actually expects the bytes.
+    //
+    // This test pins the chained case explicitly: entry and proxy must
+    // both remain symlinks pointing at the next hop after save(), and
+    // the final real file must contain the freshly-written sprite
+    // content.
+    QTemporaryDir tmpDir;
+    QVERIFY(tmpDir.isValid());
+
+    const QString realPath =
+        tmpDir.path() + QDir::separator() + QStringLiteral("real.lvks");
+    const QString proxyPath =
+        tmpDir.path() + QDir::separator() + QStringLiteral("proxy.lvks");
+    const QString entryPath =
+        tmpDir.path() + QDir::separator() + QStringLiteral("entry.lvks");
+
+    // Pre-create the real file with a sentinel.
+    {
+        QFile real(realPath);
+        QVERIFY(real.open(QFile::WriteOnly));
+        real.write("PLACEHOLDER_BYTES_CHAIN");
+        real.close();
+    }
+
+    // Build the chain entry -> proxy -> real.
+    QVERIFY2(QFile::link(realPath, proxyPath),
+             "test environment cannot create proxy symlink");
+    QVERIFY2(QFile::link(proxyPath, entryPath),
+             "test environment cannot create entry symlink");
+    QVERIFY(QFileInfo(entryPath).isSymLink());
+    QVERIFY(QFileInfo(proxyPath).isSymLink());
+
+    // Save through the chain entry.
+    SpriteState st;
+    InputImage img;
+    img.id = 0;
+    img.filename = QStringLiteral("clean.png");
+    st.addImage(img);
+
+    SpriteStateError err = SpriteState::ErrNone;
+    QVERIFY2(st.save(entryPath, &err),
+             qPrintable("save() to chained symlink should succeed: " +
+                        SpriteState::errorMessage(err)));
+
+    // J1.1 invariant #1: BOTH links survive intact.
+    QVERIFY2(QFileInfo(entryPath).isSymLink(),
+             "save() replaced the entry symlink with a regular file");
+    QVERIFY2(QFileInfo(proxyPath).isSymLink(),
+             "save() replaced the proxy symlink with a regular file "
+             "(symLinkTarget() one-hop regression)");
+
+    // J1.1 invariant #2: proxy still points at real (not replaced).
+    QCOMPARE(QFileInfo(proxyPath).symLinkTarget(), realPath);
+
+    // J1.1 invariant #3: real.lvks (the FINAL hop) got the new bytes,
+    // not proxy or entry.
+    QFile realAfter(realPath);
+    QVERIFY(realAfter.open(QFile::ReadOnly));
+    const QByteArray realBytes = realAfter.readAll();
+    realAfter.close();
+    QVERIFY2(!realBytes.contains("PLACEHOLDER_BYTES_CHAIN"),
+             "real (final) file was not overwritten -- the write "
+             "landed on proxy instead (one-hop regression)");
+    QVERIFY2(realBytes.contains("LvkSprite version"),
+             "real (final) file does not contain saved sprite content");
 }
 #endif // Q_OS_LINUX
 

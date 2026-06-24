@@ -759,10 +759,18 @@ void MainWindow::about() {
     // to a single space, the fork URL renders as literal "<a href=...>",
     // and the license link doesn't become clickable. Force Qt::RichText
     // and use <br/><br/> for the trailing paragraph break.
+    //
+    // Team J1 (J1.3): RichText alone styles the <a> tags but the
+    // underlying QLabel still uses Qt::LinksAccessibleByMouse-disabled
+    // defaults, so clicking the rendered link does nothing. Setting
+    // Qt::TextBrowserInteraction enables both mouse and keyboard link
+    // activation AND implies openExternalLinks(true) -- which is what
+    // makes the fork URL actually open in the user's browser.
     QMessageBox msg(this);
     msg.setIcon(QMessageBox::Information);
     msg.setWindowTitle(tr("About %1").arg(APP_NAME));
     msg.setTextFormat(Qt::RichText);
+    msg.setTextInteractionFlags(Qt::TextBrowserInteraction);
     msg.setText(QString(APP_ABOUT) + "<br/><br/>" +
                 tr("Modernized 2026 -- see CHANGELOG.md for details."));
     msg.setIconPixmap(QPixmap(":/icons/app-icon-128x128"));

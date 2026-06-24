@@ -35,23 +35,35 @@ void LvkTableWidget::keyPressEvent(QKeyEvent *event) {
 }
 
 void LvkTableWidget::keyReleaseEvent(QKeyEvent *event) {
+    // Team J1 (J1.2): currentItem() returns nullptr when the focused cell
+    // has no QTableWidgetItem set on it -- the common case after
+    // setRowCount(n) without a matching setItem(). Dereferencing it
+    // (->text()) on Ctrl+Up / Ctrl+Down would segfault the GUI. Guard
+    // up front and delegate to the base class so the keystroke still
+    // gets standard handling (focus navigation etc.).
+    QTableWidgetItem *item = currentItem();
+    if (!item) {
+        QTableWidget::keyReleaseEvent(event);
+        return;
+    }
+
     bool ignore = ignoredRows.contains(currentRow()) || ignoredCols.contains(currentColumn());
 
     if ((event->modifiers() & Qt::ControlModifier) && event->key() == Qt::Key_Up) {
         if (!ignore) {
             bool ok;
-            int i = currentItem()->text().toInt(&ok);
+            int i = item->text().toInt(&ok);
             if (ok) {
-                currentItem()->setText(QString::number(i + 1));
+                item->setText(QString::number(i + 1));
                 emit cellChanged(currentRow(), currentColumn());
             }
         }
     } else if ((event->modifiers() & Qt::ControlModifier) && event->key() == Qt::Key_Down) {
         if (!ignore) {
             bool ok;
-            int i = currentItem()->text().toInt(&ok);
+            int i = item->text().toInt(&ok);
             if (ok) {
-                currentItem()->setText(QString::number(i - 1));
+                item->setText(QString::number(i - 1));
                 emit cellChanged(currentRow(), currentColumn());
             }
         }

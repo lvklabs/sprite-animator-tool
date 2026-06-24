@@ -18,6 +18,22 @@ lvk_add_test(tst_lvkframe
         ${SRC_DIR}/lvkframe.cpp
 )
 
+# Team J1 (J1.2): regression test for LvkTableWidget::keyReleaseEvent
+# null-deref when currentItem() is nullptr (Ctrl+Up/Down on an unset
+# cell would segfault the GUI). Needs Qt6::Widgets for QTableWidget +
+# QTest::keyClick, and runs under offscreen QPA since it instantiates
+# a widget.
+lvk_add_test(tst_lvk_table_widget
+    SOURCES
+        tst_lvk_table_widget.cpp
+        ${SRC_DIR}/lvktablewidget.cpp
+    LINKS
+        Qt6::Widgets
+)
+set_tests_properties(tst_lvk_table_widget PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)
+
 lvk_add_test(tst_lvkaframe
     SOURCES
         tst_lvkaframe.cpp
