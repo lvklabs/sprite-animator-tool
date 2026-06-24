@@ -1226,7 +1226,7 @@ bool SpriteState::exportSprite(const QString &filename, const QString &outputDir
     binOutput.close();
 
     textStream << "# Animations\n";
-    textStream << "# format: animationId,name\n";
+    textStream << "# format: animationId,name,flags\n";
     textStream << "# Animation frames\n";
     textStream << "# format: aframeId,frameId,delay,ox,oy,sticky\n";
     textStream << "animations(\n";

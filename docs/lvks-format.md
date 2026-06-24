@@ -263,7 +263,8 @@ Per Phase-1 Agent 2's work:
   animations, same per-record key fields and ordering -- in
   `tests/format/tst_lvks_roundtrip.cpp`. Byte-level equivalence is
   **not** guaranteed (the loader is lenient -- e.g. it accepts comma
-  counts of 2/3/5/6 for `LvkAframe::fromString` -- and `save()`
+  counts of 3/5/6 for `LvkAframe::fromString` (see the field-count
+  table above) -- and `save()`
   rewrites in a canonical form).
 - `tests/format/tst_lvks_versions.cpp` enumerates every accepted version
   header.

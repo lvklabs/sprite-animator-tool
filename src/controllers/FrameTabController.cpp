@@ -38,15 +38,15 @@ enum {
 
 enum { BlendNone, BlendFrameRect, BlendExistentFrame, BlendFrameId, BlendModeTotal };
 
-static bool isValidFrameName(const QString &name, bool showErrorDialog) {
+static bool isValidFrameName(const QString &name, bool showErrorDialog, QWidget *parent) {
     if (name.isEmpty()) {
         if (showErrorDialog) {
-            infoDialog(QObject::tr("Cannot add a frame without name"));
+            infoDialog(QObject::tr("Cannot add a frame without name"), parent);
         }
         return false;
     } else if (name.contains(",")) {
         if (showErrorDialog) {
-            infoDialog(QObject::tr("Frame name cannot contain the character ','"));
+            infoDialog(QObject::tr("Frame name cannot contain the character ','"), parent);
         }
         return false;
     }
@@ -164,7 +164,7 @@ bool FrameTabController::addFrameDialog(const QString &defaultName, bool promptN
         }
     }
     name = name.trimmed();
-    if (!isValidFrameName(name, true)) {
+    if (!isValidFrameName(name, true, m_mw)) {
         return false;
     }
     Id imgId = m_mw->images()->selectedImgId();

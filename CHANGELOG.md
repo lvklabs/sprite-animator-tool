@@ -146,6 +146,64 @@ this release closes all of them.
 - `CPACK_DEBIAN_PACKAGE_DEPENDS` set so `dpkg -i` resolves.
 - `release.yml` (new) on tag push: cpack + `softprops/action-gh-release`.
 
+### Changed (Round 6, Team H)
+
+A follow-up 5-agent pass closing residual issues found post-2.0.1:
+
+- **Critical: release runner / undo hangs / animation timer.**
+  `release.yml` Linux runner switched `ubuntu-22.04` -> `ubuntu-latest`
+  so apt's Qt6 satisfies `Qt6 6.4 REQUIRED` (22.04 ships 6.2.4; tag
+  pushes were hard-failing at configure). `SpriteState2` transactions
+  now depth-counted (nested start/end no longer push duplicate
+  markers); `undo()`/`redo()` cap iteration at buffer size and warn
+  out instead of infinite-looping when a transaction marker was
+  evicted. `LvkAnimationWidget` clamps animation-frame delay to a
+  16ms minimum so default `delay=0` aframes don't spin
+  `startTimer(0)` and freeze the UI.
+- **Atomic save + JSON exporter hardening.** `QSaveFile` resolves
+  symlinks first so `save()` writes through the link instead of
+  replacing it; `setDirectWriteFallback(true)` lets FAT32/SMB saves
+  degrade gracefully. JSON exporter disambiguates duplicate frame
+  names with a `_N` suffix (was silently overwriting). Atlas packing
+  uses a stable sort with `frameId` tiebreak for deterministic output
+  across libstdc++ versions. JSON+PNG export is best-effort atomic
+  (PNG written first; on JSON failure the PNG is removed).
+- **UI: theme menu, dialog polish, widget fixes.** View > Theme
+  submenu (System / Light / Dark) actually wires the `Theme` system
+  (was dead code; mode frozen at startup). `dialogs.cpp` helpers now
+  take a parent widget, set window title and icon, and a new
+  `errorDialog()` helper added; modal alerts center over `MainWindow`
+  instead of floating disconnected. About dialog uses `Qt::RichText`
+  explicitly so the fork URL and license link render correctly (was
+  collapsing `\n\n` to a single space). `LvkInputImageWidget` Ctrl+wheel
+  zoom now accepts the event instead of double-firing accept-then-ignore
+  (was zooming AND scrolling the parent `QScrollArea`). `setPixmap`
+  auto-invalidates the per-id cache so callers can't accidentally
+  serve a stale scaled pixmap.
+- **Docs honesty + transitions comment conditional.**
+  `docs/lvks-format.md` drops the "byte-for-byte roundtrip" claim
+  (the test does structural compare) and documents that
+  `custom_header` lines have leading whitespace stripped (was claimed
+  verbatim). `spritestate.cpp` `save()` only emits the
+  `# transitions intentionally dropped` comment when `load()`
+  actually encountered a `transitions(` block (was emitted
+  unconditionally; mario roundtrip gained noise). New
+  `docs/cocos2d-export.md` schema reference for the `.lkot` / `.lkob`
+  / `AnimNameDef_*.h` trio.
+- **Test coverage + CI honesty.** `release.yml` now runs `ctest`
+  before packaging (was: only `--help` smoke). CPack OS string
+  `Darwin` -> `macOS` for user-facing DMG name. New unit tests:
+  `tst_cli_exit_codes` (documented 0/-1/2 exits),
+  `tst_recent_files` (MRU dedup/order/overflow), `tst_geometry_persistence`
+  (save+restore across `MainWindow` instances),
+  `tst_undo_save_integration` (undo -> save -> reload preserves
+  state); plus empty-`SpriteState` roundtrip coverage in
+  `tst_lvks_roundtrip`.
+- **`endTransaction()` underflow.** `Q_ASSERT(depth > 0)` replaced
+  with `qWarning() + early return` so release and debug behave the
+  same way and the no-op contract holds (H1's underflow test was
+  aborting in debug).
+
 ### Migration notes
 
 - **CLI behaviour** restored to legacy semantics. Existing build

@@ -2,7 +2,7 @@ Cocos2d Export (`.lkot` / `.lkob` / `AnimNameDef_*.h`)
 ======================================================
 
 This document is the schema reference for the **runtime export** that
-`SpriteState::exportSprite()` produces (`src/spritestate.cpp:998`).
+`SpriteState::exportSprite()` produces (see `src/spritestate.cpp`).
 Whereas `.lvks` (see `lvks-format.md`) is the **authoring** format used
 by the editor for save/load, the Cocos2d export is the bundle the
 *game* loads: a binary blob of frame pixmaps, a text manifest, and a C
@@ -28,10 +28,9 @@ For input `filename = "<dir>/<base>.lvks"` and `outputDir = <out>`,
 stripped of its directory and the first dot-extension. The naming
 convention is fixed; there is no override.
 
-Path safety: `<base>` is run through `isSafeExportPath()`
-(`src/spritestate.cpp:891`) before any file is opened, so a hostile
-`<base>` containing path separators or "`..`" is rejected with
-`ErrUnsafeOutputPath`.
+Path safety: `<base>` is run through `isSafeExportPath()` before any
+file is opened, so a hostile `<base>` containing path separators or
+"`..`" is rejected with `ErrUnsafeOutputPath`.
 
 ## `.lkob` -- binary frame blob
 
@@ -40,13 +39,12 @@ prefix, and no delimiter between records. Frames are emitted **in
 ascending `frameId` order**, and only frames that are referenced by at
 least one animation (`SpriteState::isFrameUnused(frame.id) == false`).
 
-Each frame's bytes are produced by `writeImageWithPostprocessing()`
-(`src/spritestate.cpp:1401`): the frame's pixmap is rendered to a
-temporary PNG (compression level 9), optionally piped through a
-user-supplied `postprocessing-script` (which receives the input PNG
-path as `argv[1]` and writes its output to the path passed as
-`argv[2]`), then the result is read back and appended verbatim to the
-`.lkob` file.
+Each frame's bytes are produced by `writeImageWithPostprocessing()`:
+the frame's pixmap is rendered to a temporary PNG (compression level
+9), optionally piped through a user-supplied `postprocessing-script`
+(which receives the input PNG path as `argv[1]` and writes its output
+to the path passed as `argv[2]`), then the result is read back and
+appended verbatim to the `.lkob` file.
 
 The companion `.lkot` text manifest provides the offset/length index
 into this blob; without `.lkot`, the `.lkob` blob is opaque.
@@ -67,11 +65,11 @@ fpixmaps(
 )
 
 # Animations
-# format: animationId,name
+# format: animationId,name,flags
 # Animation frames
 # format: aframeId,frameId,delay,ox,oy,sticky
 animations(
-    <animationId>,<name>
+    <animationId>,<name>,<flags>
     aframes(
         <aframeId>,<frameId>,<delay>,<ox>,<oy>,<sticky>
         ...
@@ -96,8 +94,10 @@ Notes:
 - Aframes inside each animation are sorted by `aframeId` ascending at
   export time -- the same canonicalisation `SpriteState::save()` applies
   to `.lvks` (see Phase B1.3 in `lvks-format.md`).
-- Animation `flags` are not currently emitted to `.lkot`'s
-  `animations()` rows; they only appear in the macro file (below).
+- `animations()` rows are 3 columns: `id,name,flags` (matching the
+  v0.3+ schema; `.lkot` is always written as the latest version
+  regardless of source file). The same `flags` value is also surfaced
+  via `#define ANIM_<name>_FLAGS` in the macro file (below).
 
 ## `AnimNameDef_<base>.h` -- C header
 
@@ -120,16 +120,17 @@ animation lookup code. The layout is:
 #endif //__<sanitised_basename>__
 ```
 
-Macro-name rules (`getMacroName()`, `src/spritestate.cpp:108-130`):
+Macro-name rules (see `getMacroName()` in `src/spritestate.cpp`):
 
 - Each animation `name` is converted to a valid C identifier by
   walking Unicode codepoints and collapsing every non-`isLetterOrNumber`
   character to `_`. Adjacent underscores are coalesced.
 - An empty result (e.g. an all-punctuation or all-CJK name that
   sanitises to nothing) becomes `UNNAMED`.
-- Duplicate macro names get a `_2`, `_3`, ... suffix
-  (`src/spritestate.cpp:1177`) so two distinct animations whose names
-  collide on sanitisation still produce distinct `#define`s.
+- Duplicate macro names get a `_2`, `_3`, ... suffix (handled in
+  `exportSprite()` after sanitisation) so two distinct animations
+  whose names collide on sanitisation still produce distinct
+  `#define`s.
 - The macro value is the **original** `name` string (so the runtime API
   still resolves correctly when the macro is used as a lookup key).
 
@@ -142,7 +143,10 @@ verbatim/whitespace caveat on `customHeader` round-tripping through
 
 ## Source-of-truth cross-references
 
-- Top-level export: `src/spritestate.cpp:998-1202`.
-- Path-safety check: `src/spritestate.cpp:891-996`.
-- Frame-image pipeline (PNG + optional post-process): `src/spritestate.cpp:1401-1525`.
-- Macro-name sanitiser: `src/spritestate.cpp:108-130`.
+All in `src/spritestate.cpp` -- referenced by function name to stay
+stable across edits:
+
+- Top-level export: `SpriteState::exportSprite()`.
+- Path-safety check: `isSafeExportPath()`.
+- Frame-image pipeline (PNG + optional post-process): `SpriteState::writeImageWithPostprocessing()`.
+- Macro-name sanitiser: `getMacroName()`.
