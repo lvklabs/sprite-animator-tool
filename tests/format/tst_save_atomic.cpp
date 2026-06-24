@@ -227,7 +227,6 @@ void TstSaveAtomic::saveFollowsSymlinkToTarget()
     QVERIFY2(afterBytes.contains("LvkSprite version"),
              "target file does not contain saved sprite content");
 }
-<<<<<<< HEAD
 
 void TstSaveAtomic::saveFollowsSymlinkChainToFinalTarget()
 {
