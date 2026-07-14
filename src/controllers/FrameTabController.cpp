@@ -423,9 +423,9 @@ void FrameTabController::updateFramesTable(int row, int col) {
             frame.w = i;
         } else {
             ok = false;
-            infoDialog(tr("Invalid frame width. Use a value between 1 and %1")
-                           .arg(LvkFrame::kMaxDim),
-                       m_mw);
+            infoDialog(
+                tr("Invalid frame width. Use a value between 1 and %1").arg(LvkFrame::kMaxDim),
+                m_mw);
             setCellInt(col, frame.w);
         }
         break;
@@ -434,9 +434,9 @@ void FrameTabController::updateFramesTable(int row, int col) {
             frame.h = i;
         } else {
             ok = false;
-            infoDialog(tr("Invalid frame height. Use a value between 1 and %1")
-                           .arg(LvkFrame::kMaxDim),
-                       m_mw);
+            infoDialog(
+                tr("Invalid frame height. Use a value between 1 and %1").arg(LvkFrame::kMaxDim),
+                m_mw);
             setCellInt(col, frame.h);
         }
         break;

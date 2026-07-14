@@ -177,8 +177,8 @@ void InputImage::scale(double scale) {
         constexpr double kMaxPixmapDim = 65536.0;
         if (!std::isfinite(w) || !std::isfinite(h) || w < 0 || h < 0 || w > kMaxPixmapDim ||
             h > kMaxPixmapDim) {
-            qWarning() << "InputImage::scale: refusing scaled pixmap of" << w << "x" << h
-                       << "for" << filename;
+            qWarning() << "InputImage::scale: refusing scaled pixmap of" << w << "x" << h << "for"
+                       << filename;
             pixmap = QPixmap();
             return;
         }

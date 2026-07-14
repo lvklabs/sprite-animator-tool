@@ -123,8 +123,8 @@ bool JsonAtlasExporter::exportAtlas(const QString &baseFilename, const SpriteSta
         // the user has no name set. Append .png suffix so consumers that
         // treat the filename as a literal sprite path (TexturePacker
         // convention) work out of the box.
-        const QString baseStem = fr.name.isEmpty() ? QStringLiteral("frame_%1").arg(fr.id)
-                                                   : fr.name;
+        const QString baseStem =
+            fr.name.isEmpty() ? QStringLiteral("frame_%1").arg(fr.id) : fr.name;
         QString stem = baseStem;
         int suffix = 2;
         while (usedNames.contains(stem + QStringLiteral(".png"))) {
@@ -156,13 +156,12 @@ bool JsonAtlasExporter::exportAtlas(const QString &baseFilename, const SpriteSta
     // std::sort would be deterministic, and stable_sort additionally
     // pins iteration-order ties (insertion order from the QMap loop
     // above) for free.
-    std::stable_sort(pack.begin(), pack.end(),
-                     [](const PackedFrame &a, const PackedFrame &b) {
-                         if (a.height != b.height) {
-                             return a.height > b.height;
-                         }
-                         return a.frameId < b.frameId;
-                     });
+    std::stable_sort(pack.begin(), pack.end(), [](const PackedFrame &a, const PackedFrame &b) {
+        if (a.height != b.height) {
+            return a.height > b.height;
+        }
+        return a.frameId < b.frameId;
+    });
 
     // SECURITY (Phase 4): Bound atlas allocations.
     //   - kMaxAtlasDim caps a single axis. 16384 matches the maximum
@@ -365,15 +364,15 @@ bool JsonAtlasExporter::exportAtlas(const QString &baseFilename, const SpriteSta
     QSaveFile out(jsonPath);
     out.setDirectWriteFallback(true);
     if (!out.open(QFile::WriteOnly | QFile::Truncate)) {
-        qDebug() << "JsonAtlasExporter::exportAtlas: failed to open" << jsonPath
-                 << "-" << out.errorString();
+        qDebug() << "JsonAtlasExporter::exportAtlas: failed to open" << jsonPath << "-"
+                 << out.errorString();
         QFile::remove(pngTmpPath); // prior pngPath / jsonPath untouched
         return false;
     }
     const QByteArray jsonBytes = doc.toJson(QJsonDocument::Indented);
     if (out.write(jsonBytes) != jsonBytes.size()) {
-        qDebug() << "JsonAtlasExporter::exportAtlas: short write on" << jsonPath
-                 << "-" << out.errorString();
+        qDebug() << "JsonAtlasExporter::exportAtlas: short write on" << jsonPath << "-"
+                 << out.errorString();
         out.cancelWriting();
         out.commit(); // discards QSaveFile's internal tmp; jsonPath untouched
         QFile::remove(pngTmpPath);
@@ -386,8 +385,8 @@ bool JsonAtlasExporter::exportAtlas(const QString &baseFilename, const SpriteSta
     // prior pair intact: the new PNG is still only in pngTmpPath, and we
     // can roll it back by removing pngTmpPath.
     if (!out.commit()) {
-        qDebug() << "JsonAtlasExporter::exportAtlas: commit() failed for" << jsonPath
-                 << "-" << out.errorString();
+        qDebug() << "JsonAtlasExporter::exportAtlas: commit() failed for" << jsonPath << "-"
+                 << out.errorString();
         QFile::remove(pngTmpPath); // prior pngPath / jsonPath untouched
         return false;
     }
@@ -402,9 +401,8 @@ bool JsonAtlasExporter::exportAtlas(const QString &baseFilename, const SpriteSta
     // a second time, which itself can fail.
     QFile::remove(pngPath);
     if (!QFile::rename(pngTmpPath, pngPath)) {
-        qDebug() << "JsonAtlasExporter::exportAtlas: failed to promote" << pngTmpPath
-                 << "to" << pngPath
-                 << "- JSON written but PNG not in place; leaving" << pngTmpPath
+        qDebug() << "JsonAtlasExporter::exportAtlas: failed to promote" << pngTmpPath << "to"
+                 << pngPath << "- JSON written but PNG not in place; leaving" << pngTmpPath
                  << "behind for manual recovery";
         return false;
     }

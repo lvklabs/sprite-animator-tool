@@ -237,8 +237,7 @@ int main(int argc, char *argv[]) {
     // QCommandLineParser ever runs. Pre-scan argv for those flags and fall
     // back to the offscreen platform when no display is reachable. An
     // explicit QT_QPA_PLATFORM from the user always wins.
-    if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM") &&
-        qEnvironmentVariableIsEmpty("DISPLAY") &&
+    if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM") && qEnvironmentVariableIsEmpty("DISPLAY") &&
         qEnvironmentVariableIsEmpty("WAYLAND_DISPLAY")) {
         for (int i = 1; i < argc; ++i) {
             const QByteArray arg(argv[i]);

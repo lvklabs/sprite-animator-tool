@@ -297,8 +297,7 @@ public:
     /// SpriteState is a strict subset of the on-disk data. Callers that
     /// care about silent data loss (e.g. the headless `--export` CLI)
     /// should surface a warning and use a non-zero exit code.
-    bool load(const QString &filename, SpriteStateError *err = 0,
-              int *rejectedCount = nullptr);
+    bool load(const QString &filename, SpriteStateError *err = 0, int *rejectedCount = nullptr);
 
     /// clear all hashes
     void clear();

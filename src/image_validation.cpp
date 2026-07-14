@@ -126,9 +126,8 @@ bool validateImageFile(const QString &filename, QString *errMsg, ExistenceCheck 
     }
     if (QImage(filename).isNull()) {
         if (errMsg) {
-            *errMsg = filename +
-                      QCoreApplication::translate("ImageValidation",
-                                                  " has an invalid image format");
+            *errMsg = filename + QCoreApplication::translate("ImageValidation",
+                                                             " has an invalid image format");
         }
         return false;
     }

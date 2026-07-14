@@ -831,8 +831,8 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err, int *reje
                     // .lvks with a missing `.png` is still admitted
                     // (the pixmap will be null but the record survives).
                     if (!tmpImage.filename.isEmpty()) {
-                        const QString absImgPath = QDir(spriteFileDir)
-                                                       .absoluteFilePath(tmpImage.filename);
+                        const QString absImgPath =
+                            QDir(spriteFileDir).absoluteFilePath(tmpImage.filename);
                         QString errMsg;
                         if (!lvk::validateImageFile(absImgPath, &errMsg,
                                                     lvk::ExistenceCheck::Optional)) {
@@ -875,8 +875,8 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err, int *reje
                     // (silent abort + ErrInvalidFormat for the whole file) is
                     // strictly worse for the "one tampered record in a
                     // 1000-frame sprite" case.
-                    qWarning() << "SpriteState::load(): rejected frame entry" << line
-                               << "at line" << lineNumber;
+                    qWarning() << "SpriteState::load(): rejected frame entry" << line << "at line"
+                               << lineNumber;
                     if (rejectedCount) {
                         ++(*rejectedCount);
                     }
@@ -1260,8 +1260,8 @@ bool SpriteState::exportSprite(const QString &filename, const QString &outputDir
                 // returning success would hand consumers a silently corrupt
                 // .lkob/.lkot pair. Remove the partial artifacts so a failed
                 // export cannot be mistaken for a finished one.
-                qDebug() << "Error: SpriteState::exportSprite(): failed to write frame"
-                         << frame.id << "-- aborting export";
+                qDebug() << "Error: SpriteState::exportSprite(): failed to write frame" << frame.id
+                         << "-- aborting export";
                 binOutput.close();
                 textOutput.close();
                 headerOutput.close();
@@ -1558,9 +1558,8 @@ static bool writePostprocImage(QFile &binOutput, const QString &postprocImgFilen
     // smaller.
     constexpr qint64 kMaxPostprocImageBytes = 256 * 1024 * 1024;
     if (postprocImg.size() > kMaxPostprocImageBytes) {
-        qWarning() << "writePostprocImage: refusing postprocessed image of"
-                   << postprocImg.size() << "bytes (cap" << kMaxPostprocImageBytes << "):"
-                   << postprocImgFilename;
+        qWarning() << "writePostprocImage: refusing postprocessed image of" << postprocImg.size()
+                   << "bytes (cap" << kMaxPostprocImageBytes << "):" << postprocImgFilename;
         return false;
     }
 

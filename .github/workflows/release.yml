@@ -43,6 +43,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate tag matches PROJECT_VERSION
+        # A tag like v2.0.1 must match the version CMake stamps into the
+        # artifacts (project(... VERSION x.y.z) in CMakeLists.txt).
+        # Without this check a mis-tagged push publishes artifacts whose
+        # embedded version, package filename, and release tag disagree.
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          # project() spans multiple lines in CMakeLists.txt; match the
+          # indented "VERSION x.y.z" line inside it.
+          cmake_version=$(sed -n 's/^[[:space:]]*VERSION[[:space:]]*\([0-9][0-9.]*\).*/\1/p' CMakeLists.txt | head -1)
+          echo "tag: $tag_version / CMakeLists.txt: $cmake_version"
+          if [ "$tag_version" != "$cmake_version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match project VERSION $cmake_version"
+            exit 1
+          fi
+
       - name: Install Qt6 via apt (Linux)
         # Mirror build.yml: aqtinstall pulls Qt binaries linked against a
         # libicu version Ubuntu doesn't ship (so.73 for Qt 6.8.0), so uic
@@ -70,13 +88,19 @@ jobs:
           version: '6.8.0'
           aqtversion: '==3.1.*'
           cache: true
-          archives: 'qtbase qtsvg qtimageformats'
+          # qttools provides lrelease/LinguistTools (translation catalogs
+          # are gated on Qt6LinguistTools_FOUND) and macdeployqt for the
+          # bundle step below.
+          archives: 'qtbase qtsvg qtimageformats qttools'
 
       - name: Configure
         run: cmake --preset=${{ matrix.preset }}
 
       - name: Build
-        run: cmake --build --preset=${{ matrix.preset }} -j
+        # -j 2 (not -j): mirror build.yml -- an unbounded -j on the same
+        # 7 GB hosted runner OOM-kills cc1plus under AUTOMOC/AUTOUIC
+        # memory spikes, and a flaky release lane is worse than a slow one.
+        run: cmake --build --preset=${{ matrix.preset }} -j 2
 
       - name: Test
         env:
@@ -94,6 +118,14 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: ./build/LvkSpriteEditor.app/Contents/MacOS/LvkSpriteEditor --help
+
+      - name: Bundle Qt frameworks into the .app (macOS)
+        # Without macdeployqt the DragNDrop DMG ships a non-relocatable
+        # .app that only launches on machines with a matching Qt install
+        # at the build-time prefix. macdeployqt copies the Qt frameworks
+        # + platform plugins into the bundle and rewrites the load paths.
+        if: runner.os == 'macOS'
+        run: macdeployqt build/LvkSpriteEditor.app -verbose=1
 
       - name: Package
         working-directory: build
@@ -115,15 +147,17 @@ jobs:
         run: |
           cd build
           ls -la *.deb
-          sudo apt-get install -y --no-install-recommends ./lvksprite*.deb \
-            || sudo dpkg -i ./lvksprite*.deb \
-            || sudo apt-get install -y --no-install-recommends ./LvkSpriteEditor*.deb \
-            || sudo dpkg -i ./LvkSpriteEditor*.deb
+          # CPACK_PACKAGE_FILE_NAME is LvkSpriteEditor-<version>-Linux-*;
+          # see build.yml -- the old lvksprite* globs never matched.
+          sudo apt-get install -y --no-install-recommends ./LvkSpriteEditor*.deb
           which LvkSpriteEditor
           LvkSpriteEditor --help
 
       - name: Upload to GitHub Release (Linux)
-        if: runner.os == 'Linux'
+        # Guard on a tag ref: action-gh-release hard-fails without one, so
+        # a workflow_dispatch run (useful as a packaging dry-run) would
+        # otherwise be guaranteed to end red at this step.
+        if: runner.os == 'Linux' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -136,7 +170,9 @@ jobs:
           fail_on_unmatched_files: true
 
       - name: Upload to GitHub Release (macOS)
-        if: runner.os == 'macOS'
+        # See the Linux upload step: tag-guarded so workflow_dispatch
+        # works as a packaging dry-run.
+        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |

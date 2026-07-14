@@ -213,12 +213,9 @@ void MainWindow::initSignals() {
         ui->actionThemeSystem->setChecked(true);
         break;
     }
-    connect(ui->actionThemeSystem, &QAction::triggered, this,
-            &MainWindow::onThemeActionTriggered);
-    connect(ui->actionThemeLight, &QAction::triggered, this,
-            &MainWindow::onThemeActionTriggered);
-    connect(ui->actionThemeDark, &QAction::triggered, this,
-            &MainWindow::onThemeActionTriggered);
+    connect(ui->actionThemeSystem, &QAction::triggered, this, &MainWindow::onThemeActionTriggered);
+    connect(ui->actionThemeLight, &QAction::triggered, this, &MainWindow::onThemeActionTriggered);
+    connect(ui->actionThemeDark, &QAction::triggered, this, &MainWindow::onThemeActionTriggered);
 
     // Phase 6a: bind the file/edit QActions to Qt's portable StandardKey
     // sequences so platform conventions (e.g. Cmd+O on macOS) are honored
@@ -501,8 +498,7 @@ bool MainWindow::openFile_(const QString &filename_, SpriteStateError *err) {
     // The text mirrors the CLI's warning wording for parity.
     if (rejectedCount > 0) {
         statusBar()->showMessage(
-            tr("%n record(s) rejected during load (see stderr for details)",
-               "", rejectedCount),
+            tr("%n record(s) rejected during load (see stderr for details)", "", rejectedCount),
             5000);
         infoDialog(tr("%n record(s) were skipped while loading %1 "
                       "(see stderr for details).",

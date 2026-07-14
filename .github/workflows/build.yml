@@ -83,7 +83,12 @@ jobs:
           version: ${{ matrix.qt-version }}
           aqtversion: '==3.1.*'
           cache: true
-          archives: 'qtbase qtsvg'
+          # qttools provides lrelease/LinguistTools: without it the
+          # macOS lanes silently skip embedding the translation catalogs
+          # (CMake gates i18n on Qt6LinguistTools_FOUND), diverging from
+          # what the Linux lane builds. qtimageformats matches
+          # release.yml so CI exercises the same decoder set we ship.
+          archives: 'qtbase qtsvg qtimageformats qttools'
 
       - name: Set up MSVC environment (Windows)
         if: runner.os == 'Windows'
@@ -129,7 +134,10 @@ jobs:
       - name: Smoke (binary runs --help) (Windows)
         if: runner.os == 'Windows'
         shell: cmd
-        run: build\Release\LvkSpriteEditor.exe --help
+        # The windows preset uses single-config Ninja (see
+        # CMakePresets.json), so the binary lands directly in build\,
+        # not in a per-config Release\ subdirectory.
+        run: build\LvkSpriteEditor.exe --help
 
       - name: Upload binary (Linux)
         if: runner.os == 'Linux'
@@ -166,10 +174,10 @@ jobs:
         run: |
           cd build && cpack -G DEB
           ls -la *.deb
-          sudo apt-get install -y --no-install-recommends ./lvksprite*.deb \
-            || sudo dpkg -i ./lvksprite*.deb \
-            || sudo apt-get install -y --no-install-recommends ./LvkSpriteEditor*.deb \
-            || sudo dpkg -i ./LvkSpriteEditor*.deb
+          # CPACK_PACKAGE_FILE_NAME is LvkSpriteEditor-<version>-Linux-*;
+          # the previous lvksprite* globs never matched and the four-way
+          # || fallback chain obscured which install path actually ran.
+          sudo apt-get install -y --no-install-recommends ./LvkSpriteEditor*.deb
           which LvkSpriteEditor
           LvkSpriteEditor --help
 
@@ -215,6 +223,19 @@ jobs:
 
       - name: Configure (export compile_commands.json)
         run: cmake --preset=linux
+
+      # clang-tidy consumes compile_commands.json entries whose include
+      # paths point at AUTOUIC/AUTOMOC output (ui_mainwindow.h lives in
+      # <target>_autogen/include). Those headers only exist after the
+      # autogen targets run, and src/mainwindow.cpp is compiled by many
+      # targets (app + GUI tests), so ALL autogen targets must be built
+      # or tidy fails with "'ui_mainwindow.h' file not found". Building
+      # just the autogen targets takes seconds (moc/uic only, no C++).
+      - name: Generate AUTOMOC/AUTOUIC headers
+        run: |
+          targets=$(cmake --build build --target help \
+            | sed -n 's/^\.\.\. \(.*_autogen\)$/\1/p' | grep -v timestamp)
+          cmake --build build -j 2 --target $targets
 
       # AUTOMOC-generated sources live under build/ and don't need to be
       # tidied. We restrict the scan to src/*.cpp under tracking.

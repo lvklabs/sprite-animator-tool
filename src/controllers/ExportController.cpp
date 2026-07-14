@@ -30,8 +30,7 @@ bool ExportController::isAllFilesFilter(const QString &f) {
 
 ExportController::ExportController(MainWindow *mw, Ui::MainWindow *ui, SpriteState2 *state,
                                    QObject *parent)
-    : QObject(parent), m_mw(mw), m_ui(ui), m_state(state),
-      m_exportFormat(SpriteState::Cocos2d) {}
+    : QObject(parent), m_mw(mw), m_ui(ui), m_state(state), m_exportFormat(SpriteState::Cocos2d) {}
 
 void ExportController::wireSignals() {
     connect(m_ui->actionExport, &QAction::triggered, this, &ExportController::exportFile);

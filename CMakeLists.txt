@@ -170,6 +170,19 @@ if(Qt6LinguistTools_FOUND)
         BASE "${CMAKE_CURRENT_BINARY_DIR}"
         FILES ${LVK_QM_FILES}
     )
+
+    # Round 7: manual catalog-refresh target. The shipped .ts skeletons
+    # had drifted to 0 of ~338 extractable tr() strings because nothing
+    # in the build ever ran lupdate. `cmake --build build -t lvk_lupdate`
+    # re-scans src/ and merges new/changed/obsolete strings into the
+    # catalogs (deliberately NOT part of ALL: lupdate rewrites files in
+    # the source tree, which would make builds non-idempotent).
+    add_custom_target(lvk_lupdate
+        COMMAND Qt6::lupdate ${CMAKE_CURRENT_SOURCE_DIR}/src -ts ${LVK_TRANSLATIONS}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Refreshing translations/*.ts from src/ (manual target)"
+        VERBATIM
+    )
 endif()
 
 # Per-platform compile definitions (preserved from the legacy .pro file)

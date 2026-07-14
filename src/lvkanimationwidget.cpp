@@ -101,7 +101,7 @@ void LvkAnimationWidget::timerEvent(QTimerEvent * /*event*/) {
     // positive.
     int delayMs = _delays[_currentFrame];
     if (delayMs <= 0) {
-        delayMs = 16;  // treat 0 (default for new aframe) as "play as fast as Qt can"
+        delayMs = 16; // treat 0 (default for new aframe) as "play as fast as Qt can"
     }
     _currentTimer = startTimer(delayMs);
 }
@@ -151,7 +151,7 @@ void LvkAnimationWidget::play() {
         // silently run at 16ms.
         int delayMs = _delays[_currentFrame];
         if (delayMs <= 0) {
-            delayMs = 16;  // treat 0 (default for new aframe) as "play as fast as Qt can"
+            delayMs = 16; // treat 0 (default for new aframe) as "play as fast as Qt can"
         }
         _currentTimer = startTimer(delayMs);
         _isPlaying = true;
