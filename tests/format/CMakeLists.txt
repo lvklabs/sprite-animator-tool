@@ -103,3 +103,11 @@ lvk_add_format_test(tst_unicode_names)
 # Team D2 (D2.2): save() atomic-write -- failed save must NOT destroy the
 # original file (pre-D2 open(WriteOnly) truncated before the failure check).
 lvk_add_format_test(tst_save_atomic)
+# Round 7: truncated / non-.lvks input must fail with ErrInvalidFormat
+# instead of "successfully" loading partial data (EOF before the version
+# header or inside an unterminated block).
+lvk_add_format_test(tst_load_truncated)
+# Round 7: a used frame whose image cannot be written must fail the
+# whole export (ErrCantExportFrame) and leave no partial artifacts,
+# instead of emitting zero-length .lkob records with a success exit.
+lvk_add_format_test(tst_export_failures)

@@ -17,6 +17,7 @@ private slots:
     void testToStringEmitsThreeFields();
     void testFromStringThreeFieldsRoundTrip();
     void testFromStringTwoFieldLegacyAcceptedScaleDefaultsToOne();
+    void testFromStringRejectsOutOfRangeScale();
     void testFromStringEmptyFilename();
     void testFromStringSpecialCharsInFilename();
     void testFromStringRejectsTooFewFields();
@@ -62,6 +63,29 @@ void TestInputImage::testFromStringTwoFieldLegacyAcceptedScaleDefaultsToOne()
     QCOMPARE(parsed.id, 3);
     QCOMPARE(parsed.filename, QString("some/file.png"));
     QCOMPARE(parsed.scale(), 1.0);
+}
+
+void TestInputImage::testFromStringRejectsOutOfRangeScale()
+{
+    // Round 7: the scale factor is bounded (kMinScale..kMaxScale). A
+    // hand-edited/malicious value (huge, non-positive, NaN, non-numeric)
+    // previously flowed unchecked into width()*scale -- a double->int
+    // conversion that is UB when out of range, and an OOM-scale
+    // allocation request for merely large values.
+    InputImage parsed;
+    QVERIFY(!parsed.fromString("0,seed.png,1e18"));
+    QVERIFY(!parsed.fromString("0,seed.png,0"));
+    QVERIFY(!parsed.fromString("0,seed.png,-3"));
+    QVERIFY(!parsed.fromString("0,seed.png,nan"));
+    QVERIFY(!parsed.fromString("0,seed.png,abc"));
+    QVERIFY(!parsed.fromString(QStringLiteral("0,seed.png,%1")
+                                   .arg(InputImage::kMaxScale * 2)));
+
+    // Boundary values are accepted.
+    QVERIFY(parsed.fromString(QStringLiteral("0,seed.png,%1").arg(InputImage::kMaxScale)));
+    QCOMPARE(parsed.scale(), InputImage::kMaxScale);
+    QVERIFY(parsed.fromString("0,seed.png,0.5"));
+    QCOMPARE(parsed.scale(), 0.5);
 }
 
 void TestInputImage::testFromStringEmptyFilename()

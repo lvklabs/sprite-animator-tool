@@ -19,6 +19,7 @@ private slots:
     void testFromStringThreeFields();
     void testFromStringTwoFieldsLegacyDefaultsFlags();
     void testRoundTripFromToString();
+    void testRoundTripHighBitFlags();
     void testFromStringRejectsArityOne();
     void testFromStringRejectsArityFour();
     void testAddAframeAndLookup();
@@ -61,6 +62,23 @@ void TestLvkAnimation::testRoundTripFromToString()
     QVERIFY(parsed.fromString(original.toString()));
     // operator== compares aframes too; populate identically (both empty).
     QVERIFY(parsed == original);
+}
+
+void TestLvkAnimation::testRoundTripHighBitFlags()
+{
+    // Round 7: flags is unsigned and serialized as unsigned decimal, but
+    // fromString parsed it with toInt(), which returns 0 for anything
+    // > INT_MAX -- silently zeroing high-bit flags on a load/save
+    // round-trip. The full 32-bit range must survive.
+    LvkAnimation original(3, "blink", 0xFFFFFFFFu);
+    LvkAnimation parsed;
+    QVERIFY(parsed.fromString(original.toString()));
+    QCOMPARE(parsed.flags, 0xFFFFFFFFu);
+    QVERIFY(parsed == original);
+
+    LvkAnimation highBit;
+    QVERIFY(highBit.fromString(QStringLiteral("7,ani,2147483648")));
+    QCOMPARE(highBit.flags, 0x80000000u);
 }
 
 void TestLvkAnimation::testFromStringRejectsArityOne()

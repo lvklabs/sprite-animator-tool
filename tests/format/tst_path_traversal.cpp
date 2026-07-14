@@ -30,6 +30,11 @@ private slots:
     void rejectsForwardSlashInBasename();
     void rejectsAbsoluteBasename();
     void acceptsCleanBasename();
+    // Round 7: only a '..' path SEGMENT is traversal -- consecutive dots
+    // inside a filename ("hero..final.lvks") are legitimate and used to
+    // be rejected with a misleading error.
+    void acceptsConsecutiveDotsInName();
+    void rejectsDotDotSegmentInPath();
 
 private:
     // Write a minimal .lvks fixture into @p path and return true.
@@ -174,6 +179,50 @@ void TstPathTraversal::acceptsCleanBasename()
     QVERIFY(QFile::exists(safe.path() + "/legit.lkob"));
     QVERIFY(QFile::exists(safe.path() + "/legit.lkot"));
     QVERIFY(QFile::exists(safe.path() + "/AnimNameDef_legit.h"));
+}
+
+void TstPathTraversal::acceptsConsecutiveDotsInName()
+{
+    QTemporaryDir safe;
+    QVERIFY(safe.isValid());
+
+    SpriteState s;
+    const QString src = safe.path() + "/hero..final.lvks";
+    QVERIFY(writeMinimalSprite(src));
+
+    SpriteStateError err = SpriteState::ErrNone;
+    QVERIFY2(s.load(src, &err), qPrintable(SpriteState::errorMessage(err)));
+
+    err = SpriteState::ErrNone;
+    QVERIFY2(s.exportSprite(src, safe.path(), QString(),
+                            SpriteState::Cocos2d, &err),
+             qPrintable("name with consecutive dots was rejected: "
+                        + SpriteState::errorMessage(err)));
+    QCOMPARE(err, SpriteState::ErrNone);
+    // QFileInfo::baseName() stops at the first dot -> "hero".
+    QVERIFY(QFile::exists(safe.path() + "/hero.lkob"));
+}
+
+void TstPathTraversal::rejectsDotDotSegmentInPath()
+{
+    QTemporaryDir safe;
+    QVERIFY(safe.isValid());
+
+    SpriteState s;
+    const QString src = safe.path() + "/legit.lvks";
+    QVERIFY(writeMinimalSprite(src));
+
+    SpriteStateError err = SpriteState::ErrNone;
+    QVERIFY2(s.load(src, &err), qPrintable(SpriteState::errorMessage(err)));
+
+    // A '..' SEGMENT anywhere in the raw source filename is traversal
+    // and must be rejected even though cleanPath() would normalize it.
+    err = SpriteState::ErrNone;
+    const bool ok = s.exportSprite(safe.path() + "/sub/../legit.lvks",
+                                   safe.path(), QString(),
+                                   SpriteState::Cocos2d, &err);
+    QVERIFY2(!ok, "exportSprite accepted a filename containing a '..' segment");
+    QCOMPARE(err, SpriteState::ErrUnsafeOutputPath);
 }
 
 QTEST_MAIN(TstPathTraversal)

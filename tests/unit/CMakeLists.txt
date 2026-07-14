@@ -110,6 +110,31 @@ set_tests_properties(tst_spritestate2_transactions PROPERTIES
     TIMEOUT 30
 )
 
+# Round 7: undo/redo operation matrix. Walks every StateChange type
+# through do -> undo -> redo and asserts actual state restoration
+# (redo() previously had zero coverage for every operation type). Also
+# pins the position-preserving aframe-removal undo, the unknown-id
+# no-op guards, and the reorder-survives-save/load contract.
+lvk_add_test(tst_spritestate2_undo_redo
+    SOURCES
+        tst_spritestate2_undo_redo.cpp
+        ${SRC_DIR}/spritestate.cpp
+        ${SRC_DIR}/spritestate2.cpp
+        ${SRC_DIR}/statecircularbuffer.cpp
+        ${SRC_DIR}/inputimage.cpp
+        ${SRC_DIR}/lvkframe.cpp
+        ${SRC_DIR}/lvkanimation.cpp
+        ${SRC_DIR}/lvkaframe.cpp
+        ${SRC_DIR}/image_validation.cpp
+        ${SRC_DIR}/exporters/JsonAtlasExporter.cpp
+    LINKS
+        Qt6::Widgets
+)
+set_tests_properties(tst_spritestate2_undo_redo PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    TIMEOUT 30
+)
+
 # Phase 5b: controller + MainWindow construction tests. ------------------
 #
 # These tests instantiate the full MainWindow (and through it the five tab

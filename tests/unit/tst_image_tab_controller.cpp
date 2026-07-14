@@ -27,8 +27,10 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "controllers/ImageTabController.h"
+#include "controllers/FrameTabController.h"
 #include "spritestate2.h"
 #include "inputimage.h"
+#include "lvkframe.h"
 
 class TestImageTabController : public QObject
 {
@@ -39,6 +41,7 @@ private slots:
     void testAddImageIncrementsStateAndTable();
     void testAddTwoImagesIdsAreSequential();
     void testRemoveImageDropsStateAndTable();
+    void testRemoveImageCascadesAllDependentFrames();
     void testSelectedImgIdAfterAdd();
 
 private:
@@ -123,6 +126,38 @@ void TestImageTabController::testRemoveImageDropsStateAndTable()
 
     QCOMPARE(mw.state().images().size(), 0);
     QCOMPARE(mw.uiPtr()->imgTableWidget->rowCount(), 0);
+}
+
+void TestImageTabController::testRemoveImageCascadesAllDependentFrames()
+{
+    MainWindow mw;
+    ImageTabController* images = mw.images();
+    FrameTabController* frames = mw.frames();
+    QVERIFY(images != nullptr);
+    QVERIFY(frames != nullptr);
+
+    const Id imgId = images->addImage(InputImage(NullId, fixtureImagePath(), 1.0));
+    QVERIFY(imgId != NullId);
+
+    // Three CONSECUTIVE frame rows on the same image -- the normal case
+    // for frames cut from one sprite sheet. Round 7 regression: the
+    // cascade loop iterated forward over the table while removeFrame()
+    // shifted later rows up, so rows 1 and 3 of a 0..4 run survived as
+    // orphans referencing the deleted image (and were written to disk
+    // with a dangling imgId).
+    frames->addFrame(LvkFrame(NullId, imgId, 0, 0, 8, 8, QStringLiteral("a")));
+    frames->addFrame(LvkFrame(NullId, imgId, 8, 0, 8, 8, QStringLiteral("b")));
+    frames->addFrame(LvkFrame(NullId, imgId, 0, 8, 8, 8, QStringLiteral("c")));
+    QCOMPARE(mw.state().frames().size(), 3);
+    QCOMPARE(mw.uiPtr()->framesTableWidget->rowCount(), 3);
+
+    images->removeImage(0);
+
+    QCOMPARE(mw.state().images().size(), 0);
+    QVERIFY2(mw.state().frames().isEmpty(),
+             qPrintable(QStringLiteral("%1 orphan frame(s) survived the image removal")
+                            .arg(mw.state().frames().size())));
+    QCOMPARE(mw.uiPtr()->framesTableWidget->rowCount(), 0);
 }
 
 void TestImageTabController::testSelectedImgIdAfterAdd()

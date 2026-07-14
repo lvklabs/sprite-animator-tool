@@ -70,3 +70,7 @@ lvk_add_security_test(tst_path_traversal_hard)
 lvk_add_security_test(tst_script_toctou)
 # Team D2 (D2.1): image-format whitelist enforcement on SpriteState::load.
 lvk_add_security_test(tst_lvks_image_load_whitelist)
+# Round 7: validateImageFile content-sniff branches (garbage bytes named
+# .png, truncated image, Required-mode missing file) -- previously the
+# sniff never executed in any test.
+lvk_add_security_test(tst_image_content_sniff)
