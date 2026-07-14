@@ -58,32 +58,38 @@ custom_header(
 
 Whitespace is significant only to the extent that records are
 **one-per-line**. Leading tabs/spaces inside a section are stripped by
-`line.trimmed()` (`src/spritestate.cpp:281`). Empty lines and lines
+`line.trimmed()` in the `load()` read loop. Empty lines and lines
 starting with `#` are skipped, except inside `custom_header(...)` where
-they are preserved (subject to the leading-whitespace caveat documented
-in the `custom_header(...)` section below).
+they are preserved (subject to the whitespace caveat documented in the
+`custom_header(...)` section below).
+
+A file that ends before its version header, or inside an unterminated
+block (`images(` / `frames(` / `animations(` / `aframes(` /
+`custom_header(`), is rejected with `ErrInvalidFormat` -- truncated
+files must not "successfully" load partial data
+(`tests/format/tst_load_truncated.cpp`).
 
 ## Version header
 
-Source: `src/spritestate.cpp:71-75`.
+Source: the `HEADER_VER_*` macros near the top of `src/spritestate.cpp`.
 
 | Macro             | String                  | Introduced by                |
 | ----------------- | ----------------------- | ---------------------------- |
 | `HEADER_VER_01`   | `LvkSprite version 0.1` | initial release              |
-| `HEADER_VER_02`   | `LvkSprite version 0.2` | (no on-disk field change)    |
-| `HEADER_VER_03`   | `LvkSprite version 0.3` | added `custom_header()` block |
+| `HEADER_VER_02`   | `LvkSprite version 0.2` | added image `scale` column; aframes gain explicit `ox, oy` |
+| `HEADER_VER_03`   | `LvkSprite version 0.3` | added animation `flags` column and the `custom_header()` block |
 | `HEADER_VER_04`   | `LvkSprite version 0.4` | added `sticky` flag on aframes |
 | `HEADER_LATEST`   | `= HEADER_VER_04`       | upper bound on what `save()` may write; the actual written header is `max(loadedVersion, minimumVersion())` |
 
-The parser accepts any of the four header strings as valid
-(`spritestate.cpp:294-306`). Anything else terminates load with
-`ErrInvalidFormat`.
+The parser accepts any of the four header strings as valid (the
+`StCheckVersion` state in `SpriteState::load()`). Anything else
+terminates load with `ErrInvalidFormat`.
 
 ## Sections
 
 ### `images(...)`
 
-Source: `src/inputimage.cpp:25-49`.
+Source: `InputImage::fromString` / `toString` in `src/inputimage.cpp`.
 
 Each record is one comma-separated line:
 
@@ -93,8 +99,13 @@ imageId,filename,scale
 
 - `imageId` -- integer `Id`. Must be unique within the file.
 - `filename` -- path to the source image, relative to the `.lvks` file's
-  directory.
-- `scale` -- optional. Floating-point; defaults to `1.0`.
+  directory. **Validated on load** (see "Load-time validation" below):
+  absolute paths, `..` traversal, UNC `\\` prefixes, leading `~`,
+  Windows drive prefixes, embedded NUL, and non-whitelisted image
+  extensions are all rejected (record skipped).
+- `scale` -- optional. Floating-point; defaults to `1.0`. Must lie in
+  `[0.001, 16.0]`; out-of-range, non-numeric, or non-finite values
+  reject the record.
 
 #### Field-count history
 
@@ -107,7 +118,7 @@ Any other count is rejected (warning, then `ErrInvalidFormat`).
 
 ### `frames(...)`
 
-Source: `src/lvkframe.cpp:31-48`.
+Source: `LvkFrame::fromString` / `toString` in `src/lvkframe.cpp`.
 
 ```
 frameId,name,imageId,ox,oy,w,h
@@ -116,7 +127,9 @@ frameId,name,imageId,ox,oy,w,h
 - `frameId` -- integer `Id`, unique within the file.
 - `name` -- display name (may not contain `,`).
 - `imageId` -- references an `images()` record.
-- `ox, oy, w, h` -- bounding rect (integers, pixels) into the source image.
+- `ox, oy, w, h` -- bounding rect (integers, pixels) into the source
+  image. `w` and `h` must lie in `(0, 8192]` (`LvkFrame::kMaxDim`);
+  records outside the bound are skipped on load.
 
 #### Field-count history
 
@@ -130,7 +143,7 @@ Animations are written as a header line followed by an indented
 
 #### Animation record
 
-Source: `src/lvkanimation.cpp:25-43`.
+Source: `LvkAnimation::fromString` / `toString` in `src/lvkanimation.cpp`.
 
 ```
 animationId,name,flags
@@ -138,28 +151,32 @@ animationId,name,flags
 
 - `animationId` -- integer `Id`, unique within the file.
 - `name` -- display name.
-- `flags` -- bitfield. Currently used flags are documented in
-  `src/lvkanimation.h`.
+- `flags` -- unsigned 32-bit bitfield (decimal on disk; the full range
+  including values >= `0x80000000` round-trips). Currently used flags
+  are documented in `src/lvkanimation.h`.
 
 ##### Field-count history
 
-| Field count | Versions  | Behavior                                  |
-| ----------- | --------- | ----------------------------------------- |
-| 2           | v0.1      | `flags = 0` (the field did not exist).    |
-| 3           | v0.2+     | Explicit `flags`.                         |
+| Field count | Versions     | Behavior                                  |
+| ----------- | ------------ | ----------------------------------------- |
+| 2           | v0.1 .. v0.2 | `flags = 0` (the field did not exist).    |
+| 3           | v0.3+        | Explicit `flags`.                         |
 
 #### Aframe record (animation frame)
 
-Source: `src/lvkaframe.cpp:30-62`.
+Source: `LvkAframe::fromString` / `toString` in `src/lvkaframe.cpp`.
 
 ```
 aframeId,frameId,delay,ox,oy,sticky
 ```
 
-- `aframeId` -- integer `Id`. **Not** an index; the order is the
-  authoritative play order. (Note: a long-standing bug in
-  `SpriteState::addAframe` treated this as a `QList` index and corrupted
-  the heap. Fixed in the Agent 7 pass; see `UPGRADE_NOTES.md` #4.)
+- `aframeId` -- integer `Id`. **Not** an index; ids are unique keys.
+  (A long-standing bug in `SpriteState::addAframe` treated this as a
+  `QList` index and corrupted the heap. Fixed in the Agent 7 pass; see
+  `UPGRADE_NOTES.md` #4.) In the **canonical form** written by
+  `save()`, aframes are serialized sorted by id, so on-disk id order IS
+  the playback order; the loader preserves file order in memory (see
+  "Canonical form" below).
 - `frameId` -- references a `frames()` record.
 - `delay` -- duration in milliseconds the frame stays on-screen.
 - `ox, oy` -- per-aframe pixel offset, added to the frame's own rect.
@@ -178,21 +195,24 @@ Any other count is rejected.
 
 ### `custom_header(...)`
 
-Source: `src/spritestate.cpp:405-411`. Introduced in v0.3.
+Source: the `StTokenHeader` state in `SpriteState::load()`. Introduced
+in v0.3.
 
 Free-form lines, one per input line. Whatever is between the opening
 `custom_header(` and the closing `)` is captured into
 `SpriteState::_customHeader` (with `\n` appended per line). At export
-time the captured text is emitted into the generated `.h` header above
-the macro definitions, so games can stick `#include` lines, copyright
-notices, or `#define` macros there.
+time the captured text is emitted into the generated `.h` header
+**after** the `#define ANIM_...` macro block (between it and the
+closing `#endif`), fenced by `// starting custom header data` /
+`// end custom header data` markers -- so games can stick `#include`
+lines, copyright notices, or `#define` macros there.
 
-**Leading-whitespace caveat.** The loader reads each line via
-`stream.readLine().trimmed()` (`src/spritestate.cpp:608`), which strips
-**both** leading and trailing whitespace before the line reaches the
-`custom_header(...)` branch. As a result, indentation inside the block
-is **not** preserved across a load/save cycle. For example, given an
-input of:
+**Whitespace caveat.** The loader reads each line via
+`stream.readLine().trimmed()`, which strips **both** leading and
+trailing whitespace before the line reaches the `custom_header(...)`
+branch. As a result, neither indentation nor trailing whitespace inside
+the block survives a load/save cycle (interior whitespace does). For
+example, given an input of:
 
 ```
 custom_header(
@@ -213,12 +233,14 @@ custom_header(
 ```
 
 This is benign for the intended use case (C preprocessor directives,
-which do not depend on leading whitespace). Trailing newlines and
-non-leading whitespace inside a line are preserved.
+which do not depend on leading whitespace).
 
-Known bug: each save/load cycle currently appends one extra trailing
-newline (`UPGRADE_NOTES.md` #5). Tracked for Agent 8's
-`src/spritestate.cpp` follow-up.
+The canonical form is a **fixed point**: `save()` strips trailing
+whitespace from the captured header and writes exactly one terminating
+newline, so repeated save/load cycles are byte-stable. (An earlier bug
+grew one trailing newline per cycle -- `UPGRADE_NOTES.md` #5, fixed by
+Agent 8 and pinned by
+`tst_lvks_roundtrip::roundtripPreservesCustomHeader`.)
 
 ### Transitions
 
@@ -253,19 +275,52 @@ If/when transitions are implemented, both the warning and the comment
 should be removed in lockstep with the load/save plumbing that
 preserves the block.
 
-## Round-trip guarantee
+## Load-time validation
 
-Per Phase-1 Agent 2's work:
+The loader is deliberately stricter than the historical Qt4 parser.
+Rejected **records** are skipped with a `qWarning()` and counted; the
+count surfaces to GUI users as a partial-load dialog and to CLI users
+as exit code `2` ("export ran, artifacts are missing data"). Rejected
+**files** (bad/missing version header, truncated blocks) fail the whole
+load with `ErrInvalidFormat`.
+
+Per-record gates:
+
+- image `filename`: path safety (`lvk::isSafeImagePath` -- no absolute
+  paths, `..` segments, UNC `\\`, leading `~`, drive prefixes, NUL) and
+  the image-format extension/content whitelist
+  (`lvk::validateImageFile`: png/jpg/jpeg/bmp/gif/webp/xpm/xbm/tif/tiff;
+  note SVG is deliberately excluded). A whitelisted file that is
+  *absent on disk* is admitted with a null pixmap (broken-asset-link
+  editing state); a *present* file must also pass a decoder sniff.
+- image `scale`: bounded to `[0.001, 16.0]`, finite, numeric.
+- frame `w`/`h`: `(0, 8192]` (`LvkFrame::kMaxDim`).
+- record arity: see the field-count tables above.
+
+## Canonical form and round-trip guarantee
+
+`save()` normalizes on write:
+
+- **Aframes are serialized sorted by id** within each animation (the
+  in-memory list order is what playback and the JSON exporter follow;
+  GUI reorder operations keep ids position-stable so the sort is
+  a no-op for GUI-authored states). The `.lkot` exporter applies the
+  same sort -- see `cocos2d-export.md`.
+- `custom_header` is trailing-whitespace-stripped with exactly one
+  terminating newline (fixed point; see above).
+- The version header written is `max(loadedVersion, minimumVersion())`.
+
+Round-trip coverage (`tests/format/tst_lvks_roundtrip.cpp`,
+`tests/format/tst_aframe_order.cpp`):
 
 - `examples/mario.lvks` and `examples/ryu.lvks` are loaded, saved, and
   reloaded; the result is asserted to be **structurally equivalent** to
   the input -- same header version, same set of images / frames /
-  animations, same per-record key fields and ordering -- in
-  `tests/format/tst_lvks_roundtrip.cpp`. Byte-level equivalence is
-  **not** guaranteed (the loader is lenient -- e.g. it accepts comma
-  counts of 3/5/6 for `LvkAframe::fromString` (see the field-count
-  table above) -- and `save()`
-  rewrites in a canonical form).
+  animations, same per-record key fields and ordering. Byte-level
+  equivalence is **not** guaranteed for arbitrary hand-authored input
+  (the loader is lenient -- e.g. it accepts comma counts of 3/5/6 for
+  `LvkAframe::fromString` -- and `save()` rewrites in the canonical
+  form); a file already in canonical form round-trips byte-stably.
 - `tests/format/tst_lvks_versions.cpp` enumerates every accepted version
   header.
 
@@ -276,14 +331,19 @@ the new version. Do not delete or reorder the existing version branches
 
 ## Source-of-truth cross-references
 
-- Version macros: `src/spritestate.cpp:71-75`.
-- Top-level layout: `src/spritestate.cpp:182-225` (write),
-  `src/spritestate.cpp:280-422` (read).
+Function-level references (line numbers rot; use your editor's symbol
+search):
+
+- Version macros: `HEADER_VER_*` in `src/spritestate.cpp`.
+- Top-level layout: `SpriteState::save()` (write) and
+  `SpriteState::load()` (read) in `src/spritestate.cpp`.
 - Per-record parsers:
-  - `InputImage::fromString` -- `src/inputimage.cpp:25-49`.
-  - `LvkFrame::fromString` -- `src/lvkframe.cpp:31-48`.
-  - `LvkAnimation::fromString` -- `src/lvkanimation.cpp:25-43`.
-  - `LvkAframe::fromString` -- `src/lvkaframe.cpp:30-62`.
+  - `InputImage::fromString` -- `src/inputimage.cpp`.
+  - `LvkFrame::fromString` -- `src/lvkframe.cpp`.
+  - `LvkAnimation::fromString` -- `src/lvkanimation.cpp`.
+  - `LvkAframe::fromString` -- `src/lvkaframe.cpp`.
+- Validation: `lvk::isSafeImagePath` (`src/inputimage.cpp`),
+  `lvk::validateImageFile` (`src/image_validation.cpp`).
 
 ## See also
 

@@ -223,13 +223,25 @@ void MainWindow::initSignals() {
     // QKeySequence::Open / Save already correspond to Ctrl+O / Ctrl+S on
     // X11/Win, so behavior is unchanged on Linux; the win is portability
     // and a single source of truth for the binding.
-    ui->actionOpen->setShortcut(QKeySequence::Open);
-    ui->actionSave->setShortcut(QKeySequence::Save);
-    ui->actionSaveAs->setShortcut(QKeySequence::SaveAs);
-    ui->actionUndo->setShortcut(QKeySequence::Undo);
-    ui->actionRedo->setShortcut(QKeySequence::Redo);
-    ui->actionClose->setShortcut(QKeySequence::New);
-    ui->actionExit->setShortcut(QKeySequence::Quit);
+    // Round 7: bind via setShortcuts(keyBindings(...)) and keep the .ui
+    // literal when the platform theme defines NO binding for a standard
+    // key. setShortcut(StandardKey) takes only the PRIMARY binding, and
+    // on some platform themes (e.g. the generic Unix theme) SaveAs and
+    // Quit have an EMPTY primary -- which silently erased the working
+    // Ctrl+Shift+S / Ctrl+Q shortcuts declared in mainwindow.ui.
+    const auto bindStandardKey = [](QAction *action, QKeySequence::StandardKey key) {
+        const QList<QKeySequence> bindings = QKeySequence::keyBindings(key);
+        if (!bindings.isEmpty()) {
+            action->setShortcuts(bindings);
+        }
+    };
+    bindStandardKey(ui->actionOpen, QKeySequence::Open);
+    bindStandardKey(ui->actionSave, QKeySequence::Save);
+    bindStandardKey(ui->actionSaveAs, QKeySequence::SaveAs);
+    bindStandardKey(ui->actionUndo, QKeySequence::Undo);
+    bindStandardKey(ui->actionRedo, QKeySequence::Redo);
+    bindStandardKey(ui->actionClose, QKeySequence::New);
+    bindStandardKey(ui->actionExit, QKeySequence::Quit);
     // Ctrl+E for Export has no QKeySequence::StandardKey equivalent; keep
     // the literal binding via the QAction itself. A previous version also
     // registered a parallel QShortcut with Qt::ApplicationShortcut context

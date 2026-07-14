@@ -41,6 +41,9 @@ outside Agent 1's "minimum to compile" scope.
   and round/truncate to int as needed. The `position()` method returns
   `QPointF` in widget coordinates.
 - **Owner:** Agent 6 (Qt6 deeper API migration).
+- **[RESOLVED by Agent 6]** All three widgets use
+  `event->position().toPoint()`; verified deprecation-clean by the
+  Round 7 audit with `-DQT_DISABLE_DEPRECATED_BEFORE=0x060900`.
 
 ### 3. `QComboBox::activated(QString)` signal removed at runtime
 
@@ -133,7 +136,9 @@ land the fix, the test can be simplified back to `s.aframes(aniId)`.
 
 ### 6. `QComboBox::activated(QString)` -> `activated(int) + itemText()` semantic risk
 
-- **Site:** `src/mainwindow.cpp:259` (`ui->previewScrSizeCombo`).
+- **Site:** originally `src/mainwindow.cpp` (`ui->previewScrSizeCombo`);
+  the connect now lives in `src/controllers/AnimationTabController.cpp`
+  after the Agent 8 refactor.
 - **Context:** The Qt4/Qt5 code wired `SIGNAL(activated(QString))` to
   `changePreviewScrSize(const QString&)`. Qt6 removed that overload entirely;
   only `activated(int)` remains. Agent 6 converted the connect to
@@ -191,6 +196,11 @@ land the fix, the test can be simplified back to `s.aframes(aniId)`.
 - **Owner:** Agent 10 (CLI modernization with `QCommandLineParser`) is the
   natural place; Agent 9 (UX/Accessibility) may want to delete the splash
   About entirely.
+- **[RESOLVED by Agent 10]** `main()` parses the CLI before any
+  `MainWindow` is constructed (`--version`/`--help`/`--export` never
+  touch the GUI), and the About splash is gated behind a
+  first-launch `QSettings` flag (`ui/showAboutOnStartup`). Pinned by
+  `tests/unit/tst_cli_exit_codes.cpp`.
 
 ### 10. `QApplication::keyboardModifiers()` is still fine in Qt6
 
@@ -222,7 +232,10 @@ reference.
 `MainWindow::addRecentFileMenu()` did `new LvkAction(filename)` with no
 parent, then `QMenu::addAction(QAction*)` -- which does **not** take
 ownership. The MAX_RECENT_FILES entries leaked one LvkAction each rebuild.
-Now passes `this` as the parent.
+Agent 7 parented them to `this` (MainWindow); a 2.0.1 follow-up
+re-parented them to the menu (`ui->actionOpenRecent`) because
+`QMenu::clear()` only deletes menu-parented actions, so
+MainWindow-parented ones still accumulated until window destruction.
 
 ### 3. `_pCache[1000][7]` raw owning array → `QCache<QPair<Id,int>,QPixmap>`
 
@@ -283,3 +296,47 @@ rejection. Covered by `tests/format/tst_path_traversal.cpp`.
   undo stack on every file open). Each controller now wraps its
   `setText()` calls with a per-controller `QSignalBlocker` (RAII),
   which mirrors the legacy bottleneck without the global side effect.
+
+## Round 7 (validation audit, 2026-07)
+
+A nine-dimension audit of the whole upgrade — Qt6 API completeness,
+ASan/UBSan, test-coverage gaps, deep correctness review, documentation
+drift, CI health, runtime smoke tests, i18n, and a cross-check of every
+resolution claim in this file — followed by fixes for everything the
+audit confirmed. See the `[Unreleased]` section of `CHANGELOG.md` for
+the full fix list. Verification results worth recording here:
+
+- **Deprecation-clean:** an independent Debug build of all translation
+  units with `-DQT_DISABLE_DEPRECATED_BEFORE=0x060900 -Wall -Wextra
+  -Wdeprecated-declarations` produced zero warnings; no legacy
+  SIGNAL/SLOT, QMouseEvent::x/y, QRegExp, Q_FOREACH, etc. remain.
+- **Sanitizer-clean:** ASan+UBSan over the full test suite plus real
+  headless exports reported zero leaks and, after the
+  `_resizingRect` fix, zero UB diagnostics.
+- Every RESOLVED claim in this file checked out against the code; the
+  markers missing on items #2 and #9 were added, and two superseded
+  fix descriptions were corrected in place.
+
+### Known items deliberately left open
+
+1. **Sentence-fragment `tr()` concatenation** (~20 call sites, e.g.
+   `tr("Are you sure you want to remove the image '") + name +
+   tr("'?")`): correct translation is impossible for languages with
+   different word order. Fix is mechanical (`tr("... '%1'?").arg(...)`)
+   but touches many user-visible strings; batch it with a real
+   translation pass over the es/fr catalogs.
+2. **CLI help text is untranslatable** (QStringLiteral option
+   descriptions in `src/main.cpp`); wrap in
+   `QCoreApplication::translate` when i18n becomes a priority.
+3. **es/fr catalogs are unfinished skeletons**: they carry the full
+   338-string inventory (see `lvk_lupdate` target) but no translations.
+4. **Windows CI lanes disabled**: per-target AUTOUIC generates
+   duplicate `ui_mainwindow.h` rules under Ninja; needs the
+   .ui-consuming code factored into a shared CMake library.
+5. **GitHub Actions pinned by mutable tags** (`@v4` etc.) in a
+   `contents: write` release workflow; consider SHA-pinning.
+6. **`LvkAnimation::aframe(Id)` still returns a writable static
+   sentinel** on lookup misses. All in-repo callers are now guarded
+   (`hasAframe()` checks in SpriteState/SpriteState2), but the API
+   itself remains a foot-gun for new code; consider an
+   iterator/optional-style replacement.

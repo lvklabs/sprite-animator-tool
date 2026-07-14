@@ -6,6 +6,155 @@ All notable changes to the LVK Sprite Animator Tool are recorded here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Round 7: a nine-dimension validation audit of the upgrade (Qt6 API
+completeness, ASan/UBSan, coverage, correctness review, docs drift, CI
+health, runtime smoke, i18n, resolution cross-check) followed by fixes
+for everything the audit confirmed. Independent verification of the
+baseline: zero-warning build under `-DQT_DISABLE_DEPRECATED_BEFORE=0x060900
+-Wall -Wextra`, clean ASan/UBSan test-suite run (after the fix below),
+zero LeakSanitizer reports.
+
+### Fixed
+
+- **UB: uninitialized `LvkFrameDefWidget::_resizingRect`** read on the
+  first paint (10 UBSan invalid-enum diagnostics under the `asan`
+  preset; wrong paint/cursor branches until the first mouse release in
+  release builds). Also initialized `_mouseClickX/_mouseClickY`.
+- **Orphan frames on image removal**: the frame-cascade loop in
+  `ImageTabController::removeImage()` iterated forward over the table
+  while `removeFrame()` shifted rows up, so consecutive dependent
+  frames were only half-removed and dangling `imgId` records were
+  written to disk. Now iterates backwards; regression test added.
+- **Ghost animations via the editable Id column**: the animations
+  table's Id cells were editable, and every downstream lookup then used
+  the phantom id — inserting ghost animations into state through
+  `QMap::operator[]` and writing through `LvkAnimation::aframe()`'s
+  shared static sentinel. Id cells are now non-editable at the item
+  level, and all `SpriteState`/`SpriteState2` `update*`/`remove*`
+  methods reject unknown ids with a warning no-op instead of
+  ghost-inserting (new `LvkAnimation::hasAframe()`).
+- **Undo of an aframe removal appended at the end** instead of
+  restoring the original playback position (visible reorder in the
+  preview and JSON export). The removal now records the list index and
+  undo re-inserts at it (new `SpriteState::insertAframe`).
+- **GUI aframe reorder was silently lost on save**: `save()`
+  serializes aframes sorted by id, but Move Up/Down swapped list
+  positions with ids riding along, so the next save/load undid the
+  reorder. `swapAframes()` now keeps ids position-stable (content
+  swaps, ids stay), making reorders persistent; pinned by tests.
+- **JSON atlas overflow guard measured area, not extent**: shelf-packed
+  frames could pass the area check yet need more height than the
+  16384 px cap, silently clipping frames out of the PNG while the JSON
+  recorded out-of-bounds coordinates. The guard now fails on required
+  extent (max frame width / shelf-packed height).
+- **Export "succeeded" with corrupt output when a frame image was
+  missing/unwritable**: `writeImageWithPostprocessing()`'s return value
+  was discarded, emitting zero-length `.lkob` records with exit 0. The
+  export now fails with the new `ErrCantExportFrame` and removes
+  partial artifacts.
+- **Truncated/empty `.lvks` loaded "successfully"**: EOF before the
+  version header or inside an unterminated block now fails with
+  `ErrInvalidFormat` instead of silently loading partial data (a
+  headless export of such a file exited 0 with empty artifacts).
+- **Headless CLI aborted with SIGABRT on display-less machines**:
+  `--export`/`--version`/`--help` now fall back to the `offscreen` Qt
+  platform on Linux/BSD when no `DISPLAY`/`WAYLAND_DISPLAY` is set.
+- **Relative `--output-dir`/`-p` resolved against the wrong directory**:
+  both were validated against the invocation CWD but resolved after the
+  chdir to the sprite's directory; now absolutized up front.
+- **Validation asymmetries (delayed data loss)**: GUI paths accepted
+  values the hardened loader later rejected — image filename cell edits
+  (no whitelist/path-safety gates; absolute paths now auto-relativized
+  and gated, also on `addImage`), frame W/H cell edits (now bounded to
+  the loader's 1..8192 via `LvkFrame::kMaxDim`), and image scale
+  (now bounded to [0.001, 16] on load, cell edit, and `scale()`, which
+  also guards its double→int conversion).
+- **Ctrl+E re-export always ran Cocos2d** even when the user's last
+  Export As picked JSON/All, leaving stale atlases; the format is now
+  remembered alongside the filename.
+- **`isSafeExportPath` rejected any `..` substring**, failing
+  legitimate names like `hero..final.lvks`; only `..` path segments are
+  traversal now.
+- **Animation flags ≥ 0x80000000 were zeroed on load** (`toInt`
+  overflow; the hex cell edit had the same bug via `toInt(&ok, 16)`);
+  both parse with `toUInt` now and the full 32-bit range round-trips.
+- **Per-frame export progress printed to stdout**, violating the
+  all-diagnostics-to-stderr CLI contract; moved to stderr (export
+  stdout is now empty).
+- **`setShortcut(StandardKey)` erased Save As / Quit shortcuts** on
+  platform themes whose standard-key list is empty (generic Unix
+  theme); standard actions now bind the full `keyBindings()` list and
+  keep the `.ui` literal as fallback — Redo gains `Ctrl+Shift+Z` /
+  `Alt+Shift+Backspace` on Linux.
+- **`--help` claimed `--output-dir` was required** with `--export`; it
+  defaults to the sprite's directory.
+- **`writePostprocImage()` read the postprocessing script's output
+  unbounded**; now capped at 256 MB (closing the last open
+  `FIXME(agent-5)` hardening item) with short-write detection.
+
+### Added
+
+- **Four new test executables** (35 total): `tst_spritestate2_undo_redo`
+  (full do→undo→redo matrix for every operation type — `redo()`
+  previously had zero coverage), `tst_load_truncated`,
+  `tst_export_failures`, `tst_image_content_sniff` (the
+  `validateImageFile` decoder sniff previously never executed in any
+  test). Plus new cases in `tst_inputimage` (scale bounds),
+  `tst_lvkanimation` (32-bit flags, position-stable swaps),
+  `tst_path_traversal` (consecutive-dots names), and
+  `tst_image_tab_controller` (frame-cascade regression).
+- **`docs/json-export.md`**: schema reference for the JSON sprite-atlas
+  export (frames hash, `animations` LVK extension, `meta`, limits) —
+  previously referenced as "documented separately" but missing.
+- **Populated i18n catalogs**: `translations/*.ts` now carry all 338
+  extractable strings (they shipped with 0, so the embedded `.qm` files
+  were empty and `installTranslator()` could never succeed). The
+  English catalog is fully finished; es/fr are translator-ready
+  skeletons. New manual CMake target `lvk_lupdate` refreshes them.
+
+### CI
+
+- `tidy-check` builds all `*_autogen` targets first (it failed
+  deterministically on missing `ui_mainwindow.h`); `format-check` is
+  green again (46 accumulated violations fixed).
+- `release.yml`: build capped at `-j 2` (same documented OOM fix as
+  `build.yml`), pushed tags validated against the CMake project
+  version, upload steps tag-guarded so `workflow_dispatch` acts as a
+  packaging dry-run, and `macdeployqt` bundles Qt into the `.app`
+  before the DMG is packed.
+- DEB install steps use the real `LvkSpriteEditor*` package glob (the
+  old `lvksprite*` globs never matched); macOS lanes install `qttools`
+  so translations and `macdeployqt` are available; archive lists
+  aligned between workflows.
+
+### Documentation
+
+- README: `--format json|all` documented as fully functional (they
+  were described as unwired), full preset list, exit codes, headless
+  display fallback, corrected test count, and the round-trip guarantee
+  restated as structural (matching the tests) rather than
+  byte-for-byte.
+- `docs/lvks-format.md`: corrected the version table (v0.2 = image
+  scale + aframe ox/oy; v0.3 = animation flags + custom_header) and the
+  animation field-count table; documented load-time validation gates
+  and the canonical form; custom_header fixed-point behavior replaces
+  the "known bug" note; stale line-number references replaced with
+  function-level ones.
+- `docs/keybindings.md`: documented the two-layer shortcut model
+  (platform `keyBindings()` over `.ui` literals), the live View → Theme
+  submenu (the doc claimed no menu existed and a restart was needed),
+  and removed a reference to a nonexistent `replaceShortcutForMac()`.
+- `docs/cocos2d-export.md`: include-guard derivation corrected (full
+  output path, not basename); JSON pointer fixed.
+- `UPGRADE_NOTES.md`: resolution markers brought up to date (items #2
+  and #9 were fixed but unmarked; superseded fix descriptions
+  corrected); stale FIXME markers in `spritestate.cpp` flipped to
+  RESOLVED.
+- Corrections to this changelog's own 2.0.x entries where they
+  contradicted the shipped code (see the notes inline below).
+
 ## [2.0.1] - 2026-06-23
 
 A 6-phase remediation pass triggered by a multi-agent premortem on the
@@ -30,9 +179,11 @@ this release closes all of them.
 - **Accessibility.** `accessibleName` / `accessibleDescription` on
   the five table widgets, frame canvas, previews, and primary toolbar
   buttons. Keyboard shortcuts via `QKeySequence::{Open,Save,SaveAs,Undo,Redo,New,Quit}`.
-- **10 new test executables** (21 total, up from 11):
+- **10 new test executables** (21 at this phase; the Round 6 additions
+  below brought the 2.0.1 total to 31):
   - `tst_version_preservation` — v0.1 round-trip + bump-on-edit
-  - `tst_aframe_order` — legacy id-order on load
+  - `tst_aframe_order` — aframe id-order canonicalisation (sorted at
+    save; load preserves file order)
   - `tst_unicode_names` — kanji macro round-trip + comma rejection
   - `tst_image_path_injection` — UNC / absolute / `..` / NUL rejection
   - `tst_atlas_size_bomb` — overflow guard on JSON atlas exporter
@@ -69,8 +220,11 @@ this release closes all of them.
   replaced with `QPalette::{WindowText,Mid,Highlight}`. Burned-in
   light-checker background dropped in favor of palette-driven fill.
 - **Aframe playback order** changed silently in 2.0.0 (Bug #4 fix
-  switched `insert(id,…)` to `append(…)`). Now load-time
-  `std::sort` by id; user `append` semantics preserved.
+  switched `insert(id,…)` to `append(…)`). Restored via a SAVE-time
+  `std::sort` by id (the load path preserves file order in memory;
+  a freshly-loaded canonical file is therefore id-ordered). *[Correction:
+  this entry originally said "load-time"; the shipped code sorts at
+  save — see the Phase B1.3 comment in `SpriteState::load()`.]*
 - **Recent-files menu leaked `LvkAction` instances** on every
   `setCurrentFile`. Reparented from `MainWindow` to
   `ui->actionOpenRecent` so `QMenu::clear()` actually frees them.
@@ -97,9 +251,10 @@ this release closes all of them.
   running on Linux/macOS, so a malicious `.lvks` carrying a
   drive-letter prefix can't reach the host fs. Image format
   whitelisted via `QImageReader::format()`; the whitelist is
-  png/jpg/jpeg/bmp/gif/webp/svg/xpm/xbm/tif/tiff (expanded from the
-  initial seven by Team B3). `QImageReader::setAllocationLimit(256MB)`
-  applied at startup.
+  png/jpg/jpeg/bmp/gif/webp/xpm/xbm/tif/tiff — ten formats; SVG is
+  deliberately EXCLUDED to close XXE / scripted-SVG exposure (F1.3).
+  `QImageReader::setAllocationLimit(256MB)` applied at startup.
+  *[Correction: this entry originally listed svg as whitelisted.]*
 - **Frame dimension overflow** in the JSON atlas exporter.
   `LvkFrame::fromString` rejects `w/h` outside `(0, 8192]`;
   exporter widens `totalArea` to `qint64` and clamps atlas
@@ -134,9 +289,11 @@ this release closes all of them.
 ### CI
 
 - `CMakePresets.json` now has per-OS presets (`linux`, `macos`,
-  `windows`). Windows uses `Visual Studio 17 2022` instead of the
+  `windows`). Windows uses a non-Makefiles generator instead of the
   previously-hardcoded `Unix Makefiles` (which silently failed on
-  `windows-latest`).
+  `windows-latest`). *[Correction: originally `Visual Studio 17 2022`;
+  the preset was later switched to single-config Ninja — see its
+  description in `CMakePresets.json`.]*
 - `build.yml` matrix per-OS preset; artifact upload path globs
   `build/**/LvkSpriteEditor*` to catch MSVC's `build/Release/`;
   `if-no-files-found: error`.

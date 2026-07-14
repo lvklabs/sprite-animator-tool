@@ -1,17 +1,26 @@
 # LVK Sprite Animator — Keyboard Shortcuts
 
-Catalog of every `QAction` shortcut declared in `src/mainwindow.ui`,
-produced and verified by Agent 9 of the Qt 6 modernization (May 2026).
+Catalog of the `QAction` shortcuts. There are **two layers**:
 
-The shortcut text comes verbatim from the `<shortcut>` property on each
-`<action>` element. Two-key chords are written `Ctrl+A, Ctrl+I`
+1. `src/mainwindow.ui` declares a literal `<shortcut>` on each
+   `<action>` element — those literals are what the tables below show.
+2. After UI setup, the `MainWindow` constructor re-binds the seven
+   standard actions (Open, Save, Save As, Undo, Redo, New/Close, Exit)
+   to the **platform theme's** standard key list via
+   `QKeySequence::keyBindings(...)`. When the platform defines
+   bindings, they replace the `.ui` literal (this is how Redo also
+   gains `Ctrl+Shift+Z` / `Alt+Shift+Backspace` on Linux, and how macOS
+   gets ⌘-based keys); when the platform defines none (SaveAs and Quit
+   on the generic Unix theme), the `.ui` literal is kept.
+
+Everything else (chords, tab navigation, export) uses the `.ui`
+literal verbatim. Two-key chords are written `Ctrl+A, Ctrl+I`
 (meaning press Ctrl+A then Ctrl+I) — that is Qt's own
 `QKeySequence` notation.
 
-On macOS, Qt's `qt_macKeyMap` translates `Ctrl` to the Command (⌘)
-key automatically; see also the `replaceShortcutForMac()` helper in
-`src/mainwindow.cpp` which renders the labels with the proper glyphs
-(⌘ ⇧ ⌥ ↩) inside the UI.
+On macOS, Qt translates `Ctrl` in portable key sequences to the
+Command (⌘) key automatically and renders menu labels with the proper
+glyphs (⌘ ⇧ ⌥ ↩); no project code is involved.
 
 ## File menu
 
@@ -29,8 +38,8 @@ key automatically; see also the `replaceShortcutForMac()` helper in
 
 | Action       | Shortcut | Notes |
 | ------------ | -------- | ----- |
-| Undo         | `Ctrl+Z` |       |
-| Redo         | `Ctrl+Y` | Standard on Windows / Linux; macOS users may expect `Ctrl+Shift+Z`. |
+| Undo         | `Ctrl+Z` | Plus platform alternates (e.g. `Alt+Backspace` on Linux). |
+| Redo         | `Ctrl+Y` | Plus platform alternates: `Ctrl+Shift+Z` and `Alt+Shift+Backspace` on Linux, ⇧⌘Z on macOS. |
 | Clear guides | *(none)* | Menu-only invocation.        |
 
 ## Tab navigation
@@ -84,18 +93,11 @@ plain `Ctrl+A` action defined.
 
 ## Theme
 
-Dark / light mode is set via `QSettings` rather than a menu action
-(menu wiring deferred to Agent 8's controller refactor). To change
-the theme persistently:
-
-```bash
-# pick one
-gsettings set <app-key>  # not applicable; we use QSettings
-# Or edit ~/.config/LVK/LVK Sprite Animation Tool.conf and set
-# ui/theme=dark   (or light, or auto)
-```
-
-Restart the application for the change to take effect.
+Dark / light / system mode is switched live from the **View → Theme**
+submenu (no restart required); the choice persists via `QSettings`
+(`ui/theme` in `~/.config/LVK/LVK Sprite Animation Tool.conf` — the
+same key can still be edited by hand if you prefer). See
+`MainWindow::onThemeActionTriggered()` and `src/theme.cpp`.
 
 ## Hi-DPI
 
@@ -109,7 +111,6 @@ resize, so it works at both 1080p and 4K out of the box.
 
 | Shortcut         | Rationale for omission                                |
 | ---------------- | ----------------------------------------------------- |
-| `Ctrl+Shift+Z`   | Redo alternate; `Ctrl+Y` already bound and the user can pick either via Qt's `QKeySequence::Redo` if added later. |
 | `Ctrl+P` (Print) | The tool has no print path. Adding would surface as a no-op. |
 | `Ctrl+F` (Find)  | Tables already filter via the column headers; no global Find. |
 | `Esc` (Cancel)   | Owned by individual dialogs / the QInputDialog stack. |

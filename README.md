@@ -20,8 +20,10 @@ cmake --preset=default
 cmake --build build -j$(nproc)
 ```
 
-The build presets live in `CMakePresets.json` (`default`, `debug`,
-`asan`). The executable lands at `build/LvkSpriteEditor`.
+The build presets live in `CMakePresets.json`: `default` (alias for the
+Linux release build), the per-OS presets `linux` / `macos` / `windows`
+(used by CI), `debug`, and `asan` (AddressSanitizer + UBSan). The
+executable lands at `build/LvkSpriteEditor`.
 
 To run the test suite (Qt Test):
 
@@ -54,23 +56,37 @@ Pass `--output-dir` to redirect it elsewhere:
 
 This writes the Cocos2d export trio: `mario.lkob` (binary frame pixmaps),
 `mario.lkot` (text metadata), and `AnimNameDef_mario.h` (animation-name
-macros).
+macros). See [`docs/cocos2d-export.md`](docs/cocos2d-export.md).
+
+Headless invocations work on machines without a display: on Linux/BSD,
+`--export` / `--version` / `--help` automatically fall back to Qt's
+`offscreen` platform when neither `DISPLAY` nor `WAYLAND_DISPLAY` is set
+(an explicit `QT_QPA_PLATFORM` always wins).
 
 Optional flags:
 
 - `-e`, `--export` -- enable headless mode.
 - `-o`, `--output-dir <dir>` -- export output directory. Defaults to the
-  input `.lvks` file's directory when omitted.
+  input `.lvks` file's directory when omitted. A relative path is
+  resolved against the invocation directory.
 - `-p`, `--postprocessing-script <script>` -- per-frame image filter. The
   script receives `<input-png> <output-png>` and must produce
   `<output-png>`. See `tests/security/tst_postpscript_injection.cpp` for
   the hardened invocation semantics (Agent 5 fix for shell injection).
 - `-f`, `--format {cocos2d|json|all}` -- select export format. `cocos2d`
-  is the default and currently the only fully wired option in this
-  worktree; `json` and `all` will route through the new JSON sprite-atlas
-  exporter once Agent 8's branch is merged.
+  (the default) writes the `.lkob`/`.lkot`/`.h` trio; `json` writes a
+  packed `<name>.png` sprite sheet plus a TexturePacker-compatible
+  `<name>.json` descriptor (see [`docs/json-export.md`](docs/json-export.md));
+  `all` writes both.
 - `-v`, `--version` -- print version and exit.
 - `-h`, `--help` -- print usage and exit.
+
+Exit codes: `0` on success; `2` when the export ran but the loader
+skipped records (rejected image paths/formats, dropped `transitions(`
+blocks) -- "partial success, artifacts are missing data"; any other
+non-zero value (the CLI returns `-1`, which the shell reports as `255`)
+means the export failed outright: unreadable/truncated `.lvks`, unsafe
+output path, or a frame image that could not be written.
 
 ### Architecture
 
@@ -87,9 +103,9 @@ A short tour of the upgraded codebase:
 | `src/lvk{frame,aframe,animation}.cpp` | Data classes + versioned `fromString` chains. |
 | `src/inputimage.cpp`                  | Source-image record.                          |
 | `src/lvkinputimagewidget.cpp`         | Frame-definition canvas (`QCache` zoom-pixmap cache). |
-| `tests/format/`                       | Golden-file round-trip + version tests.       |
-| `tests/unit/`                         | Data-class CRUD / undo / round-trip tests.    |
-| `tests/security/`                     | Shell-injection regression test.              |
+| `tests/format/`                       | Golden-file round-trip + version + export tests. |
+| `tests/unit/`                         | Data-class CRUD / undo / controller tests.    |
+| `tests/security/`                     | Injection / traversal / decoder-hardening tests. |
 
 ### Modernized 2026
 
@@ -101,7 +117,7 @@ per-agent breakdown:
   `AUTOMOC`/`AUTOUIC`/`AUTORCC`.
 - Replaced ~100 `SIGNAL()`/`SLOT()` macro connections with type-checked
   pointer-to-member-function syntax.
-- 21 unit / format / security test binaries (Qt Test).
+- 35 unit / format / security test binaries (Qt Test).
 - GitHub Actions CI: Linux (apt Qt 6.4.2) + macOS (Qt 6.5.3, 6.8.0).
   Windows builds via Ninja currently fail with a duplicate-AUTOUIC
   error and are disabled in CI; tracked as a follow-up CMake refactor.
@@ -124,7 +140,10 @@ per-agent breakdown:
 
 The original `.lvks` v0.1-v0.4 read path is preserved unchanged; golden
 round-trip tests against `examples/mario.lvks` and `examples/ryu.lvks`
-lock the byte-for-byte serialisation.
+lock the serialisation *structurally* (every image/frame/animation/aframe
+record and the version header must survive a load -> save -> reload
+cycle; byte-for-byte equivalence is deliberately not required -- see the
+"Canonical form" notes in [`docs/lvks-format.md`](docs/lvks-format.md)).
 
 ### Screenshots
 

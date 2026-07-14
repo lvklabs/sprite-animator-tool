@@ -280,12 +280,13 @@ public:
     /// NOTE: Input image filenames cannot contain the charater ',',
     ///       otherwise deserialize() will fail
     ///
-    /// Team D2 (D2.2): save() now writes to "<filename>.save-tmp" and
-    /// atomic-renames on success. On failure (e.g. an image filename
-    /// with an embedded comma) the temp file is removed and the original
-    /// file at @p filename is untouched. The previous open(WriteOnly)
-    /// truncated the original file BEFORE the empty-record check, so a
-    /// failed save destroyed the user's existing data.
+    /// Atomic write via QSaveFile (Team F1.1, superseding D2.2's
+    /// hand-rolled "<filename>.save-tmp" + rename scheme, which was not
+    /// atomic on Windows and collided on concurrent saves): the target
+    /// is only replaced after the whole body was written successfully.
+    /// On failure (e.g. an image filename with an embedded comma) the
+    /// original file at @p filename is untouched and no temp file is
+    /// left behind. See save() in spritestate.cpp for the details.
     bool save(const QString &filename, SpriteStateError *err = 0);
 
     /// load instance from @param filename

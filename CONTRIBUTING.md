@@ -98,8 +98,9 @@ ASAN_OPTIONS=detect_leaks=1 QT_QPA_PLATFORM=offscreen \
 We expect PRs to be:
 
 1. **Linear history.** Rebase, don't merge, before submitting.
-2. **Green CI** on Linux, macOS, and Windows. The matrix is in
-   `.github/workflows/`.
+2. **Green CI** on Linux and macOS (the full matrix is in
+   `.github/workflows/`; Windows lanes are currently disabled pending
+   the duplicate-AUTOUIC CMake refactor -- see README).
 3. **Reviewed by at least one other contributor** if non-trivial.
 
 Commit message style: short imperative subject (<= 72 chars), blank
@@ -112,8 +113,8 @@ Open an issue with:
 
 - A minimal `.lvks` file (or a description of how to generate one) that
   reproduces the problem.
-- The exact CLI invocation and the build preset (`default` / `debug` /
-  `asan`).
+- The exact CLI invocation and the build preset (`default`, `linux` /
+  `macos` / `windows`, `debug`, or `asan`).
 - Qt and CMake versions (`./build/LvkSpriteEditor --version`,
   `cmake --version`).
 

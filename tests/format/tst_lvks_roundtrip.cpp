@@ -256,15 +256,12 @@ void TstLvksRoundtrip::roundtripRyu()
 
 void TstLvksRoundtrip::roundtripSyntheticCanonical()
 {
-    // Synthetic round-trip that *avoids* the addAframe id-as-index bug
-    // by using sequential, dense aframe ids that match list positions.
-    // This still exercises the full load + save + reload path through
-    // SpriteState — exactly the surface area the upgrade plan wants
-    // pinned ahead of the Phase 2 refactors — without tripping the
-    // bug documented on roundtripMario / roundtripRyu.
-    //
-    // When that bug is fixed, the QSKIPs above can be removed and the
-    // mario/ryu tests will provide the real golden-file coverage.
+    // Synthetic round-trip with sequential, dense aframe ids that match
+    // list positions. Historically this existed to sidestep the (long
+    // since fixed) addAframe id-as-index bug while roundtripMario /
+    // roundtripRyu were QSKIP-ed; those golden tests now run for real,
+    // and this one stays as a hermetic fixture-free complement that
+    // exercises the full load + save + reload path.
 
     QTemporaryDir tmpDir;
     QVERIFY(tmpDir.isValid());
