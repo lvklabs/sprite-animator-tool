@@ -280,7 +280,7 @@ void AnimationTabController::removeSelAnimation() {
         return;
     }
     QString aniName = m_ui->aniTableWidget->item(currentRow, ColAniName)->text();
-    if (!yesNoDialog(tr("Are you sure you want to remove the animation '") + aniName + tr("'?"),
+    if (!yesNoDialog(tr("Are you sure you want to remove the animation '%1'?").arg(aniName),
                      m_mw)) {
         return;
     }

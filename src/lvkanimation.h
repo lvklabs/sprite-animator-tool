@@ -34,10 +34,16 @@ struct LvkAnimation {
     /// true if an aframe with id aframeId exists in this animation
     bool hasAframe(Id aframeId) const;
 
-    ///  get aframe with id aframeId
-    LvkAframe &aframe(Id aframeId);
+    /// get a MUTABLE pointer to the aframe with id aframeId, or nullptr
+    /// if it does not exist. This replaces the old non-const
+    /// `aframe(Id)` reference getter, whose not-found path returned a
+    /// writable static sentinel shared process-wide -- assigning through
+    /// it on a missed lookup silently corrupted every future not-found
+    /// result. A pointer forces callers to handle the miss.
+    LvkAframe *findAframe(Id aframeId);
 
-    /// @overload - const variant returns a const reference; needed for
+    /// get aframe with id aframeId; returns a const reference to a null
+    /// sentinel (id == NullId) when not found. Needed for
     /// SpriteState::const_aframe() to be const-correct (Agent 7).
     const LvkAframe &aframe(Id aframeId) const;
 

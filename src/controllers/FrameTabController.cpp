@@ -132,7 +132,7 @@ Id FrameTabController::getFrameDialog(const QString &title) {
     for (QMapIterator<Id, LvkFrame> it(m_state->frames()); it.hasNext();) {
         it.next();
         const LvkFrame &frame = it.value();
-        framesList << tr("Id: ") + QString::number(frame.id) + tr(" Name: ") + frame.name;
+        framesList << tr("Id: %1 Name: %2").arg(QString::number(frame.id), frame.name);
     }
     framesList.sort();
 
@@ -266,8 +266,7 @@ void FrameTabController::removeSelFrame() {
         return;
     }
     QString frameName = m_ui->framesTableWidget->item(currentRow, ColFrameName)->text();
-    if (!yesNoDialog(tr("Are you sure you want to remove the frame '") + frameName + tr("'?"),
-                     m_mw)) {
+    if (!yesNoDialog(tr("Are you sure you want to remove the frame '%1'?").arg(frameName), m_mw)) {
         return;
     }
     removeFrame(currentRow);
@@ -325,7 +324,7 @@ void FrameTabController::removeAllUnusedFrames() {
         removeFrame(unusedRows[i]);
     }
     m_state->endTransaction();
-    infoDialog(QString::number(unusedRows.size()) + tr(" unused frame(s) were removed."), m_mw);
+    infoDialog(tr("%n unused frame(s) were removed.", nullptr, unusedRows.size()), m_mw);
 }
 
 void FrameTabController::hideFramePreview() {
@@ -516,8 +515,8 @@ void FrameTabController::blendExistentFrame() {
             m_ui->blendModeComboBox->addItem("");
         }
         if (m_ui->blendModeComboBox->count() == BlendModeTotal) {
-            m_ui->blendModeComboBox->setItemText(BlendFrameId, tr("Selected frame with frame id ") +
-                                                                   QString::number(frameId));
+            m_ui->blendModeComboBox->setItemText(
+                BlendFrameId, tr("Selected frame with frame id %1").arg(frameId));
             m_ui->blendModeComboBox->setCurrentIndex(BlendFrameId);
         }
     } else {
@@ -548,9 +547,7 @@ void FrameTabController::blendFrameId() {
     if (m_blendFrameId != NullId && m_state->fpixmaps().contains(m_blendFrameId)) {
         m_ui->framePreview->setBlendPixmap(m_state->fpixmap(m_blendFrameId));
     } else {
-        infoDialog(tr("Frame id ") + QString::number(m_blendFrameId) +
-                       tr(" is no longer available"),
-                   m_mw);
+        infoDialog(tr("Frame id %1 is no longer available").arg(m_blendFrameId), m_mw);
         m_blendFrameId = NullId;
     }
     if (m_blendFrameId == NullId) {

@@ -69,15 +69,13 @@ bool LvkAnimation::hasAframe(Id aframeId) const {
     return false;
 }
 
-LvkAframe &LvkAnimation::aframe(Id aframeId) {
-    static LvkAframe nullAframe;
-
+LvkAframe *LvkAnimation::findAframe(Id aframeId) {
     for (int i = 0; i < _aframes.size(); ++i) {
         if (_aframes[i].id == aframeId) {
-            return _aframes[i];
+            return &_aframes[i];
         }
     }
-    return nullAframe;
+    return nullptr;
 }
 
 const LvkAframe &LvkAnimation::aframe(Id aframeId) const {

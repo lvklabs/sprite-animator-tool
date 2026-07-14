@@ -319,24 +319,46 @@ the full fix list. Verification results worth recording here:
 
 ### Known items deliberately left open
 
-1. **Sentence-fragment `tr()` concatenation** (~20 call sites, e.g.
-   `tr("Are you sure you want to remove the image '") + name +
-   tr("'?")`): correct translation is impossible for languages with
-   different word order. Fix is mechanical (`tr("... '%1'?").arg(...)`)
-   but touches many user-visible strings; batch it with a real
-   translation pass over the es/fr catalogs.
-2. **CLI help text is untranslatable** (QStringLiteral option
-   descriptions in `src/main.cpp`); wrap in
-   `QCoreApplication::translate` when i18n becomes a priority.
-3. **es/fr catalogs are unfinished skeletons**: they carry the full
-   338-string inventory (see `lvk_lupdate` target) but no translations.
-4. **Windows CI lanes disabled**: per-target AUTOUIC generates
-   duplicate `ui_mainwindow.h` rules under Ninja; needs the
-   .ui-consuming code factored into a shared CMake library.
-5. **GitHub Actions pinned by mutable tags** (`@v4` etc.) in a
-   `contents: write` release workflow; consider SHA-pinning.
-6. **`LvkAnimation::aframe(Id)` still returns a writable static
-   sentinel** on lookup misses. All in-repo callers are now guarded
-   (`hasAframe()` checks in SpriteState/SpriteState2), but the API
-   itself remains a foot-gun for new code; consider an
-   iterator/optional-style replacement.
+*(Round 8 update: items 1, 2, 3, 4, and 6 of the original list below
+were resolved — see the Round 8 section. Only the SHA-pinning item
+remains.)*
+
+1. **GitHub Actions pinned by mutable tags** (`@v4` etc.) in a
+   `contents: write` release workflow; consider SHA-pinning. Left open
+   deliberately: pinning requires resolving and verifying the SHAs of
+   third-party action repositories, which this session's repository
+   scope does not allow — pin them from an environment that can verify
+   the upstream commits.
+
+## Round 8 (open-items closure, 2026-07)
+
+Follow-up round working through the Round 7 open-items list:
+
+1. **Sentence-fragment `tr()` concatenation — RESOLVED.** All 19 sites
+   converted to placeholder form (`tr("... '%1'?").arg(...)`), so
+   translations can reorder words freely.
+2. **CLI help untranslatable — RESOLVED.** The `QCommandLineParser`
+   descriptions and parse-error messages in `src/main.cpp` go through
+   `QCoreApplication::translate("main", ...)`. (Note for future
+   maintainers: lupdate cannot see through wrapper lambdas — the calls
+   must be direct for extraction to work.)
+3. **es/fr catalogs — RESOLVED.** Both carry complete translations for
+   all 340 strings (GUI, dialogs, What's-This HTML help, CLI help, and
+   plural forms); verified end-to-end: the compiled `.qm` files load at
+   runtime and `--help` renders localized under `es_ES` / `fr_FR`.
+   Keep them fresh with `cmake --build build -t lvk_lupdate`.
+4. **Windows CI lanes — RESOLVED (build.yml).** The Ninja
+   "multiple rules generate tests/unit/src/ui_mainwindow.h" failure was
+   caused by every full test target listing the out-of-tree
+   `src/mainwindow.ui` as an explicit source, which made CMake emit the
+   uic output at a path shared across targets. The tests now rely on
+   `AUTOUIC_SEARCH_PATHS` discovery (per-target autogen headers);
+   verified with `-G Ninja` on Linux (clean build, 35/35 tests) and the
+   `windows-latest` lane is re-enabled in `build.yml`. The release
+   Windows lane stays off until the NSIS packaging path has run green
+   in CI.
+5. **`LvkAnimation::aframe(Id)` writable static sentinel — RESOLVED.**
+   The non-const overload is gone; mutation goes through the new
+   `findAframe(Id)` which returns `nullptr` on a miss, forcing callers
+   to handle it. The const overload (read-only sentinel) remains for
+   lookups.

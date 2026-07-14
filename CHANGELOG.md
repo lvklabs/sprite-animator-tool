@@ -8,6 +8,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Round 8: closure of the Round 7 open-items list.
+
+### Added
+
+- **Complete Spanish and French translations**: all 340 strings (GUI,
+  dialogs, What's-This help, CLI, plural forms) are translated in
+  `translations/lvkspriteeditor_{es,fr}.ts`; the compiled catalogs load
+  at runtime and `--help` renders localized under `es_ES` / `fr_FR`.
+- **Windows CI lane re-enabled** in `build.yml` (Qt 6.8.0, Ninja): the
+  duplicate-AUTOUIC blocker is fixed — the full-MainWindow test targets
+  no longer list the out-of-tree `mainwindow.ui` as an explicit source
+  (which forced a shared uic output path); AUTOUIC discovers it via
+  `AUTOUIC_SEARCH_PATHS` and generates per-target headers. Verified
+  with `-G Ninja` on Linux (clean build, 35/35 tests). The release
+  Windows lane stays off until NSIS packaging has run green in CI.
+
+### Changed
+
+- **i18n correctness**: the 19 sentence-fragment `tr()` concatenations
+  are placeholder-based (`tr("... '%1'?").arg(...)`) so translations
+  can reorder words, and the CLI help/parse errors go through
+  `QCoreApplication::translate("main", ...)` and are extractable by
+  lupdate (direct calls; a wrapper lambda hid them from extraction).
+- **API hardening**: `LvkAnimation::aframe(Id)`'s non-const overload
+  (which returned a WRITABLE process-wide static sentinel on lookup
+  misses) is replaced by `findAframe(Id)` returning `nullptr`; the
+  const read-only overload remains.
+
 Round 7: a nine-dimension validation audit of the upgrade (Qt6 API
 completeness, ASan/UBSan, coverage, correctness review, docs drift, CI
 health, runtime smoke, i18n, resolution cross-check) followed by fixes

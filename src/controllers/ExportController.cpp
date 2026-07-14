@@ -156,7 +156,8 @@ void ExportController::runExport(const QString &filename, int format) {
     SpriteStateError err;
     if (!m_state->exportSprite(filename, QString(), QString(),
                                static_cast<SpriteState::ExportFormat>(format), &err)) {
-        errorDialog(tr("Cannot export '") + filename + "' " + SpriteState::errorMessage(err), m_mw);
+        errorDialog(tr("Cannot export '%1' %2").arg(filename, SpriteState::errorMessage(err)),
+                    m_mw);
         return;
     }
 }

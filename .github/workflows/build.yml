@@ -39,16 +39,17 @@ jobs:
           - os: macos-latest
             qt-version: '6.8.0'
             preset: macos
-          # Windows is currently disabled in CI. The build fails with
-          # "ninja: error: multiple rules generate
-          # tests/unit/src/ui_mainwindow.h" because every test executable
-          # has CMAKE_AUTOUIC=ON and includes the shared src/mainwindow.ui,
-          # so Ninja sees duplicate rules. Unix Makefiles silently merges
-          # them; Ninja (single OR multi-config) refuses. Fixing this
-          # cleanly requires factoring the .ui-consuming code into a
-          # shared CMake INTERFACE library that the tests link against.
-          # Tracked as a future-work item; the binary itself builds fine
-          # on Windows when invoked manually.
+          # Windows lane re-enabled (Round 8): the "multiple rules
+          # generate tests/unit/src/ui_mainwindow.h" Ninja failure was
+          # caused by every full test target listing the out-of-tree
+          # src/mainwindow.ui as an explicit source, which made CMake
+          # emit the uic output at a path shared across targets. The
+          # tests now rely on AUTOUIC_SEARCH_PATHS discovery, which
+          # generates per-target headers (verified with -G Ninja on
+          # Linux: clean build, 35/35 tests).
+          - os: windows-latest
+            qt-version: '6.8.0'
+            preset: windows
 
     steps:
       - name: Checkout

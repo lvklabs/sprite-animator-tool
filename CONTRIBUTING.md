@@ -98,9 +98,9 @@ ASAN_OPTIONS=detect_leaks=1 QT_QPA_PLATFORM=offscreen \
 We expect PRs to be:
 
 1. **Linear history.** Rebase, don't merge, before submitting.
-2. **Green CI** on Linux and macOS (the full matrix is in
-   `.github/workflows/`; Windows lanes are currently disabled pending
-   the duplicate-AUTOUIC CMake refactor -- see README).
+2. **Green CI** on Linux, macOS, and Windows (the full matrix is in
+   `.github/workflows/`; the release workflow's Windows lane is still
+   disabled pending an NSIS packaging smoke test).
 3. **Reviewed by at least one other contributor** if non-trivial.
 
 Commit message style: short imperative subject (<= 72 chars), blank

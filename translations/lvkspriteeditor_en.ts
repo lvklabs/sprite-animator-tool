@@ -33,13 +33,8 @@
     </message>
     <message>
         <location filename="../src/controllers/AnimationTabController.cpp" line="283"/>
-        <source>Are you sure you want to remove the animation &apos;</source>
-        <translation>Are you sure you want to remove the animation &apos;</translation>
-    </message>
-    <message>
-        <location filename="../src/controllers/AnimationTabController.cpp" line="283"/>
-        <source>&apos;?</source>
-        <translation>&apos;?</translation>
+        <source>Are you sure you want to remove the animation &apos;%1&apos;?</source>
+        <translation>Are you sure you want to remove the animation &apos;%1&apos;?</translation>
     </message>
     <message>
         <location filename="../src/controllers/AnimationTabController.cpp" line="305"/>
@@ -179,8 +174,8 @@
     </message>
     <message>
         <location filename="../src/controllers/ExportController.cpp" line="159"/>
-        <source>Cannot export &apos;</source>
-        <translation>Cannot export &apos;</translation>
+        <source>Cannot export &apos;%1&apos; %2</source>
+        <translation>Cannot export &apos;%1&apos; %2</translation>
     </message>
 </context>
 <context>
@@ -193,16 +188,6 @@ Go to the &quot;Frames&quot; tab to create one frame.</source>
         <translation>No frames available.
 
 Go to the &quot;Frames&quot; tab to create one frame.</translation>
-    </message>
-    <message>
-        <location filename="../src/controllers/FrameTabController.cpp" line="135"/>
-        <source>Id: </source>
-        <translation>Id: </translation>
-    </message>
-    <message>
-        <location filename="../src/controllers/FrameTabController.cpp" line="135"/>
-        <source> Name: </source>
-        <translation> Name: </translation>
     </message>
     <message>
         <location filename="../src/controllers/FrameTabController.cpp" line="142"/>
@@ -240,24 +225,27 @@ Go to the &quot;Frames&quot; tab to create one frame.</translation>
         <translation>No frame selected</translation>
     </message>
     <message>
-        <location filename="../src/controllers/FrameTabController.cpp" line="269"/>
-        <source>Are you sure you want to remove the frame &apos;</source>
-        <translation>Are you sure you want to remove the frame &apos;</translation>
-    </message>
-    <message>
-        <location filename="../src/controllers/FrameTabController.cpp" line="269"/>
-        <source>&apos;?</source>
-        <translation>&apos;?</translation>
-    </message>
-    <message>
         <location filename="../src/controllers/FrameTabController.cpp" line="313"/>
         <source>Are you sure you want to remove all unused animations?</source>
         <translation>Are you sure you want to remove all unused animations?</translation>
     </message>
     <message>
+        <location filename="../src/controllers/FrameTabController.cpp" line="135"/>
+        <source>Id: %1 Name: %2</source>
+        <translation>Id: %1 Name: %2</translation>
+    </message>
+    <message>
+        <location filename="../src/controllers/FrameTabController.cpp" line="269"/>
+        <source>Are you sure you want to remove the frame &apos;%1&apos;?</source>
+        <translation>Are you sure you want to remove the frame &apos;%1&apos;?</translation>
+    </message>
+    <message numerus="yes">
         <location filename="../src/controllers/FrameTabController.cpp" line="328"/>
-        <source> unused frame(s) were removed.</source>
-        <translation> unused frame(s) were removed.</translation>
+        <source>%n unused frame(s) were removed.</source>
+        <translation>
+            <numerusform>%n unused frame was removed.</numerusform>
+            <numerusform>%n unused frames were removed.</numerusform>
+        </translation>
     </message>
     <message>
         <location filename="../src/controllers/FrameTabController.cpp" line="340"/>
@@ -311,19 +299,14 @@ Go to the &quot;Frames&quot; tab to create one frame.</translation>
         <translation>Blend pixmap</translation>
     </message>
     <message>
-        <location filename="../src/controllers/FrameTabController.cpp" line="519"/>
-        <source>Selected frame with frame id </source>
-        <translation>Selected frame with frame id </translation>
+        <location filename="../src/controllers/FrameTabController.cpp" line="520"/>
+        <source>Selected frame with frame id %1</source>
+        <translation>Selected frame with frame id %1</translation>
     </message>
     <message>
         <location filename="../src/controllers/FrameTabController.cpp" line="551"/>
-        <source>Frame id </source>
-        <translation>Frame id </translation>
-    </message>
-    <message>
-        <location filename="../src/controllers/FrameTabController.cpp" line="552"/>
-        <source> is no longer available</source>
-        <translation> is no longer available</translation>
+        <source>Frame id %1 is no longer available</source>
+        <translation>Frame id %1 is no longer available</translation>
     </message>
 </context>
 <context>
@@ -339,11 +322,6 @@ Go to the &quot;Frames&quot; tab to create one frame.</translation>
         <translation>Images (*.png *.jpg *.jpeg *.bmp *.gif *.webp *.xpm *.xbm *.tif *.tiff);;All files (*)</translation>
     </message>
     <message>
-        <location filename="../src/controllers/ImageTabController.cpp" line="190"/>
-        <source>The image must live inside the sprite directory (its path is stored relative to the .lvks file): </source>
-        <translation>The image must live inside the sprite directory (its path is stored relative to the .lvks file): </translation>
-    </message>
-    <message>
         <location filename="../src/controllers/ImageTabController.cpp" line="218"/>
         <source>Empty Filename</source>
         <translation>Empty Filename</translation>
@@ -354,14 +332,14 @@ Go to the &quot;Frames&quot; tab to create one frame.</translation>
         <translation>No image selected</translation>
     </message>
     <message>
-        <location filename="../src/controllers/ImageTabController.cpp" line="279"/>
-        <source>Are you sure you want to remove the image &apos;</source>
-        <translation>Are you sure you want to remove the image &apos;</translation>
+        <location filename="../src/controllers/ImageTabController.cpp" line="190"/>
+        <source>The image must live inside the sprite directory (its path is stored relative to the .lvks file): %1</source>
+        <translation>The image must live inside the sprite directory (its path is stored relative to the .lvks file): %1</translation>
     </message>
     <message>
         <location filename="../src/controllers/ImageTabController.cpp" line="279"/>
-        <source>&apos;?</source>
-        <translation>&apos;?</translation>
+        <source>Are you sure you want to remove the image &apos;%1&apos;?</source>
+        <translation>Are you sure you want to remove the image &apos;%1&apos;?</translation>
     </message>
     <message>
         <location filename="../src/controllers/ImageTabController.cpp" line="354"/>
@@ -656,8 +634,8 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <location filename="../src/mainwindow.ui" line="316"/>
-        <location filename="../src/mainwindow.cpp" line="302"/>
-        <location filename="../src/mainwindow.cpp" line="303"/>
+        <location filename="../src/mainwindow.cpp" line="314"/>
+        <location filename="../src/mainwindow.cpp" line="315"/>
         <source>Scale</source>
         <translation>Scale</translation>
     </message>
@@ -1632,158 +1610,163 @@ Currently, this button does nothing</translation>
         <translation>&amp;Dark</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="299"/>
-        <location filename="../src/mainwindow.cpp" line="301"/>
-        <location filename="../src/mainwindow.cpp" line="303"/>
-        <location filename="../src/mainwindow.cpp" line="314"/>
+        <location filename="../src/mainwindow.cpp" line="311"/>
+        <location filename="../src/mainwindow.cpp" line="313"/>
         <location filename="../src/mainwindow.cpp" line="315"/>
-        <location filename="../src/mainwindow.cpp" line="323"/>
-        <location filename="../src/mainwindow.cpp" line="334"/>
-        <location filename="../src/mainwindow.cpp" line="339"/>
+        <location filename="../src/mainwindow.cpp" line="326"/>
+        <location filename="../src/mainwindow.cpp" line="327"/>
+        <location filename="../src/mainwindow.cpp" line="335"/>
         <location filename="../src/mainwindow.cpp" line="346"/>
-        <location filename="../src/mainwindow.cpp" line="354"/>
+        <location filename="../src/mainwindow.cpp" line="351"/>
+        <location filename="../src/mainwindow.cpp" line="358"/>
+        <location filename="../src/mainwindow.cpp" line="366"/>
         <source>Id</source>
         <translation>Id</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="300"/>
-        <location filename="../src/mainwindow.cpp" line="303"/>
-        <location filename="../src/mainwindow.cpp" line="367"/>
-        <location filename="../src/mainwindow.cpp" line="368"/>
+        <location filename="../src/mainwindow.cpp" line="312"/>
+        <location filename="../src/mainwindow.cpp" line="315"/>
+        <location filename="../src/mainwindow.cpp" line="379"/>
+        <location filename="../src/mainwindow.cpp" line="380"/>
         <source>Ch</source>
         <translation>Ch</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="303"/>
+        <location filename="../src/mainwindow.cpp" line="315"/>
         <source>Filename</source>
         <translation>Filename</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="316"/>
-        <location filename="../src/mainwindow.cpp" line="323"/>
-        <location filename="../src/mainwindow.cpp" line="348"/>
-        <location filename="../src/mainwindow.cpp" line="354"/>
+        <location filename="../src/mainwindow.cpp" line="328"/>
+        <location filename="../src/mainwindow.cpp" line="335"/>
+        <location filename="../src/mainwindow.cpp" line="360"/>
+        <location filename="../src/mainwindow.cpp" line="366"/>
         <source>ox</source>
         <translation>ox</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="317"/>
-        <location filename="../src/mainwindow.cpp" line="323"/>
-        <location filename="../src/mainwindow.cpp" line="349"/>
-        <location filename="../src/mainwindow.cpp" line="354"/>
+        <location filename="../src/mainwindow.cpp" line="329"/>
+        <location filename="../src/mainwindow.cpp" line="335"/>
+        <location filename="../src/mainwindow.cpp" line="361"/>
+        <location filename="../src/mainwindow.cpp" line="366"/>
         <source>oy</source>
         <translation>oy</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="318"/>
-        <location filename="../src/mainwindow.cpp" line="323"/>
+        <location filename="../src/mainwindow.cpp" line="330"/>
+        <location filename="../src/mainwindow.cpp" line="335"/>
         <source>w</source>
         <translation>w</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="319"/>
-        <location filename="../src/mainwindow.cpp" line="323"/>
+        <location filename="../src/mainwindow.cpp" line="331"/>
+        <location filename="../src/mainwindow.cpp" line="335"/>
         <source>h</source>
         <translation>h</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="320"/>
-        <location filename="../src/mainwindow.cpp" line="324"/>
+        <location filename="../src/mainwindow.cpp" line="332"/>
+        <location filename="../src/mainwindow.cpp" line="336"/>
         <source>Img Id</source>
         <translation>Img Id</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="324"/>
-        <location filename="../src/mainwindow.cpp" line="339"/>
+        <location filename="../src/mainwindow.cpp" line="336"/>
+        <location filename="../src/mainwindow.cpp" line="351"/>
         <source>Name</source>
         <translation>Name</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="338"/>
-        <location filename="../src/mainwindow.cpp" line="339"/>
+        <location filename="../src/mainwindow.cpp" line="350"/>
+        <location filename="../src/mainwindow.cpp" line="351"/>
         <source>Flags</source>
         <translation>Flags</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="347"/>
-        <location filename="../src/mainwindow.cpp" line="354"/>
+        <location filename="../src/mainwindow.cpp" line="359"/>
+        <location filename="../src/mainwindow.cpp" line="366"/>
         <source>Frame Id</source>
         <translation>Frame Id</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="350"/>
-        <location filename="../src/mainwindow.cpp" line="354"/>
+        <location filename="../src/mainwindow.cpp" line="362"/>
+        <location filename="../src/mainwindow.cpp" line="366"/>
         <source>Sticky</source>
         <translation>Sticky</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="351"/>
-        <location filename="../src/mainwindow.cpp" line="354"/>
+        <location filename="../src/mainwindow.cpp" line="363"/>
+        <location filename="../src/mainwindow.cpp" line="366"/>
         <source>Delay</source>
         <translation>Delay</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="352"/>
-        <location filename="../src/mainwindow.cpp" line="355"/>
-        <location filename="../src/mainwindow.cpp" line="366"/>
-        <location filename="../src/mainwindow.cpp" line="368"/>
+        <location filename="../src/mainwindow.cpp" line="364"/>
+        <location filename="../src/mainwindow.cpp" line="367"/>
+        <location filename="../src/mainwindow.cpp" line="378"/>
+        <location filename="../src/mainwindow.cpp" line="380"/>
         <source>Animation Id</source>
         <translation>Animation Id</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="368"/>
+        <location filename="../src/mainwindow.cpp" line="380"/>
         <source>Animation Name</source>
         <translation>Animation Name</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="381"/>
-        <location filename="../src/mainwindow.cpp" line="397"/>
-        <source>Cannot save </source>
-        <translation>Cannot save </translation>
+        <location filename="../src/mainwindow.cpp" line="393"/>
+        <location filename="../src/mainwindow.cpp" line="409"/>
+        <source>Cannot save %1. %2</source>
+        <translation>Cannot save %1. %2</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="389"/>
+        <location filename="../src/mainwindow.cpp" line="419"/>
+        <source>Save changes to file &apos;%1&apos; before closing?</source>
+        <translation>Save changes to file &apos;%1&apos; before closing?</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="457"/>
+        <source>Cannot open %1. %2</source>
+        <translation>Cannot open %1. %2</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="713"/>
+        <source>Mouse x,y: %1,%2</source>
+        <translation>Mouse x,y: %1,%2</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="721"/>
+        <source>  Rect: x,y,w,h: %1,%2,%3,%4</source>
+        <translation>  Rect: x,y,w,h: %1,%2,%3,%4</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="401"/>
         <source>Save file</source>
         <translation>Save file</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="390"/>
-        <location filename="../src/mainwindow.cpp" line="427"/>
+        <location filename="../src/mainwindow.cpp" line="402"/>
+        <location filename="../src/mainwindow.cpp" line="439"/>
         <source>Lvks files (*.lvks);;All files (*)</source>
         <translation>Lvks files (*.lvks);;All files (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="406"/>
+        <location filename="../src/mainwindow.cpp" line="418"/>
         <source>Save changes to file before closing?</source>
         <translation>Save changes to file before closing?</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="407"/>
-        <source>Save changes to file &apos;</source>
-        <translation>Save changes to file &apos;</translation>
-    </message>
-    <message>
-        <location filename="../src/mainwindow.cpp" line="407"/>
-        <source>&apos; before closing?</source>
-        <translation>&apos; before closing?</translation>
-    </message>
-    <message>
-        <location filename="../src/mainwindow.cpp" line="411"/>
+        <location filename="../src/mainwindow.cpp" line="423"/>
         <source>Warning: transitions won&apos;t be saved.</source>
         <translation>Warning: transitions won&apos;t be saved.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="426"/>
+        <location filename="../src/mainwindow.cpp" line="438"/>
         <source>Open file</source>
         <translation>Open file</translation>
     </message>
-    <message>
-        <location filename="../src/mainwindow.cpp" line="445"/>
-        <source>Cannot open </source>
-        <translation>Cannot open </translation>
-    </message>
     <message numerus="yes">
-        <location filename="../src/mainwindow.cpp" line="501"/>
+        <location filename="../src/mainwindow.cpp" line="513"/>
         <source>%n record(s) rejected during load (see stderr for details)</source>
         <translation>
             <numerusform>%n record rejected during load (see stderr for details)</numerusform>
@@ -1791,7 +1774,7 @@ Currently, this button does nothing</translation>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../src/mainwindow.cpp" line="503"/>
+        <location filename="../src/mainwindow.cpp" line="515"/>
         <source>%n record(s) were skipped while loading %1 (see stderr for details).</source>
         <translation>
             <numerusform>%n record was skipped while loading %1 (see stderr for details).</numerusform>
@@ -1799,39 +1782,29 @@ Currently, this button does nothing</translation>
         </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="701"/>
-        <source>Mouse x,y: </source>
-        <translation>Mouse x,y: </translation>
-    </message>
-    <message>
-        <location filename="../src/mainwindow.cpp" line="709"/>
-        <source>  Rect: x,y,w,h: </source>
-        <translation>  Rect: x,y,w,h: </translation>
-    </message>
-    <message>
-        <location filename="../src/mainwindow.cpp" line="725"/>
+        <location filename="../src/mainwindow.cpp" line="735"/>
         <source>Loading %1</source>
         <translation>Loading %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="731"/>
-        <location filename="../src/mainwindow.cpp" line="752"/>
+        <location filename="../src/mainwindow.cpp" line="741"/>
+        <location filename="../src/mainwindow.cpp" line="762"/>
         <source>Actions in the &quot;Transitions&quot; tab cannot be undone or redone</source>
         <translation>Actions in the &quot;Transitions&quot; tab cannot be undone or redone</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="742"/>
-        <location filename="../src/mainwindow.cpp" line="761"/>
+        <location filename="../src/mainwindow.cpp" line="752"/>
+        <location filename="../src/mainwindow.cpp" line="771"/>
         <source>Undo / Redo failed: the history buffer is in an inconsistent state; some operations may not be reversible.</source>
         <translation>Undo / Redo failed: the history buffer is in an inconsistent state; some operations may not be reversible.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="789"/>
+        <location filename="../src/mainwindow.cpp" line="799"/>
         <source>About %1</source>
         <translation>About %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="793"/>
+        <location filename="../src/mainwindow.cpp" line="803"/>
         <source>Modernized 2026 -- see CHANGELOG.md for details.</source>
         <translation>Modernized 2026 -- see CHANGELOG.md for details.</translation>
     </message>
@@ -1869,18 +1842,18 @@ Currently, this button does nothing</translation>
     <name>SpriteState</name>
     <message>
         <location filename="../src/spritestate.cpp" line="847"/>
-        <source>Image </source>
-        <translation>Image </translation>
+        <source>Image %1</source>
+        <translation>Image %1</translation>
     </message>
     <message>
         <location filename="../src/spritestate.cpp" line="864"/>
-        <source>Frame </source>
-        <translation>Frame </translation>
+        <source>Frame %1</source>
+        <translation>Frame %1</translation>
     </message>
     <message>
         <location filename="../src/spritestate.cpp" line="904"/>
-        <source>Animation </source>
-        <translation>Animation </translation>
+        <source>Animation %1</source>
+        <translation>Animation %1</translation>
     </message>
     <message>
         <location filename="../src/spritestate.cpp" line="1704"/>
@@ -1946,13 +1919,8 @@ Go to the &quot;Animations&quot; tab to create one animation.</translation>
     </message>
     <message>
         <location filename="../src/controllers/TransitionTabController.cpp" line="74"/>
-        <source>Id: </source>
-        <translation>Id: </translation>
-    </message>
-    <message>
-        <location filename="../src/controllers/TransitionTabController.cpp" line="74"/>
-        <source> Name: </source>
-        <translation> Name: </translation>
+        <source>Id: %1 Name: %2</source>
+        <translation>Id: %1 Name: %2</translation>
     </message>
     <message>
         <location filename="../src/controllers/TransitionTabController.cpp" line="79"/>
@@ -1973,6 +1941,54 @@ Go to the &quot;Animations&quot; tab to create one animation.</translation>
         <location filename="../src/controllers/TransitionTabController.cpp" line="102"/>
         <source>Coming soon: adding animation transitions is preview-only in this build and is not yet persisted to the sprite state. Your selection will play in the preview pane below, but it will not be saved with the project.</source>
         <translation>Coming soon: adding animation transitions is preview-only in this build and is not yet persisted to the sprite state. Your selection will play in the preview pane below, but it will not be saved with the project.</translation>
+    </message>
+</context>
+<context>
+    <name>main</name>
+    <message>
+        <location filename="../src/main.cpp" line="152"/>
+        <source>LVK Sprite Animation Tool -- WYSIWYG 2D sprite animator for Cocos2d. With no flags, opens the GUI; with --export, runs a headless export.</source>
+        <translation>LVK Sprite Animation Tool -- WYSIWYG 2D sprite animator for Cocos2d. With no flags, opens the GUI; with --export, runs a headless export.</translation>
+    </message>
+    <message>
+        <location filename="../src/main.cpp" line="157"/>
+        <source>Optional .lvks file to open (or to export when --export is set).</source>
+        <translation>Optional .lvks file to open (or to export when --export is set).</translation>
+    </message>
+    <message>
+        <location filename="../src/main.cpp" line="166"/>
+        <source>Headless mode: export &lt;sprite-file&gt; instead of launching the GUI.</source>
+        <translation>Headless mode: export &lt;sprite-file&gt; instead of launching the GUI.</translation>
+    </message>
+    <message>
+        <location filename="../src/main.cpp" line="172"/>
+        <source>Directory to write export artifacts into. Defaults to the sprite-file&apos;s directory.</source>
+        <translation>Directory to write export artifacts into. Defaults to the sprite-file&apos;s directory.</translation>
+    </message>
+    <message>
+        <location filename="../src/main.cpp" line="179"/>
+        <source>Optional executable run on each exported frame image.</source>
+        <translation>Optional executable run on each exported frame image.</translation>
+    </message>
+    <message>
+        <location filename="../src/main.cpp" line="186"/>
+        <source>Export format: cocos2d (default), json, or all.</source>
+        <translation>Export format: cocos2d (default), json, or all.</translation>
+    </message>
+    <message>
+        <location filename="../src/main.cpp" line="202"/>
+        <source>At most one positional [sprite-file] argument is accepted, got %1.</source>
+        <translation>At most one positional [sprite-file] argument is accepted, got %1.</translation>
+    </message>
+    <message>
+        <location filename="../src/main.cpp" line="213"/>
+        <source>--export requires a [sprite-file] positional argument.</source>
+        <translation>--export requires a [sprite-file] positional argument.</translation>
+    </message>
+    <message>
+        <location filename="../src/main.cpp" line="225"/>
+        <source>--format must be one of: cocos2d, json, all (got &apos;%1&apos;).</source>
+        <translation>--format must be one of: cocos2d, json, all (got &apos;%1&apos;).</translation>
     </message>
 </context>
 </TS>

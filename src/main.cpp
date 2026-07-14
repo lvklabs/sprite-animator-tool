@@ -149,39 +149,42 @@ int runHeadlessExport(const CliOptions &cli, const QString &binName) {
 bool parseCommandLine(QCoreApplication &app, CliOptions &cli, QString &errorMessage) {
     QCommandLineParser parser;
     parser.setApplicationDescription(
-        QStringLiteral("LVK Sprite Animation Tool -- WYSIWYG 2D sprite "
-                       "animator for Cocos2d. With no flags, opens the GUI; "
-                       "with --export, runs a headless export."));
+        QCoreApplication::translate("main", "LVK Sprite Animation Tool -- WYSIWYG 2D sprite "
+                                            "animator for Cocos2d. With no flags, opens the GUI; "
+                                            "with --export, runs a headless export."));
     parser.addPositionalArgument(
         QStringLiteral("sprite-file"),
-        QStringLiteral("Optional .lvks file to open (or to export when --export "
-                       "is set)."),
+        QCoreApplication::translate(
+            "main", "Optional .lvks file to open (or to export when --export is set)."),
         QStringLiteral("[sprite-file]"));
 
     parser.addHelpOption();
     parser.addVersionOption();
 
-    QCommandLineOption exportOpt(QStringList() << QStringLiteral("e") << QStringLiteral("export"),
-                                 QStringLiteral("Headless mode: export <sprite-file> instead of "
-                                                "launching the GUI."));
+    QCommandLineOption exportOpt(
+        QStringList() << QStringLiteral("e") << QStringLiteral("export"),
+        QCoreApplication::translate(
+            "main", "Headless mode: export <sprite-file> instead of launching the GUI."));
     parser.addOption(exportOpt);
 
     QCommandLineOption outputDirOpt(
         QStringList() << QStringLiteral("o") << QStringLiteral("output-dir"),
-        QStringLiteral("Directory to write export artifacts into. Defaults "
-                       "to the sprite-file's directory."),
+        QCoreApplication::translate("main", "Directory to write export artifacts into. Defaults "
+                                            "to the sprite-file's directory."),
         QStringLiteral("dir"));
     parser.addOption(outputDirOpt);
 
     QCommandLineOption postpOpt(
         QStringList() << QStringLiteral("p") << QStringLiteral("postprocessing-script"),
-        QStringLiteral("Optional executable run on each exported frame image."),
+        QCoreApplication::translate("main",
+                                    "Optional executable run on each exported frame image."),
         QStringLiteral("script"));
     parser.addOption(postpOpt);
 
-    QCommandLineOption formatOpt(QStringList() << QStringLiteral("f") << QStringLiteral("format"),
-                                 QStringLiteral("Export format: cocos2d (default), json, or all."),
-                                 QStringLiteral("format"), QStringLiteral("cocos2d"));
+    QCommandLineOption formatOpt(
+        QStringList() << QStringLiteral("f") << QStringLiteral("format"),
+        QCoreApplication::translate("main", "Export format: cocos2d (default), json, or all."),
+        QStringLiteral("format"), QStringLiteral("cocos2d"));
     parser.addOption(formatOpt);
 
     // process() handles --help / --version (prints and exits) and reports
@@ -195,9 +198,10 @@ bool parseCommandLine(QCoreApplication &app, CliOptions &cli, QString &errorMess
 
     const QStringList positional = parser.positionalArguments();
     if (positional.size() > 1) {
-        errorMessage = QStringLiteral("At most one positional [sprite-file] "
-                                      "argument is accepted, got %1.")
-                           .arg(positional.size());
+        errorMessage =
+            QCoreApplication::translate(
+                "main", "At most one positional [sprite-file] argument is accepted, got %1.")
+                .arg(positional.size());
         return false;
     }
     if (!positional.isEmpty()) {
@@ -206,8 +210,8 @@ bool parseCommandLine(QCoreApplication &app, CliOptions &cli, QString &errorMess
 
     if (cli.exportMode) {
         if (cli.spriteFile.isEmpty()) {
-            errorMessage = QStringLiteral("--export requires a [sprite-file] "
-                                          "positional argument.");
+            errorMessage = QCoreApplication::translate(
+                "main", "--export requires a [sprite-file] positional argument.");
             return false;
         }
         if (cli.outputDir.isEmpty()) {
@@ -218,8 +222,8 @@ bool parseCommandLine(QCoreApplication &app, CliOptions &cli, QString &errorMess
     const QString fmt = cli.format.toLower();
     if (fmt != QStringLiteral("cocos2d") && fmt != QStringLiteral("json") &&
         fmt != QStringLiteral("all")) {
-        errorMessage = QStringLiteral("--format must be one of: cocos2d, json, all "
-                                      "(got '%1').")
+        errorMessage = QCoreApplication::translate(
+                           "main", "--format must be one of: cocos2d, json, all (got '%1').")
                            .arg(cli.format);
         return false;
     }

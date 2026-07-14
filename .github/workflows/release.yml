@@ -31,13 +31,12 @@ jobs:
             preset: linux
           - os: macos-latest
             preset: macos
-          # Windows is currently disabled in release. The build fails with
-          # "ninja: error: multiple rules generate
-          # tests/unit/src/ui_mainwindow.h" because every test executable
-          # has CMAKE_AUTOUIC=ON and includes the shared src/mainwindow.ui,
-          # so Ninja sees duplicate rules. See build.yml for full context.
-          # Re-enable once the .ui-consuming code is factored into a shared
-          # CMake INTERFACE library.
+          # Windows stays disabled in RELEASE for now. The Ninja
+          # duplicate-AUTOUIC blocker is fixed (see build.yml, whose
+          # Windows lane is re-enabled), but the NSIS packaging path has
+          # never run in CI; promote Windows here only after build.yml
+          # is proven green on windows-latest and the cpack NSIS output
+          # has been smoke-tested.
 
     steps:
       - name: Checkout

@@ -173,10 +173,20 @@ set(LVK_FULL_SOURCES
 )
 
 function(lvk_add_full_test name)
+    # NOTE: mainwindow.ui is deliberately NOT listed as a source. For a
+    # .ui file that lives outside the current source dir, CMake places
+    # the explicit-source uic output at a path SHARED by every target in
+    # this directory (tests/unit/src/ui_mainwindow.h), which makes Ninja
+    # refuse to generate ("multiple rules generate ..."; Unix Makefiles
+    # silently merged the duplicates). Relying on AUTOUIC_SEARCH_PATHS
+    # instead lets AUTOUIC discover mainwindow.ui from the
+    # `#include "ui_mainwindow.h"` in mainwindow.cpp and generate the
+    # header into each target's own <target>_autogen/include dir -- no
+    # shared output, so the Ninja generator (and with it the Windows CI
+    # lane) works.
     add_executable(${name}
         ${name}.cpp
         ${LVK_FULL_SOURCES}
-        ${SRC_DIR}/mainwindow.ui
         ${SRC_DIR}/res.qrc
     )
     set_target_properties(${name} PROPERTIES

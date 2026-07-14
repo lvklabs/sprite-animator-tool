@@ -71,7 +71,7 @@ void TransitionTabController::addTransDialog() {
     for (QMapIterator<Id, LvkAnimation> it(m_state->animations()); it.hasNext();) {
         it.next();
         const LvkAnimation &ani = it.value();
-        anisList << tr("Id: ") + QString::number(ani.id) + tr(" Name: ") + ani.name;
+        anisList << tr("Id: %1 Name: %2").arg(QString::number(ani.id), ani.name);
     }
     anisList.sort();
 

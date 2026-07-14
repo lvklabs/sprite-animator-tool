@@ -189,13 +189,14 @@ public:
     /// update aframe
     void updateAframe(const LvkAframe &aframe, Id aniId) {
         const auto it = _animations.find(aniId);
-        if (it == _animations.end() || !it.value().hasAframe(aframe.id)) {
+        LvkAframe *target = (it == _animations.end()) ? nullptr : it.value().findAframe(aframe.id);
+        if (!target) {
             qWarning("SpriteState::updateAframe: animation %d or aframe %d not found; "
                      "update ignored",
                      aniId, aframe.id);
             return;
         }
-        it.value().aframe(aframe.id) = aframe;
+        *target = aframe;
     }
 
     // add *********************************************************************

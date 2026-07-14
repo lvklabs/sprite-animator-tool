@@ -188,8 +188,8 @@ Id ImageTabController::addImage(const InputImage &image) {
         // next open.
         if (!lvk::isSafeImagePath(image_.filename)) {
             errorDialog(tr("The image must live inside the sprite directory "
-                           "(its path is stored relative to the .lvks file): ") +
-                            image_.filename,
+                           "(its path is stored relative to the .lvks file): %1")
+                            .arg(image_.filename),
                         m_mw);
             return NullId; // gate: reject => no state, no UI
         }
@@ -276,7 +276,7 @@ void ImageTabController::removeSelImage() {
         return;
     }
     QString imgFilename = m_ui->imgTableWidget->item(currentRow, ColImageFilename)->text();
-    if (!yesNoDialog(tr("Are you sure you want to remove the image '") + imgFilename + tr("'?"),
+    if (!yesNoDialog(tr("Are you sure you want to remove the image '%1'?").arg(imgFilename),
                      m_mw)) {
         return;
     }

@@ -390,7 +390,7 @@ bool MainWindow::saveFile() {
         return saveAsFile();
     SpriteStateError err;
     if (!_sprState.save(_filename, &err)) {
-        errorDialog(tr("Cannot save ") + _filename + ". " + SpriteState::errorMessage(err), this);
+        errorDialog(tr("Cannot save %1. %2").arg(_filename, SpriteState::errorMessage(err)), this);
         return false;
     }
     return true;
@@ -406,7 +406,7 @@ bool MainWindow::saveAsFile() {
 
     SpriteStateError err;
     if (!_sprState.save(filename, &err)) {
-        errorDialog(tr("Cannot save ") + filename + ". " + SpriteState::errorMessage(err), this);
+        errorDialog(tr("Cannot save %1. %2").arg(filename, SpriteState::errorMessage(err)), this);
         return false;
     }
     setCurrentFile(filename);
@@ -416,7 +416,7 @@ bool MainWindow::saveAsFile() {
 DialogButton MainWindow::saveChangesDialog() {
     QString msg = _filename.isEmpty()
                       ? tr("Save changes to file before closing?")
-                      : tr("Save changes to file '") + _filename + tr("' before closing?");
+                      : tr("Save changes to file '%1' before closing?").arg(_filename);
     DialogButton button = yesNoCancelDialog(msg, this);
     if (button == YesButton) {
         if (ui->transTableWidget->rowCount() > 0) {
@@ -454,7 +454,7 @@ bool MainWindow::openFile_checkUnsaved(const QString &filename) {
 bool MainWindow::openFile(const QString &filename) {
     SpriteStateError err;
     if (!openFile_(filename, &err)) {
-        errorDialog(tr("Cannot open ") + filename + ". " + SpriteState::errorMessage(err), this);
+        errorDialog(tr("Cannot open %1. %2").arg(filename, SpriteState::errorMessage(err)), this);
         return false;
     }
     return true;
@@ -710,7 +710,7 @@ void MainWindow::showAnimationsTab() {
 }
 
 void MainWindow::showMousePosition(int x, int y) {
-    statusBarMousePos->setText(tr("Mouse x,y: ") + QString::number(x) + "," + QString::number(y));
+    statusBarMousePos->setText(tr("Mouse x,y: %1,%2").arg(x).arg(y));
 }
 
 void MainWindow::showMouseRect(const QRect &rect) {
@@ -718,9 +718,7 @@ void MainWindow::showMouseRect(const QRect &rect) {
     if (w == 0 && h == 0) {
         statusBarRectSize->setText("");
     } else {
-        statusBarRectSize->setText(tr("  Rect: x,y,w,h: ") + QString::number(x) + "," +
-                                   QString::number(y) + "," + QString::number(w) + "," +
-                                   QString::number(h));
+        statusBarRectSize->setText(tr("  Rect: x,y,w,h: %1,%2,%3,%4").arg(x).arg(y).arg(w).arg(h));
     }
 }
 

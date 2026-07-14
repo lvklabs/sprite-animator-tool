@@ -844,7 +844,7 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err, int *reje
                             break; // skip this record, keep loading
                         }
                     }
-                    emit(loadProgress(tr("Image ") + tmpImage.filename));
+                    emit(loadProgress(tr("Image %1").arg(tmpImage.filename)));
                     addImage(tmpImage);
                 } else {
                     qDebug() << "Error: SpriteState::load(): invalid image entry" << line
@@ -861,7 +861,7 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err, int *reje
             } else {
                 if (tmpFrame.fromString(line)) {
                     addFrame(tmpFrame);
-                    emit(loadProgress(tr("Frame ") + tmpImage.filename));
+                    emit(loadProgress(tr("Frame %1").arg(tmpImage.filename)));
                 } else {
                     // Team F2 (F2.3): a bad frame record (e.g. out-of-bounds
                     // w/h flagged by LvkFrame::fromString's Phase 4 cap) used
@@ -901,7 +901,7 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err, int *reje
                 if (tmpAni.fromString(line)) {
                     currentAniId = tmpAni.id;
                     addAnimation(tmpAni);
-                    emit(loadProgress(tr("Animation ") + tmpAni.name));
+                    emit(loadProgress(tr("Animation %1").arg(tmpAni.name)));
                 } else {
                     qDebug() << "Error: SpriteState::load(): invalid animation entry" << line
                              << "at line" << lineNumber;
