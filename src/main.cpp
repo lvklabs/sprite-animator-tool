@@ -168,8 +168,8 @@ bool parseCommandLine(QCoreApplication &app, CliOptions &cli, QString &errorMess
 
     QCommandLineOption outputDirOpt(
         QStringList() << QStringLiteral("o") << QStringLiteral("output-dir"),
-        QStringLiteral("Directory to write export artifacts into. Required "
-                       "when --export is set."),
+        QStringLiteral("Directory to write export artifacts into. Defaults "
+                       "to the sprite-file's directory."),
         QStringLiteral("dir"));
     parser.addOption(outputDirOpt);
 
@@ -230,6 +230,27 @@ bool parseCommandLine(QCoreApplication &app, CliOptions &cli, QString &errorMess
 } // namespace
 
 int main(int argc, char *argv[]) {
+#if defined(Q_OS_UNIX) && !defined(Q_OS_DARWIN)
+    // Headless invocations (--export/--version/--help) must not die with
+    // SIGABRT on a display-less machine (CI runner, ssh session): the xcb
+    // platform plugin aborts inside the QApplication constructor, before
+    // QCommandLineParser ever runs. Pre-scan argv for those flags and fall
+    // back to the offscreen platform when no display is reachable. An
+    // explicit QT_QPA_PLATFORM from the user always wins.
+    if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM") &&
+        qEnvironmentVariableIsEmpty("DISPLAY") &&
+        qEnvironmentVariableIsEmpty("WAYLAND_DISPLAY")) {
+        for (int i = 1; i < argc; ++i) {
+            const QByteArray arg(argv[i]);
+            if (arg == "-e" || arg == "--export" || arg == "-v" || arg == "--version" ||
+                arg == "-h" || arg == "--help" || arg == "--help-all") {
+                qputenv("QT_QPA_PLATFORM", "offscreen");
+                break;
+            }
+        }
+    }
+#endif
+
     QApplication app(argc, argv);
 
     // Phase 6b (Item 27): Install a QTranslator BEFORE constructing

@@ -60,17 +60,15 @@
 //  [INFO] QFile::open() return values are checked in save()/load() and the
 //      three exportSprite() outputs; no unchecked file-open bugs found.
 //
-//  [FIXME(agent-5)] exportSprite() writes binFileName/textFileName/headerFileName
-//      derived from a user-supplied filename and outputDir without checking
-//      that the resolved paths stay inside outputDir. A user (or sprite file
-//      with a baseName containing "..") could overwrite arbitrary files the
-//      process has rights to. This is low risk for a trusted-developer tool
-//      but should be hardened in the Phase 3 refactor (Agent 8 / Agent 10).
+//  [RESOLVED(agent-8/phase-4)] exportSprite() output paths are validated by
+//      isSafeExportPath() (canonicalised containment check, '..'-segment and
+//      NUL rejection, prefix-confusion defense). Covered by
+//      tests/format/tst_path_traversal.cpp and
+//      tests/security/tst_path_traversal_hard.cpp.
 //
-//  [FIXME(agent-5)] writeImageWithPostprocessing() does not impose a maximum
-//      output-image size before writePostprocImage() readAll()s it into
-//      memory. A malicious postprocessing script could return a multi-GB
-//      file. Acceptable for a trusted-developer tool, but worth capping.
+//  [RESOLVED(round-7)] writePostprocImage() now caps the postprocessed
+//      output image at 256 MB (matching the QImageReader allocation limit
+//      set in main.cpp) before readAll()ing it into memory.
 // ---------------------------------------------------------------------------
 
 #define HEADER_VER_01 "LvkSprite version 0.1"
@@ -955,6 +953,23 @@ bool SpriteState::load(const QString &filename, SpriteStateError *err, int *reje
 
     file.close();
 
+    // Reaching EOF in any state other than StNoToken means the file is
+    // truncated or was never a .lvks at all:
+    //   - StCheckVersion: no "LvkSprite version" header was seen (covers
+    //     empty and completely foreign files),
+    //   - any StToken*: an images(/frames(/animations(/aframes(/
+    //     custom_header( block was never closed (file cut mid-section).
+    // Accepting these silently produced "successful" loads of partial
+    // data -- and a headless --export then wrote empty/partial artifacts
+    // with exit code 0.
+    if (state != StError && state != StNoToken) {
+        qWarning() << "SpriteState::load(): unexpected end of file (truncated or invalid"
+                   << ".lvks), parser state" << (int)state << "at line" << lineNumber << "of"
+                   << filename;
+        setError(err, ErrInvalidFormat);
+        state = StError;
+    }
+
     // Phase B1.3: aframes are now sorted by id at SAVE time, not LOAD
     // time. The previous post-load sort here caused round-trip byte
     // changes for files where on-disk aframe order was not sequential by
@@ -1536,7 +1551,24 @@ static bool writePostprocImage(QFile &binOutput, const QString &postprocImgFilen
         return false;
     }
 
-    binOutput.write(postprocImg.readAll());
+    // SECURITY: cap the bytes read back from the (user-supplied)
+    // postprocessing script's output before readAll() buffers them in
+    // memory. 256 MB matches the QImageReader allocation limit set in
+    // main.cpp -- a legitimate postprocessed frame is orders of magnitude
+    // smaller.
+    constexpr qint64 kMaxPostprocImageBytes = 256 * 1024 * 1024;
+    if (postprocImg.size() > kMaxPostprocImageBytes) {
+        qWarning() << "writePostprocImage: refusing postprocessed image of"
+                   << postprocImg.size() << "bytes (cap" << kMaxPostprocImageBytes << "):"
+                   << postprocImgFilename;
+        return false;
+    }
+
+    const QByteArray bytes = postprocImg.readAll();
+    if (binOutput.write(bytes) != bytes.size()) {
+        qWarning() << "writePostprocImage: short write to" << binOutput.fileName();
+        return false;
+    }
 
     postprocImg.close();
 
@@ -1547,7 +1579,9 @@ bool SpriteState::writeImageWithPostprocessing(QFile &binOutput, const LvkFrame 
                                                const QString &postpScript) const {
     // create temp image from frame pixmap data
 
-    std::cout << "Exporting frame " << frame.id << "..." << std::endl;
+    // Progress goes to stderr like every other diagnostic: stdout stays
+    // reserved for downstream tooling (see runHeadlessExport in main.cpp).
+    std::cerr << "Exporting frame " << frame.id << "..." << std::endl;
 
     QString tmpImgFilename;
     if (!writeTempImage(tmpImgFilename, _fpixmaps[frame.id].toImage())) {
@@ -1598,7 +1632,7 @@ bool SpriteState::writeImageWithPostprocessing(QFile &binOutput, const LvkFrame 
         qDebug() << "Postprocessing temp image...";
 
         if (!runPostprocessingScript(postpScript, tmpImgFilename, postpImgFilename)) {
-            std::cout << "Error: Postprocess script '" << postpScript.toStdString()
+            std::cerr << "Error: Postprocess script '" << postpScript.toStdString()
                       << "' failed. Writing image without postprocessing." << std::endl;
             postpImgFilename = tmpImgFilename;
         }
