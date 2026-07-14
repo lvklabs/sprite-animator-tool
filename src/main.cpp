@@ -73,12 +73,23 @@ int runHeadlessExport(const CliOptions &cli, const QString &binName) {
         std::cerr << binName.toStdString() << ": Error: output directory '"
                   << outputDir.toStdString() << "' does not exist\n";
         return -1;
+    } else {
+        // Anchor to the invocation CWD now: QDir::setCurrent() below changes
+        // the CWD to the sprite's directory, which would silently re-resolve
+        // a relative -o against the wrong base (or fail the canonical-path
+        // safety check in exportSprite()).
+        outputDir = QFileInfo(outputDir).absoluteFilePath();
     }
 
-    if (!cli.postpScript.isEmpty() && !QFileInfo(cli.postpScript).exists()) {
-        std::cerr << binName.toStdString() << ": Error: postprocessing script '"
-                  << cli.postpScript.toStdString() << "' does not exist\n";
-        return -1;
+    QString postpScript = cli.postpScript;
+    if (!postpScript.isEmpty()) {
+        if (!QFileInfo(postpScript).exists()) {
+            std::cerr << binName.toStdString() << ": Error: postprocessing script '"
+                      << postpScript.toStdString() << "' does not exist\n";
+            return -1;
+        }
+        // Same CWD-change hazard as -o above.
+        postpScript = QFileInfo(postpScript).absoluteFilePath();
     }
 
     // Set CWD to the input file's directory so relative image paths inside
@@ -103,7 +114,7 @@ int runHeadlessExport(const CliOptions &cli, const QString &binName) {
 
     const SpriteState::ExportFormat format = SpriteState::parseFormat(cli.format);
 
-    if (!sprState.exportSprite(inputFile, outputDir, cli.postpScript, format, &err)) {
+    if (!sprState.exportSprite(inputFile, outputDir, postpScript, format, &err)) {
         std::cerr << binName.toStdString() << ": Error: Cannot export '"
                   << cli.spriteFile.toStdString() << "' "
                   << SpriteState::errorMessage(err).toStdString() << "\n";

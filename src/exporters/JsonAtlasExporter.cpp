@@ -217,20 +217,23 @@ bool JsonAtlasExporter::exportAtlas(const QString &baseFilename, const SpriteSta
     }
     if (atlasH == 0)
         atlasH = 64; // empty-state safety
-    atlasH = nextPow2(atlasH);
-    atlasH = qMin(atlasH, kMaxAtlasDim);
 
-    // After clamping, if the input frames could not possibly fit inside
-    // the clamped atlas (their combined area exceeds the clamped square),
-    // bail with an error rather than truncating frame data into a
-    // too-small canvas.
-    const qint64 clampedAtlasArea = static_cast<qint64>(atlasW) * static_cast<qint64>(atlasH);
-    if (totalArea > clampedAtlasArea) {
-        qDebug() << "JsonAtlasExporter::exportAtlas: refusing to pack frames "
-                 << "totalArea=" << totalArea << "into atlas of clamped area=" << clampedAtlasArea
-                 << "(dim cap" << kMaxAtlasDim << ")";
+    // Refuse to pack if the REQUIRED extent exceeds the dimension cap.
+    // atlasH here is the exact shelf-packed height (max curY + shelfH), so
+    // comparing it against the cap accounts for end-of-shelf waste; a
+    // combined-area heuristic does not (frames can pass an area check yet
+    // still need more shelves than the clamped height holds, which would
+    // silently clip them out of the PNG while the JSON records
+    // out-of-bounds coordinates). Same for a single frame wider than the
+    // cap: it could never fit a shelf.
+    if (atlasH > kMaxAtlasDim || maxW > kMaxAtlasDim) {
+        qDebug() << "JsonAtlasExporter::exportAtlas: refusing to pack frames: required"
+                 << "atlas extent" << maxW << "x" << atlasH << "exceeds dimension cap"
+                 << kMaxAtlasDim;
         return false;
     }
+    atlasH = nextPow2(atlasH);
+    atlasH = qMin(atlasH, kMaxAtlasDim);
 
     // -- render PNG -------------------------------------------------------
     // J4.5: write to "<pngPath>.tmp" first; promote with QFile::rename

@@ -146,26 +146,56 @@ public:
     }
 
     // update *******************************************************************
+    //
+    // update*() methods are strictly update-only: an id that does not exist
+    // is a caller bug (e.g. a stale table cell), so the call warns and
+    // no-ops instead of silently inserting a half-initialized "ghost" entry
+    // through QMap::operator[].
 
     /// update image
     void updateImage(const InputImage &img) {
-        _images[img.id] = img;
+        const auto it = _images.find(img.id);
+        if (it == _images.end()) {
+            qWarning("SpriteState::updateImage: image %d not found; update ignored", img.id);
+            return;
+        }
+        it.value() = img;
         reloadImagePixmap(img.id);
         reloadFramePixmaps(img.id);
     }
 
     /// update frame
     void updateFrame(const LvkFrame &frame) {
-        _frames[frame.id] = frame;
+        const auto it = _frames.find(frame.id);
+        if (it == _frames.end()) {
+            qWarning("SpriteState::updateFrame: frame %d not found; update ignored", frame.id);
+            return;
+        }
+        it.value() = frame;
         reloadFramePixmap(frame);
     }
 
     /// update animation
-    void updateAnimation(const LvkAnimation &ani) { _animations[ani.id] = ani; }
+    void updateAnimation(const LvkAnimation &ani) {
+        const auto it = _animations.find(ani.id);
+        if (it == _animations.end()) {
+            qWarning("SpriteState::updateAnimation: animation %d not found; update ignored",
+                     ani.id);
+            return;
+        }
+        it.value() = ani;
+    }
 
     /// update aframe
     void updateAframe(const LvkAframe &aframe, Id aniId) {
-        _animations[aniId].aframe(aframe.id) = aframe;
+        const auto it = _animations.find(aniId);
+        if (it == _animations.end() || !it.value().hasAframe(aframe.id)) {
+            qWarning("SpriteState::updateAframe: animation %d or aframe %d not found; "
+                     "update ignored",
+                     aniId, aframe.id);
+            return;
+        }
+        it.value().aframe(aframe.id) = aframe;
     }
 
     // add *********************************************************************
@@ -186,6 +216,12 @@ public:
     /// then addAframe() auto-asigns an unique Id
     void addAframe(LvkAframe &aframe, Id aniId);
 
+    /// Insert an aframe at list position @param index inside animation
+    /// @param aniId (out-of-range positions degrade to append). Used by the
+    /// undo machinery so a removed aframe is restored at its original
+    /// playback position rather than at the end of the animation.
+    void insertAframe(const LvkAframe &aframe, Id aniId, int index);
+
     // remove ******************************************************************
 
     /// remove input image by id
@@ -201,7 +237,14 @@ public:
     void removeAnimation(Id id) { _animations.remove(id); }
 
     /// remove aframe @param id in animation @param aniId
-    void removeAframe(Id aframeId, Id aniId) { _animations[aniId].removeAframe(aframeId); }
+    void removeAframe(Id aframeId, Id aniId) {
+        const auto it = _animations.find(aniId);
+        if (it == _animations.end()) {
+            qWarning("SpriteState::removeAframe: animation %d not found; remove ignored", aniId);
+            return;
+        }
+        it.value().removeAframe(aframeId);
+    }
 
     // Custom header ***********************************************************
 
@@ -220,6 +263,7 @@ public:
         ErrCantOpenReadWriteMode,
         ErrInvalidFormat,
         ErrUnsafeOutputPath,
+        ErrCantExportFrame,
     } SpriteStateError;
 
     /// Export format flags (bit-mask). All == Cocos2d | Json.

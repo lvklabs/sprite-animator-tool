@@ -45,10 +45,16 @@ public:
         LvkAnimation ani;
         LvkAframe aframe;
 
+        /// list position of `aframe` inside its animation at the time a
+        /// st_removeAframe change was recorded; undo re-inserts at this
+        /// position so playback order survives a remove+undo. -1 = unset
+        /// (append).
+        int aframeIndex = -1;
+
         bool operator==(const Data &d) {
             return old_img == d.old_img && old_frame == d.old_frame && old_ani == d.old_ani &&
                    old_aframe == d.old_aframe && img == d.img && frame == d.frame && ani == d.ani &&
-                   aframe == d.aframe;
+                   aframe == d.aframe && aframeIndex == d.aframeIndex;
         }
     };
 

@@ -285,6 +285,20 @@ void SpriteState::addAframe(LvkAframe &aframe, Id aniId) {
     _animations[aniId]._aframes.append(aframe);
 }
 
+void SpriteState::insertAframe(const LvkAframe &aframe, Id aniId, int index) {
+    const auto it = _animations.find(aniId);
+    if (it == _animations.end()) {
+        qWarning("SpriteState::insertAframe: animation %d not found; insert ignored", aniId);
+        return;
+    }
+    _aframeId = std::max(_aframeId, aframe.id + 1);
+    QList<LvkAframe> &aframes = it.value()._aframes;
+    if (index < 0 || index > aframes.size()) {
+        index = aframes.size(); // out-of-range position degrades to append
+    }
+    aframes.insert(index, aframe);
+}
+
 void SpriteState::clear() {
     _imgId = 0;
     _frameId = 0;
@@ -1007,8 +1021,19 @@ static bool isSafeExportPath(const QString &sourceFilename, const QString &outpu
     if (sourceFilename.contains(QChar('\0'))) {
         return fail(QStringLiteral("filename contains NUL byte"));
     }
-    if (sourceFilename.contains(QStringLiteral(".."))) {
-        return fail(QStringLiteral("filename contains '..' traversal: ") + sourceFilename);
+    // Only a ".." path SEGMENT is traversal. A plain substring test would
+    // also fire on legitimate names with consecutive dots ("hero..final
+    // .lvks", a parent directory named "v1..v2"), rejecting safe exports
+    // with a misleading error. Split on both separator flavors so a
+    // Windows-style "a\\..\\b" is still caught on a POSIX build.
+    {
+        static const QRegularExpression kSepRe(QStringLiteral("[\\\\/]"));
+        const QStringList rawSegments = sourceFilename.split(kSepRe, Qt::SkipEmptyParts);
+        for (const QString &segment : rawSegments) {
+            if (segment == QStringLiteral("..")) {
+                return fail(QStringLiteral("filename contains '..' traversal: ") + sourceFilename);
+            }
+        }
     }
 
     // 2. Extract and validate the final filename component.
@@ -1213,7 +1238,24 @@ bool SpriteState::exportSprite(const QString &filename, const QString &outputDir
         // export only those frames that are used at least in one animation
         if (!isFrameUnused(frame.id)) {
             prevOffset = offset;
-            writeImageWithPostprocessing(binOutput, frame, postpScript);
+            if (!writeImageWithPostprocessing(binOutput, frame, postpScript)) {
+                // A frame that cannot be written (missing/unreadable source
+                // image, disk full, postprocessing failure) must fail the
+                // whole export: emitting a zero-length fpixmaps record and
+                // returning success would hand consumers a silently corrupt
+                // .lkob/.lkot pair. Remove the partial artifacts so a failed
+                // export cannot be mistaken for a finished one.
+                qDebug() << "Error: SpriteState::exportSprite(): failed to write frame"
+                         << frame.id << "-- aborting export";
+                binOutput.close();
+                textOutput.close();
+                headerOutput.close();
+                binOutput.remove();
+                textOutput.remove();
+                headerOutput.remove();
+                setError(err, ErrCantExportFrame);
+                return false;
+            }
             offset = binOutput.size();
             textStream << "\t" << frame.id << "," << prevOffset << "," << (offset - prevOffset)
                        << "\n";
@@ -1634,6 +1676,8 @@ const QString &SpriteState::errorMessage(SpriteStateError err) {
     static const QString strErrFileDoesNotExist = tr("File does not exist");
     static const QString strErrUnsafeOutputPath =
         tr("Output path escapes the destination directory");
+    static const QString strErrCantExportFrame =
+        tr("Cannot export a frame image (missing or unreadable source image?)");
     static const QString strErrUnknown = tr("Unknown error");
 
     switch (err) {
@@ -1651,6 +1695,8 @@ const QString &SpriteState::errorMessage(SpriteStateError err) {
         return strErrFileDoesNotExist;
     case ErrUnsafeOutputPath:
         return strErrUnsafeOutputPath;
+    case ErrCantExportFrame:
+        return strErrCantExportFrame;
     default:
         return strErrUnknown;
     }

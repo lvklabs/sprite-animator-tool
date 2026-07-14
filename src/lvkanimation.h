@@ -31,6 +31,9 @@ struct LvkAnimation {
     /// initializes the current instance from the string @param str
     bool fromString(const QString &str);
 
+    /// true if an aframe with id aframeId exists in this animation
+    bool hasAframe(Id aframeId) const;
+
     ///  get aframe with id aframeId
     LvkAframe &aframe(Id aframeId);
 

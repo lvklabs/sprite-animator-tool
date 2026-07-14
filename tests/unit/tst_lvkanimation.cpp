@@ -137,9 +137,17 @@ void TestLvkAnimation::testSwapAframes()
     ani.addAframe(LvkAframe(20, 101, 250));
     ani.addAframe(LvkAframe(30, 102, 300));
     ani.swapAframes(10, 30);
-    QCOMPARE(ani._aframes.at(0).id, 30);
+    // The CONTENT swaps; the ids stay position-stable. save() serializes
+    // aframes sorted by id, so ids must always denote list positions or a
+    // GUI reorder would be silently undone by the next save/load.
+    QCOMPARE(ani._aframes.at(0).id, 10);
+    QCOMPARE(ani._aframes.at(0).frameId, 102);
+    QCOMPARE(ani._aframes.at(0).delay, 300);
     QCOMPARE(ani._aframes.at(1).id, 20);
-    QCOMPARE(ani._aframes.at(2).id, 10);
+    QCOMPARE(ani._aframes.at(1).frameId, 101);
+    QCOMPARE(ani._aframes.at(2).id, 30);
+    QCOMPARE(ani._aframes.at(2).frameId, 100);
+    QCOMPARE(ani._aframes.at(2).delay, 200);
 }
 
 void TestLvkAnimation::testEqualityOperator()

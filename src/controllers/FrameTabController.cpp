@@ -417,18 +417,26 @@ void FrameTabController::updateFramesTable(int row, int col) {
         }
         break;
     case ColFrameW:
-        if (ok) {
+        // Same bounds as LvkFrame::fromString: out-of-range dimensions
+        // would save fine and be silently dropped on the next load.
+        if (ok && i >= 1 && i <= LvkFrame::kMaxDim) {
             frame.w = i;
         } else {
-            infoDialog(tr("Invalid frame width."), m_mw);
+            ok = false;
+            infoDialog(tr("Invalid frame width. Use a value between 1 and %1")
+                           .arg(LvkFrame::kMaxDim),
+                       m_mw);
             setCellInt(col, frame.w);
         }
         break;
     case ColFrameH:
-        if (ok) {
+        if (ok && i >= 1 && i <= LvkFrame::kMaxDim) {
             frame.h = i;
         } else {
-            infoDialog(tr("Invalid frame height."), m_mw);
+            ok = false;
+            infoDialog(tr("Invalid frame height. Use a value between 1 and %1")
+                           .arg(LvkFrame::kMaxDim),
+                       m_mw);
             setCellInt(col, frame.h);
         }
         break;

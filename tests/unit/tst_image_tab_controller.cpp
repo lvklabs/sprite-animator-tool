@@ -84,7 +84,12 @@ void TestImageTabController::testAddImageIncrementsStateAndTable()
     QCOMPARE(mw.state().images().size(), 1);
     QCOMPARE(mw.uiPtr()->imgTableWidget->rowCount(), 1);
     QVERIFY(mw.state().images().contains(newId));
-    QCOMPARE(mw.state().const_image(newId).filename, fixtureImagePath());
+    // addImage() stores paths relative to the CWD (the .lvks format only
+    // round-trips relative paths), so the absolute fixture path comes
+    // back as "examples/mario1.png".
+    QCOMPARE(mw.state().const_image(newId).filename,
+             QStringLiteral("examples") + QDir::separator()
+                 + QStringLiteral("mario1.png"));
 }
 
 void TestImageTabController::testAddTwoImagesIdsAreSequential()

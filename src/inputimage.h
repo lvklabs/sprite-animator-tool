@@ -10,6 +10,17 @@
 // every translation unit that just wants InputImage.
 enum class LvkVersion;
 
+namespace lvk {
+
+/// SECURITY: true if `path` is safe to hand to QPixmap()/QImage(): no
+/// absolute path, Windows drive/UNC prefix, '..' traversal, '~' prefix, or
+/// embedded NUL. Enforced on the .lvks load path (InputImage::fromString)
+/// and on every GUI path that can introduce a filename, so a value the GUI
+/// accepts is never rejected -- and silently dropped -- on the next load.
+bool isSafeImagePath(const QString &path);
+
+} // namespace lvk
+
 /// Input image abstraction
 struct InputImage {
     InputImage(Id id = NullId, const QString &filename = "", double scale = 1.0);
@@ -18,6 +29,13 @@ struct InputImage {
     enum {
         PNG,
     };
+
+    /// Bounds for the image scale factor. The upper bound mirrors the
+    /// 8192px frame-dimension cap: a 4096px sheet at x16 already hits a
+    /// 65536px pixmap; anything beyond is either a typo or an OOM/overflow
+    /// attack via a hand-edited .lvks (see fromString()).
+    static constexpr double kMinScale = 0.001;
+    static constexpr double kMaxScale = 16.0;
 
     // TODO move this as private members
     Id id;            /* image id */

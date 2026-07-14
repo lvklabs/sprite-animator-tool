@@ -21,6 +21,7 @@
 #include <QTemporaryDir>
 #include <QDir>
 #include <QFile>
+#include <QImage>
 #include <QString>
 #include <QStringList>
 #include <QTextStream>
@@ -51,11 +52,14 @@ private:
     // Load the header file written by exportSprite and return its full text.
     static QString readHeader(const QString& dir, const QString& baseName);
 
-    // Populate `st` with a minimal valid SpriteState: one image, one
-    // frame, and a single animation with the supplied display name.
-    // SpriteState inherits QObject, which disables copy/move, so we
-    // populate-in-place rather than returning by value.
+    // Populate `st` with a minimal valid SpriteState: one image (a real
+    // 16x16 png written into `dir` -- exportSprite now fails hard when a
+    // used frame's pixmap cannot be written), one frame, and a single
+    // animation with the supplied display name. SpriteState inherits
+    // QObject, which disables copy/move, so we populate-in-place rather
+    // than returning by value.
     static void fillMinimalStateWithAnimationName(SpriteState& st,
+                                                  const QString& dir,
                                                   const QString& name);
 };
 
@@ -74,11 +78,17 @@ QString TstUnicodeNames::readHeader(const QString& dir, const QString& baseName)
 }
 
 void TstUnicodeNames::fillMinimalStateWithAnimationName(SpriteState& st,
+                                                        const QString& dir,
                                                         const QString& name)
 {
-    InputImage img;
-    img.id = 0;
-    img.filename = QStringLiteral("nonexistent.png");
+    const QString pngPath = dir + QDir::separator() + QStringLiteral("solo_img.png");
+    {
+        QImage pixels(16, 16, QImage::Format_ARGB32);
+        pixels.fill(Qt::red);
+        QVERIFY(pixels.save(pngPath));
+    }
+
+    InputImage img(0, pngPath);
     st.addImage(img);
 
     LvkFrame frame(0, /*imgId=*/0, /*ox=*/0, /*oy=*/0, /*w=*/16, /*h=*/16,
@@ -112,7 +122,7 @@ void TstUnicodeNames::unicodeAnimationNameYieldsAsciiMacro()
         "\xe8\xb9\xb4"   // 蹴
         "\xe3\x82\x8a"); // り
     SpriteState st;
-    fillMinimalStateWithAnimationName(st, kanji);
+    fillMinimalStateWithAnimationName(st, tmpDir.path(), kanji);
 
     const QString baseName = QStringLiteral("unicode_anim.lvks");
     QVERIFY(st.exportSprite(baseName, tmpDir.path(), QString(),
@@ -178,9 +188,14 @@ void TstUnicodeNames::collidingMacroNamesGetUniqueSuffixes()
     // two `#define ANIM_FLY` lines and the header would not compile.
     SpriteState st;
 
-    InputImage img;
-    img.id = 0;
-    img.filename = QStringLiteral("nonexistent.png");
+    const QString pngPath = tmpDir.path() + QDir::separator()
+        + QStringLiteral("solo_img.png");
+    {
+        QImage pixels(16, 16, QImage::Format_ARGB32);
+        pixels.fill(Qt::red);
+        QVERIFY(pixels.save(pngPath));
+    }
+    InputImage img(0, pngPath);
     st.addImage(img);
 
     LvkFrame frame(0, 0, 0, 0, 16, 16, QStringLiteral("solo"));
@@ -291,7 +306,7 @@ void TstUnicodeNames::saveReturnsFalseOnAnimationNameWithComma()
     QVERIFY(tmpDir.isValid());
 
     SpriteState st;
-    fillMinimalStateWithAnimationName(st, QStringLiteral("a,b"));
+    fillMinimalStateWithAnimationName(st, tmpDir.path(), QStringLiteral("a,b"));
 
     const QString out = tmpDir.path() + QDir::separator()
         + QStringLiteral("bad_animation.lvks");
@@ -359,7 +374,10 @@ void TstUnicodeNames::saveReturnsFalseOnAnimationNameWithComma()
                 .entryList(QDir::Files | QDir::Hidden | QDir::NoDotAndDotDot);
         QStringList unexpected;
         for (const QString &name : contents) {
-            if (name != QStringLiteral("bad_animation.lvks")) {
+            if (name != QStringLiteral("bad_animation.lvks")
+                && name != QStringLiteral("solo_img.png")) {
+                // solo_img.png is the fixture's backing image, written
+                // by fillMinimalStateWithAnimationName().
                 unexpected << name;
             }
         }

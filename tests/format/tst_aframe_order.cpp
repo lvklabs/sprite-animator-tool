@@ -21,6 +21,8 @@
 #include <QTemporaryDir>
 #include <QDir>
 #include <QFile>
+#include <QImage>
+#include <QScopeGuard>
 #include <QString>
 #include <QTextStream>
 
@@ -48,6 +50,18 @@ private slots:
 namespace {
 QString writeNonseqFixture(QTemporaryDir& tmpDir)
 {
+    // A real backing image: exportSprite() now fails hard (with
+    // ErrCantExportFrame) when a used frame's pixmap cannot be written,
+    // so fixtures that export must reference an image that exists.
+    // Loading resolves the relative filename against the CWD; tests that
+    // export chdir into tmpDir first.
+    QImage img(16, 16, QImage::Format_ARGB32);
+    img.fill(Qt::red);
+    if (!img.save(tmpDir.path() + QDir::separator()
+                  + QStringLiteral("solo_img.png"))) {
+        return QString();
+    }
+
     const QString path = tmpDir.path() + QDir::separator()
         + QStringLiteral("nonseq_aframes.lvks");
     QFile f(path);
@@ -59,7 +73,7 @@ QString writeNonseqFixture(QTemporaryDir& tmpDir)
     ts << "### LvkSprite ##\n";
     ts << "LvkSprite version 0.1\n\n";
     ts << "images(\n";
-    ts << "\t0,nonexistent.png\n";
+    ts << "\t0,solo_img.png\n";
     ts << ")\n\n";
     ts << "frames(\n";
     ts << "\t0,solo,0,0,0,16,16\n";
@@ -235,6 +249,12 @@ void TstAframeOrder::lkotExportSortsAframesById()
 
     const QString path = writeNonseqFixture(tmpDir);
     QVERIFY(!path.isEmpty());
+
+    // chdir into the fixture dir so the relative image path in the
+    // .lvks resolves (mirrors what the GUI/CLI do before loading).
+    const QString savedCwd = QDir::currentPath();
+    QVERIFY(QDir::setCurrent(tmpDir.path()));
+    auto restoreCwd = qScopeGuard([&] { QDir::setCurrent(savedCwd); });
 
     SpriteState st;
     SpriteStateError err = SpriteState::ErrNone;

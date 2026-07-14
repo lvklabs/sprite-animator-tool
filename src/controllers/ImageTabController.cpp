@@ -176,6 +176,23 @@ Id ImageTabController::addImage(const InputImage &image) {
             errorDialog(errMsg, m_mw);
             return NullId; // gate: reject => no state, no UI
         }
+        // The .lvks format stores image paths relative to the sprite
+        // directory; convert absolute paths the way addImageDialog()
+        // does so programmatic callers get the same treatment.
+        if (QFileInfo(image_.filename).isAbsolute()) {
+            image_.filename = toRelativePath(image_.filename);
+        }
+        // Mirror the load path's safety gate: a path the loader would
+        // reject (absolute remainder, '..' escape, UNC, ...) must not be
+        // accepted here, or it saves fine and silently disappears on the
+        // next open.
+        if (!lvk::isSafeImagePath(image_.filename)) {
+            errorDialog(tr("The image must live inside the sprite directory "
+                           "(its path is stored relative to the .lvks file): ") +
+                            image_.filename,
+                        m_mw);
+            return NullId; // gate: reject => no state, no UI
+        }
         m_state->addImage(image_);
     }
     addImage_ui(image_);
@@ -277,9 +294,11 @@ void ImageTabController::removeImage(int row) {
 
     m_state->removeImage(imgId);
 
-    // remove frames that use this image
+    // remove frames that use this image. Iterate backwards: removeFrame()
+    // removes the table row, shifting later rows up, so a forward loop
+    // would skip the row that slides into the just-removed position.
     FrameTabController *frames = m_mw->frames();
-    for (int r = 0; r < m_ui->framesTableWidget->rowCount(); ++r) {
+    for (int r = m_ui->framesTableWidget->rowCount() - 1; r >= 0; --r) {
         if (frames->getFrameImgId(r) == imgId) {
             frames->removeFrame(r);
         }
@@ -343,20 +362,46 @@ void ImageTabController::updateImgTable(int row, int col) {
             infoDialog(tr("Image filename cannot contain the character ','"), m_mw);
             setCellStr(col, img.filename);
         } else if (newValue != img.filename) {
-            img.filename = newValue;
-            img.reloadImage();
-            if (!QFileInfo(newValue).exists()) {
-                errorDialog(tr("The file does not exist"), m_mw);
-            } else if (img.pixmap.isNull()) {
-                errorDialog(tr("The file contains an invalid image format"), m_mw);
+            // Apply the same gates as the add-image and load paths. A
+            // value accepted here but rejected by the loader would save
+            // fine and then be silently dropped on the next open --
+            // delayed data loss. Absolute paths get a relative-path
+            // conversion attempt first (matching addImageDialog()).
+            QString candidate = newValue;
+            if (QFileInfo(candidate).isAbsolute()) {
+                candidate = toRelativePath(candidate);
             }
-            m_state->updateImage(img);
-            setCellStr(col, img.filename);
+            QString errMsg;
+            if (!validateImageFile(candidate, &errMsg)) {
+                errorDialog(errMsg, m_mw);
+                setCellStr(col, img.filename);
+            } else if (!lvk::isSafeImagePath(candidate)) {
+                errorDialog(tr("The image path must be relative to the sprite "
+                               "directory (no absolute paths or '..')"),
+                            m_mw);
+                setCellStr(col, img.filename);
+            } else {
+                img.filename = candidate;
+                img.reloadImage();
+                if (!QFileInfo(candidate).exists()) {
+                    errorDialog(tr("The file does not exist"), m_mw);
+                } else if (img.pixmap.isNull()) {
+                    errorDialog(tr("The file contains an invalid image format"), m_mw);
+                }
+                m_state->updateImage(img);
+                setCellStr(col, img.filename);
+            }
         }
         break;
     case ColImageScale:
-        if (!ok) {
-            infoDialog(tr("Invalid image scale"), m_mw);
+        if (!ok || newScale < InputImage::kMinScale || newScale > InputImage::kMaxScale) {
+            // Same bounds as InputImage::fromString: values outside the
+            // range would save fine and be rejected on the next load.
+            ok = false;
+            infoDialog(tr("Invalid image scale. Use a value between %1 and %2")
+                           .arg(InputImage::kMinScale)
+                           .arg(InputImage::kMaxScale),
+                       m_mw);
             setCellDbl(col, img.scale());
         } else if (newScale != img.scale()) {
             img.scale(newScale);

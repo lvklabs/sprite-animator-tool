@@ -102,7 +102,10 @@ bool SpriteState2::undo(StateChange &st) {
         SpriteState::addAnimation(st.data.ani);
         break;
     case StateCircularBuffer::st_removeAframe:
-        SpriteState::addAframe(st.data.aframe, st.data.ani.id);
+        // Restore at the recorded list position (not append): playback and
+        // JSON export follow in-memory order, so undo must put the aframe
+        // back exactly where it was.
+        SpriteState::insertAframe(st.data.aframe, st.data.ani.id, st.data.aframeIndex);
         break;
 
     default:
@@ -302,15 +305,25 @@ void SpriteState2::clear() {
 }
 
 // update *******************************************************************
+//
+// Like the SpriteState base methods, the update*/remove* overrides reject
+// unknown ids up front. Reaching into QMap::operator[] with a stale id
+// (e.g. from a mis-edited table cell) would both insert a ghost entry and
+// push a bogus StateChange whose undo re-creates the ghost.
 
 void SpriteState2::updateImage(const InputImage &img) {
-    if (img == _images[img.id]) {
+    const auto it = _images.constFind(img.id);
+    if (it == _images.constEnd()) {
+        qWarning("SpriteState2::updateImage: image %d not found; update ignored", img.id);
+        return;
+    }
+    if (img == it.value()) {
         return;
     }
 
     StateChange st;
     st.type = StateCircularBuffer::st_updateImage;
-    st.data.old_img = _images[img.id];
+    st.data.old_img = it.value();
     st.data.old_img.freeImageData();
     st.data.img = img;
     st.data.img.freeImageData();
@@ -320,13 +333,18 @@ void SpriteState2::updateImage(const InputImage &img) {
 }
 
 void SpriteState2::updateFrame(const LvkFrame &frame) {
-    if (frame == _frames[frame.id]) {
+    const auto it = _frames.constFind(frame.id);
+    if (it == _frames.constEnd()) {
+        qWarning("SpriteState2::updateFrame: frame %d not found; update ignored", frame.id);
+        return;
+    }
+    if (frame == it.value()) {
         return;
     }
 
     StateChange st;
     st.type = StateCircularBuffer::st_updateFrame;
-    st.data.old_frame = _frames[frame.id];
+    st.data.old_frame = it.value();
     st.data.frame = frame;
     _stBuffer.addState(st);
 
@@ -334,13 +352,18 @@ void SpriteState2::updateFrame(const LvkFrame &frame) {
 }
 
 void SpriteState2::updateAnimation(const LvkAnimation &ani) {
-    if (ani == _animations[ani.id]) {
+    const auto it = _animations.constFind(ani.id);
+    if (it == _animations.constEnd()) {
+        qWarning("SpriteState2::updateAnimation: animation %d not found; update ignored", ani.id);
+        return;
+    }
+    if (ani == it.value()) {
         return;
     }
 
     StateChange st;
     st.type = StateCircularBuffer::st_updateAnimation;
-    st.data.old_ani = _animations[ani.id];
+    st.data.old_ani = it.value();
     st.data.ani = ani;
     _stBuffer.addState(st);
 
@@ -348,14 +371,21 @@ void SpriteState2::updateAnimation(const LvkAnimation &ani) {
 }
 
 void SpriteState2::updateAframe(const LvkAframe &aframe, Id aniId) {
-    if (aframe == _animations[aniId].aframe(aframe.id)) {
+    const auto it = _animations.constFind(aniId);
+    if (it == _animations.constEnd() || !it.value().hasAframe(aframe.id)) {
+        qWarning("SpriteState2::updateAframe: animation %d or aframe %d not found; "
+                 "update ignored",
+                 aniId, aframe.id);
+        return;
+    }
+    if (aframe == it.value().aframe(aframe.id)) {
         return;
     }
 
     StateChange st;
     st.type = StateCircularBuffer::st_updateAframe;
     st.data.ani.id = aniId;
-    st.data.old_aframe = _animations[aniId].aframe(aframe.id);
+    st.data.old_aframe = it.value().aframe(aframe.id);
     st.data.aframe = aframe;
     _stBuffer.addState(st);
 
@@ -405,9 +435,15 @@ void SpriteState2::addAframe(LvkAframe &aframe, Id aniId) {
 // remove ******************************************************************
 
 void SpriteState2::removeImage(Id id) {
+    const auto it = _images.constFind(id);
+    if (it == _images.constEnd()) {
+        qWarning("SpriteState2::removeImage: image %d not found; remove ignored", id);
+        return;
+    }
+
     StateChange st;
     st.type = StateCircularBuffer::st_removeImage;
-    st.data.img = _images[id];
+    st.data.img = it.value();
     st.data.img.freeImageData();
     _stBuffer.addState(st);
 
@@ -415,28 +451,58 @@ void SpriteState2::removeImage(Id id) {
 }
 
 void SpriteState2::removeFrame(Id id) {
+    const auto it = _frames.constFind(id);
+    if (it == _frames.constEnd()) {
+        qWarning("SpriteState2::removeFrame: frame %d not found; remove ignored", id);
+        return;
+    }
+
     StateChange st;
     st.type = StateCircularBuffer::st_removeFrame;
-    st.data.frame = _frames[id];
+    st.data.frame = it.value();
     _stBuffer.addState(st);
 
     SpriteState::removeFrame(id);
 }
 
 void SpriteState2::removeAnimation(Id id) {
+    const auto it = _animations.constFind(id);
+    if (it == _animations.constEnd()) {
+        qWarning("SpriteState2::removeAnimation: animation %d not found; remove ignored", id);
+        return;
+    }
+
     StateChange st;
     st.type = StateCircularBuffer::st_removeAnimation;
-    st.data.ani = _animations[id];
+    st.data.ani = it.value();
     _stBuffer.addState(st);
 
     SpriteState::removeAnimation(id);
 }
 
 void SpriteState2::removeAframe(Id aframeId, Id aniId) {
+    const auto it = _animations.constFind(aniId);
+    if (it == _animations.constEnd() || !it.value().hasAframe(aframeId)) {
+        qWarning("SpriteState2::removeAframe: animation %d or aframe %d not found; "
+                 "remove ignored",
+                 aniId, aframeId);
+        return;
+    }
+
     StateChange st;
     st.type = StateCircularBuffer::st_removeAframe;
-    st.data.aframe = _animations[aniId].aframe(aframeId);
+    st.data.aframe = it.value().aframe(aframeId);
     st.data.ani.id = aniId;
+    // Record the list position so undo() can restore the aframe where it
+    // was: playback order follows the in-memory list, so a plain append
+    // on undo would visibly reorder the animation.
+    st.data.aframeIndex = 0;
+    for (const LvkAframe &af : it.value()._aframes) {
+        if (af.id == aframeId) {
+            break;
+        }
+        ++st.data.aframeIndex;
+    }
     _stBuffer.addState(st);
 
     SpriteState::removeAframe(aframeId, aniId);

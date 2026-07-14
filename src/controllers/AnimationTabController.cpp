@@ -184,6 +184,11 @@ void AnimationTabController::addAnimation_ui(const LvkAnimation &ani) {
     QTableWidgetItem *item_name = new QTableWidgetItem(ani.name);
     QTableWidgetItem *item_flags = new QTableWidgetItem(toHexString(ani.flags));
 
+    // The Id column is the key every other lookup relies on. Once an edit
+    // lands in the cell the original id is unrecoverable, so forbid editing
+    // at the item level instead of trying to revert in updateAniTable().
+    item_id->setFlags(item_id->flags() & ~Qt::ItemIsEditable);
+
     {
         QSignalBlocker blocker(m_ui->aniTableWidget);
         m_ui->aniTableWidget->setRowCount(rows + 1);
@@ -212,6 +217,12 @@ void AnimationTabController::addAframe_ui(const LvkAframe &aframe, Id aniId) {
     QTableWidgetItem *item_ox = new QTableWidgetItem(QString::number(aframe.ox));
     QTableWidgetItem *item_oy = new QTableWidgetItem(QString::number(aframe.oy));
     QTableWidgetItem *item_aniId = new QTableWidgetItem(QString::number(aniId));
+
+    // Id and AniId are lookup keys; both columns are hidden in the GUI, but
+    // forbid editing at the item level too so a stale cell can never feed a
+    // phantom id into the state (see updateAframesTable()).
+    item_id->setFlags(item_id->flags() & ~Qt::ItemIsEditable);
+    item_aniId->setFlags(item_aniId->flags() & ~Qt::ItemIsEditable);
 
     int rows = m_ui->aframesTableWidget->rowCount();
 
@@ -337,12 +348,19 @@ void AnimationTabController::moveSelAframe(int offset) {
         return;
     }
     LvkAnimation ani = m_state->const_animation(selectedAniId());
-    ani.swapAframes(getAframeId(currentRow), getAframeId(targetRow));
+    const Id idAtCurrent = getAframeId(currentRow);
+    const Id idAtTarget = getAframeId(targetRow);
+    ani.swapAframes(idAtCurrent, idAtTarget);
     m_state->updateAnimation(ani);
 
     {
         QSignalBlocker blocker(table);
         table->swapRows(currentRow, targetRow);
+        // swapAframes() keeps ids position-stable (content moves, ids
+        // stay), but swapRows() moved every column including the hidden
+        // Id cells -- put those back so the table mirrors the state.
+        table->item(currentRow, ColAframeId)->setText(QString::number(idAtCurrent));
+        table->item(targetRow, ColAframeId)->setText(QString::number(idAtTarget));
     }
 
     previewAnimation();
@@ -358,8 +376,14 @@ void AnimationTabController::invertAframesOrder() {
         QSignalBlocker blocker(table);
         for (int r = 0; r < rowCount / 2; r++) {
             int r2 = rowCount - r - 1;
-            ani.swapAframes(getAframeId(r), getAframeId(r2));
+            const Id idAtR = getAframeId(r);
+            const Id idAtR2 = getAframeId(r2);
+            ani.swapAframes(idAtR, idAtR2);
             table->swapRows(r, r2);
+            // Keep the hidden Id cells position-stable, mirroring
+            // swapAframes() semantics (see moveSelAframe()).
+            table->item(r, ColAframeId)->setText(QString::number(idAtR));
+            table->item(r2, ColAframeId)->setText(QString::number(idAtR2));
         }
     }
 
@@ -612,7 +636,9 @@ void AnimationTabController::updateAniTable(int row, int col) {
             setCellStr(col, toHexString(ani.flags));
         } else {
             bool ok = false;
-            unsigned flags = newValue.toInt(&ok, 16);
+            // toUInt: the full 32-bit hex range is valid (toInt rejects
+            // anything >= 0x80000000, contradicting the dialog text).
+            unsigned flags = newValue.toUInt(&ok, 16);
             if (ok) {
                 ani.flags = flags;
                 m_state->updateAnimation(ani);

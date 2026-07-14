@@ -8,7 +8,8 @@
 
 LvkFrameDefWidget::LvkFrameDefWidget(QWidget *parent)
     : LvkInputImageWidget(parent), _frect(0, 0, 0, 0), _mrect(0, 0, 0, 0), _activeRect(0),
-      _draggingRect(false), _hGuide(true) {
+      _mouseClickX(0), _mouseClickY(0), _draggingRect(false), _resizingRect(ResizeNull),
+      _hGuide(true) {
     registerRect(&_frect);
     registerRect(&_mrect);
 

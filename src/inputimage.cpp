@@ -2,10 +2,12 @@
 #include <QFileInfo>
 #include <QStringList>
 
+#include <cmath>
+
 #include "inputimage.h"
 #include "spritestate.h"
 
-namespace {
+namespace lvk {
 
 // SECURITY (Phase 4): Reject attacker-controlled image paths read from a
 // .lvks file. The file format itself only ever ships relative filenames
@@ -56,7 +58,7 @@ bool isSafeImagePath(const QString &path) {
     return true;
 }
 
-} // namespace
+} // namespace lvk
 
 InputImage::InputImage(Id id, const QString &filename, double scale)
     : id(id), filename(filename), pixmap(QPixmap(filename)), _scale(scale) {}
@@ -100,7 +102,7 @@ bool InputImage::fromString(const QString &str) {
         // their NullId/empty sentinels so the caller sees an unambiguously
         // invalid InputImage and the rest of the load pipeline (which
         // checks fromString's return) bails on this entry.
-        if (!isSafeImagePath(candidateFilename)) {
+        if (!lvk::isSafeImagePath(candidateFilename)) {
             // Team B3 (Phase 6c): use qWarning rather than qDebug so the
             // message reaches the default Qt logging stream and is
             // visible to CLI users running headless (release builds
@@ -120,9 +122,28 @@ bool InputImage::fromString(const QString &str) {
             return false;
         }
 
+        // SECURITY: bound the scale factor. A hand-edited/malicious scale
+        // (huge, non-positive, NaN/inf, or non-numeric) is rejected like an
+        // unsafe path -- clamping instead would silently alter the sprite.
+        double candidateScale = 1.0;
+        if (list.size() >= 3) {
+            bool scaleOk = false;
+            candidateScale = list.at(2).toDouble(&scaleOk);
+            if (!scaleOk || !std::isfinite(candidateScale) || candidateScale < kMinScale ||
+                candidateScale > kMaxScale) {
+                qWarning() << "InputImage::fromString: rejected out-of-range image scale:"
+                           << list.at(2);
+                id = NullId;
+                filename = QString();
+                _scale = 1.0;
+                pixmap = QPixmap();
+                return false;
+            }
+        }
+
         id = list.at(0).toInt();
         filename = candidateFilename;
-        _scale = (list.size() >= 3) ? list.at(2).toDouble() : 1.0;
+        _scale = candidateScale;
 
         if (_scale == 1.0) {
             pixmap = QPixmap(filename);
@@ -147,9 +168,22 @@ void InputImage::scale(double scale) {
 
     QPixmap origPixmap(filename);
     if (!origPixmap.isNull()) {
-        int w = origPixmap.width() * _scale;
-        int h = origPixmap.height() * _scale;
-        pixmap = origPixmap.scaled(w, h, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        // Guard the double->int conversion: for out-of-range values the
+        // conversion is undefined behavior, and even in-range results can
+        // request absurd allocations. 65536px per side is already 4x the
+        // 16384px atlas cap; refuse anything larger.
+        const double w = origPixmap.width() * _scale;
+        const double h = origPixmap.height() * _scale;
+        constexpr double kMaxPixmapDim = 65536.0;
+        if (!std::isfinite(w) || !std::isfinite(h) || w < 0 || h < 0 || w > kMaxPixmapDim ||
+            h > kMaxPixmapDim) {
+            qWarning() << "InputImage::scale: refusing scaled pixmap of" << w << "x" << h
+                       << "for" << filename;
+            pixmap = QPixmap();
+            return;
+        }
+        pixmap = origPixmap.scaled(static_cast<int>(w), static_cast<int>(h), Qt::KeepAspectRatio,
+                                   Qt::SmoothTransformation);
     } else {
         pixmap = QPixmap();
     }

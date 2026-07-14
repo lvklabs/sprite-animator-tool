@@ -51,8 +51,11 @@ bool TstPathTraversal::writeMinimalSprite(const QString& path)
     ts << ")\n\n";
     ts << "animations(\n";
     ts << "\t0,a,0\n";
+    // No aframes: frame 0 stays unused, so the Cocos2d exporter never
+    // needs a real pixmap for it (exportSprite now fails hard when a
+    // USED frame's image cannot be written). This keeps the fixture
+    // focused on path safety rather than image plumbing.
     ts << "\taframes(\n";
-    ts << "\t\t0,0,200,0,0,0\n";
     ts << "\t)\n";
     ts << ")\n\n";
     return true;

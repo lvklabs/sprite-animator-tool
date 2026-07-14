@@ -30,22 +30,26 @@ bool ExportController::isAllFilesFilter(const QString &f) {
 
 ExportController::ExportController(MainWindow *mw, Ui::MainWindow *ui, SpriteState2 *state,
                                    QObject *parent)
-    : QObject(parent), m_mw(mw), m_ui(ui), m_state(state) {}
+    : QObject(parent), m_mw(mw), m_ui(ui), m_state(state),
+      m_exportFormat(SpriteState::Cocos2d) {}
 
 void ExportController::wireSignals() {
     connect(m_ui->actionExport, &QAction::triggered, this, &ExportController::exportFile);
     connect(m_ui->actionExportAs, &QAction::triggered, this, &ExportController::exportAsFile);
 }
 
-void ExportController::setCurrentExportFile(const QString &exportFileName) {
+void ExportController::setCurrentExportFile(const QString &exportFileName, int format) {
     m_exportFileName = exportFileName;
+    m_exportFormat = (format < 0) ? SpriteState::Cocos2d : format;
 }
 
 void ExportController::exportFile() {
     if (m_exportFileName.isEmpty()) {
         exportAsFile();
     } else {
-        runExport(m_exportFileName, SpriteState::Cocos2d);
+        // Repeat the last export with the format the user picked then;
+        // hardcoding Cocos2d here left JSON/All targets silently stale.
+        runExport(m_exportFileName, m_exportFormat);
     }
 }
 
@@ -117,7 +121,7 @@ void ExportController::exportAsFile() {
     }
 
     runExport(exportFileName, fmt);
-    setCurrentExportFile(exportFileName);
+    setCurrentExportFile(exportFileName, fmt);
 }
 
 void ExportController::exportAsJsonAtlas() {
@@ -129,6 +133,7 @@ void ExportController::exportAsJsonAtlas() {
         return;
     last = filename;
     runExport(filename, SpriteState::Json);
+    setCurrentExportFile(filename, SpriteState::Json);
 }
 
 void ExportController::exportAllFormats() {
@@ -145,6 +150,7 @@ void ExportController::exportAllFormats() {
         filename.append(QStringLiteral(".lvks"));
     last = filename;
     runExport(filename, SpriteState::All);
+    setCurrentExportFile(filename, SpriteState::All);
 }
 
 void ExportController::runExport(const QString &filename, int format) {

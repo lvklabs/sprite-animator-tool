@@ -15,6 +15,12 @@ struct LvkFrame {
 
     LvkFrame(const QString &str);
 
+    /// Maximum frame width/height accepted by the loader (largest texture
+    /// dimension shipping GPUs reliably support). GUI edit paths enforce
+    /// the same bound so a value accepted in-session is never rejected --
+    /// and silently dropped -- on the next load.
+    static constexpr int kMaxDim = 8192;
+
     // TODO move this as private members
     Id id;        /* frame id */
     Id imgId;     /* input image id */

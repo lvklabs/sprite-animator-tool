@@ -40,7 +40,7 @@ bool LvkFrame::fromString(const QString &str) {
         // (4*w*h bytes for ARGB32) or in QPixmap::copy(). 8192 is the
         // largest texture dim shipping GPUs reliably support, so anything
         // above it is presumed malicious or corrupt.
-        if (parsedW <= 0 || parsedH <= 0 || parsedW > 8192 || parsedH > 8192) {
+        if (parsedW <= 0 || parsedH <= 0 || parsedW > kMaxDim || parsedH > kMaxDim) {
             // Team B3 (Phase 6c): qWarning rather than qDebug so the
             // rejected frame name is visible to CLI users (release
             // builds strip qDebug). The record is dropped silently
